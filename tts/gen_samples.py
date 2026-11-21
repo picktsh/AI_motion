@@ -6,16 +6,29 @@ Each sample uses a short line matched to the voice's temperament.
 Rate and pitch are kept at neutral (+0% / +0Hz) so the base timbre is comparable.
 """
 import json
+import shutil
 import subprocess
 from pathlib import Path
 
 import edge_tts
 
 HERE = Path(__file__).resolve().parent
+ROOT = HERE.parent
 OUT = HERE / "samples"
 OUT.mkdir(parents=True, exist_ok=True)
 
-FFPROBE = Path("/Volumes/Disk/AI_motion/bin/ffprobe")
+
+def _find_ffprobe() -> Path:
+    found = shutil.which("ffprobe")
+    if found:
+        return Path(found)
+    local = ROOT / "bin" / "ffprobe"
+    if local.exists():
+        return local
+    raise FileNotFoundError("ffprobe not found on PATH or in <project-root>/bin")
+
+
+FFPROBE = _find_ffprobe()
 
 # id, voice, label, style, text, rate, pitch
 SAMPLES = [

@@ -4,7 +4,7 @@
     "windowStart": 0.0,
     "windowEnd": 8.0,
     "text": "最近刷到 AI 自动剪辑，博主阿杜讲它方便快捷又高效，我一下就来了兴趣。",
-    "audio": "D:\\AI_motion\\tts\\segments\\B1.mp3",
+    "audio": "tts/segments/B1.mp3",
     "bounds": [
       {
         "text": "最近",
@@ -108,7 +108,7 @@
     "windowStart": 8.0,
     "windowEnd": 18.0,
     "text": "于是我顺着他的视频一路往下深挖，翻介绍、看思路，一点点把流程弄明白。",
-    "audio": "D:\\AI_motion\\tts\\segments\\B2.mp3",
+    "audio": "tts/segments/B2.mp3",
     "bounds": [
       {
         "text": "于是",
@@ -212,7 +212,7 @@
     "windowStart": 18.0,
     "windowEnd": 28.0,
     "text": "以前剪片费时费力，现在自动出片省心不少；摸清工具思路以后，第一条成片比我预想的成型得更快。",
-    "audio": "D:\\AI_motion\\tts\\segments\\B3.mp3",
+    "audio": "tts/segments/B3.mp3",
     "bounds": [
       {
         "text": "以前",
@@ -341,7 +341,7 @@
     "windowStart": 28.0,
     "windowEnd": 36.0,
     "text": "就从这一条视频开始，我深挖琢磨，交出了自己的第一条片子。",
-    "audio": "D:\\AI_motion\\tts\\segments\\B4.mp3",
+    "audio": "tts/segments/B4.mp3",
     "bounds": [
       {
         "text": "就",

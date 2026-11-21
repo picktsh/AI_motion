@@ -22,7 +22,8 @@ SEGMENTS = [
      "text": "就从这一条视频开始，我深挖琢磨，交出了自己的第一条片子。"},
 ]
 
-OUT = Path(r"D:\AI_motion\tts\segments")
+ROOT = Path(__file__).resolve().parent.parent
+OUT = Path(__file__).resolve().parent / "segments"
 OUT.mkdir(parents=True, exist_ok=True)
 TICKS = 10_000_000
 
@@ -44,7 +45,7 @@ async def synth(seg):
     mp3 = OUT / f"{seg['id']}.mp3"
     mp3.write_bytes(bytes(audio))
     return {"id": seg["id"], "windowStart": seg["start"], "windowEnd": seg["end"],
-            "text": seg["text"], "audio": str(mp3), "bounds": bounds}
+            "text": seg["text"], "audio": mp3.relative_to(ROOT).as_posix(), "bounds": bounds}
 
 
 async def main():
