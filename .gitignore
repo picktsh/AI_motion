@@ -5,21 +5,18 @@ __pycache__/
 *.py[cod]
 
 # ---- 本地工具二进制 ----
-bin/
+studio/bin/
 
 # ---- 渲染产物与中间实例（成片、抽帧、预览、prepare 实例、输入素材）----
-my-video/
+studio/videos/
 
 # ---- BGM 素材 ----
-bgm/
+studio/bgm/
 
 # ---- TTS 音频产物（保留 segments.json 词边界清单）----
-tts/segments/*.mp3
-tts/segments/*.vtt
-tts/samples/*.mp3
-
-# ---- 模板 clone 外壳残留目录 ----
-repo/
+studio/tts/segments/*.mp3
+studio/tts/segments/*.vtt
+studio/tts/samples/*.mp3
 
 # ---- 系统与编辑器 ----
 .DS_Store
@@ -28,5 +25,12 @@ Thumbs.db
 .idea/
 .vscode/
 
-# ---- 本地环境变量 ----
-.env
+# ---- 本地环境变量（.env 入库默认值，仅忽略本地覆盖）----
+.env.local
+.env.*.local
+
+# ---- 第三方模板下载缓存（锁清单 templates.lock.json 入库）----
+studio/templates-cache/
+
+# ---- 前端构建产物 ----
+web/dist/
