@@ -5,7 +5,7 @@
   "template": {
     "id": "kinetic-tech",
     "version": "0.2.7-open-beta",
-    "name": "Kinetic Tech",
+    "name": "酷炫科技风",
     "status": "open-beta"
   },
   "runtime": {
@@ -48,7 +48,7 @@
     ]
   },
   "ai": {
-    "summary": "Silver metal type,amber light and native spatial choreography. Read guide.json and use current user content.",
+    "summary": "未发布的金属科技口播作者候选；先读 guide.json，按用户素材走正常制作入口。",
     "entry": "guide.json",
     "guide": "guide.json",
     "authoring": {
@@ -70,7 +70,6 @@
       "sourceAuthor": "unknown",
       "originalDemoIncluded": false
     },
-    "motiongit.com:locale": "en",
     "motiongit.com:open-source": {
       "repository": "https://github.com/motiontemplates/385712",
       "apiEnabled": false,

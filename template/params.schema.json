@@ -20,7 +20,10 @@
       "const": "user-media"
     },
     "language": {
-      "const": "en"
+      "enum": [
+        "zh",
+        "en"
+      ]
     },
     "layout": {
       "const": "landscape"

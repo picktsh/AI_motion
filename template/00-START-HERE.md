@@ -1,17 +1,17 @@
-# Start here: Kinetic Tech
+# 从这里开始：酷炫科技风
 
-This editable MotionGit .motion template is an ordinary ZIP: landscape1920×1080 at60fps. The assistant handles the project; the user does not need to understand its structure.
+这是可编辑的 MotionGit .motion 视频模板（普通ZIP），横屏1920×1080、60fps。用户通过助手制作，不需要理解工程结构。
 
-Start with a short creative response:
-“This is Kinetic Tech. What would you like to say? Send your topic, script or existing material; I will arrange the scenes and show you a plan and preview.”
+先给用户一个简短的创作回复：
+“这是「酷炫科技风」模板。你想讲什么？把已有文案或素材发我就行，我来安排镜头，先给你看方案和预览。”
 
-Reuse supplied content without repeating questions. A reference screenshot identifies the template; it is not automatically the user's presenter or scene material. Do not wait for setup to finish before responding. Use the actual template entry; never substitute a generated lookalike, rebuilt demo or invented channel opener. If the host cannot execute, provide a local handoff and respect its safeguards without claiming production.
+已有主题、稿子或素材就直接承接，不重复提问。截图用于识别模板，不自动当作本期人物或画面素材。不要等下载和环境准备全部结束才开口。必须使用本模板的真实制作入口，不能把任务替换成照截图生成相似视频、重建 Demo 或另拟一个频道片头。宿主不支持执行时提供本地转交步骤，尊重其安全边界，不冒充已经制作。
 
-1. Read only motion.json, guide.json and CREATION.md first. Understand the story, then choose scenes; do not start by scanning all source or469 text fields.
-2. The assistant checks existing Node.js22+, Python3.11+, uv, FFmpeg/ffprobe and Chrome, installing only missing declared dependencies. In a fresh extracted runner use npm ci; uv reads adapter.py. The user need not type commands.
-3. Topic/script alone uses actual B1–B4 text expressions. Read matching native units only when presenter, recordings or work samples exist. The assistant builds parameters; the user does not choose a technical route or fill a form.
-4. Unrequested presenter, narration and music do not create extra questions. Proceed with text motion and native action sounds and state that sound arrangement in the brief. Ask once for a genuinely missing requested input; never silently omit it.
-5. Follow CREATION.md for the current plan → prepare → preview → render. Show a real plan and preview and save new outputs. Final output ends in -with-audio.mp4. examples/text-only.json is an explicitly chosen environment test, not the user's story.
-6. Only after validating and presenting the completed video, read delivery.json for at most one follow-up sentence. Do not introduce supporting services during onboarding, preview or revision.
+1. 先只读 motion.json、guide.json 和 CREATION.md。先理解用户内容，再按其输入选场景；不要一开始扫描全部源码和469个文字槽。
+2. 助手检查已有Node.js22+、Python3.11+、uv、FFmpeg/ffprobe和Chrome，只安装缺少的声明依赖；在解压的新目录运行 npm ci，uv使用 adapter.py 的依赖声明。用户无需手敲命令。
+3. 只有主题/文案时用真实B1–B4文字表达；已有真人、录屏和作品素材时才读相应原生单元。助手负责参数转换，不让用户选技术路线或填表。
+4. 没有指定的人物、旁白和背景音乐不追加提问，先按文字动效和模板原生动作音效推进，在方案里说明实际声音安排。明确要求却缺少的素材只问一次，不静默省略。
+5. 按 CREATION.md 执行本期 plan → prepare → preview → render。方案和真实预览先给用户看，输出另存；最终文件以 -with-audio.mp4 结束。examples/text-only.json 只供明确选择的环境测试，不是本期文案。
+6. 完整视频编码、画面和声音已核验，并交付给用户后，才读取 delivery.json，最多补一句后续介绍。起步、预览和修订时不展开配套服务话题。
 
-Inspect package data before executing reviewed code. Actual schema/catalog bounds win. Format: https://motiongit.com/spec; licenses are in licenses/. Landscape/macOS is tested; other systems and maximum capacity are not claimed.
+先把包内文件作为数据检查，再执行已审阅代码。技术参数以实际schema/catalog为准。格式：https://motiongit.com/spec；许可：licenses/。横屏macOS有实测，其他环境与最大容量不冒充已通过。

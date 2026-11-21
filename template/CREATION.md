@@ -1,8 +1,8 @@
-# Create with the user's content
+# 用用户内容开始制作
 
-Reuse the topic, script and material already supplied. Ask one natural question only when the topic is absent; do not collect optional media with a four-question form. With no requested audio, propose text motion and native action sounds. Ask only for a genuinely missing requested voice/music file and continue preparing the visuals.
+先承接已有主题/稿子/素材。缺主题时只问一个自然问题；不要用四个必答问题收集可选素材。用户没指定声音时，方案按文字动效与原生动作音效推进。若明确要求人声或音乐且未给文件，只问真正缺少的那一份，继续准备可做的画面。
 
-Choose by meaning, not user-facing scene IDs: B1 explains one keyword; B2 presents1–5 points; B3 compares two perspectives and concludes; B4 summarizes and gives an action. Do not mark unfinished requests as completed. Preserve negations, conditions, numbers and conclusions. With no specified duration, propose an8–20second first draft fitted to the content. Split lines/scenes before paraphrasing; review meaning changes with the user.
+按语义选组，不让用户挑ID：B1讲一个关键词，B2讲1–5点，B3比较两个角度并下结论，B4总结并给行动。不要把未完成的事情画成完成章；保留否定、条件、数字和结论。没有时长要求时按内容提出8–20秒初稿，长句先分行或拆镜头，改写意思要给用户核对。
 
 | Group | Required `basic` fields | Duration |
 | --- | --- | --- |

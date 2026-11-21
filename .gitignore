@@ -4,17 +4,26 @@ node_modules/
 __pycache__/
 *.py[cod]
 
-# ---- 本地工具二进制（uv / ffmpeg / ffprobe，不随仓库分发）----
+# ---- 本地工具二进制 ----
 bin/
 
-# ---- 渲染产物与中间实例（成片、抽帧、预览、prepare 实例）----
+# ---- 渲染产物与中间实例（成片、抽帧、预览、prepare 实例、输入素材）----
 my-video/
+
+# ---- BGM 素材 ----
+bgm/
+
+# ---- TTS 音频产物（保留 segments.json 词边界清单）----
+tts/segments/*.mp3
+tts/segments/*.vtt
+tts/samples/*.mp3
 
 # ---- 模板 clone 外壳残留目录 ----
 repo/
 
 # ---- 系统与编辑器 ----
 .DS_Store
+Thumbs.db
 *.log
 .idea/
 .vscode/

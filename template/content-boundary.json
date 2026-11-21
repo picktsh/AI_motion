@@ -3,15 +3,15 @@
   "files": {
     "00-START-HERE.md": {
       "role": "method-or-contract",
-      "sha256": "f7d5636f701819ec684b744c8ef2f039d23711cb310c7e137a8cec35d5af372e"
+      "sha256": "75d1a8de1b5134804506c31d38f4eb0a4486bb435ee333513924fa83d2082c54"
     },
     "CREATION.md": {
       "role": "method-or-contract",
-      "sha256": "7daa73b8ebf58b7d86a4dd14364aeb0c3ef7f08eef9b166460b2fb390a88b435"
+      "sha256": "c6b9cddfe9f9174cbe9ad330e7a457ae852f9cfc69ed08b3a5ed18c02d687cc7"
     },
     "README.md": {
       "role": "method-or-contract",
-      "sha256": "f7d5636f701819ec684b744c8ef2f039d23711cb310c7e137a8cec35d5af372e"
+      "sha256": "75d1a8de1b5134804506c31d38f4eb0a4486bb435ee333513924fa83d2082c54"
     },
     "adapter.py": {
       "role": "method-or-contract",
@@ -1251,11 +1251,11 @@
     },
     "delivery.json": {
       "role": "method-or-contract",
-      "sha256": "d701baf80633145fb1b532f4f1b73a151811a1e83cd4cf7747aa806f3e42c487"
+      "sha256": "df897906d073070df1fe9f7286209e5c9981bc1367bb4ce991ece35420d925ad"
     },
     "examples/text-only.json": {
       "role": "method-or-contract",
-      "sha256": "820e5e0eb9c5f18c9e57b936859abdfc6494cff7b847336946b4030f68ff7c5c"
+      "sha256": "0feda4708f6d08a714a91857229047ea9d1d678c4779d2f1f445f74911e6f318"
     },
     "extraction-status.json": {
       "role": "method-or-contract",
@@ -1263,11 +1263,11 @@
     },
     "guide.en.json": {
       "role": "method-or-contract",
-      "sha256": "8427880148361469244522309c3f9180e35d78bf13c3540614dedab4b56b6a74"
+      "sha256": "2a3a0135af4dcd23a4ec15003c2097859a342fa195019fe0d0a44e8f7b2d776d"
     },
     "guide.json": {
       "role": "method-or-contract",
-      "sha256": "8427880148361469244522309c3f9180e35d78bf13c3540614dedab4b56b6a74"
+      "sha256": "d1ade33b08c55c3eefaaa8b45214af08754d7a4a175cfdec5068c08b6f38d28a"
     },
     "licenses/OFL-Anton.txt": {
       "role": "method-or-contract",
@@ -1295,7 +1295,7 @@
     },
     "motion.json": {
       "role": "method-or-contract",
-      "sha256": "209badb5eea1666cda9401311068e7855fea534fb5cc26caf79686296b58c855"
+      "sha256": "27c86eb90cfbfe3f4eb0b329f5347852185ca6c4c47ad59982ae7d04f13bfa7a"
     },
     "motion.lock.json": {
       "role": "method-or-contract",
@@ -1311,7 +1311,7 @@
     },
     "params.schema.json": {
       "role": "method-or-contract",
-      "sha256": "307c7f85432e03eba5a5e77772d8899497ac9541e2bd53cb800048ff6077fb4b"
+      "sha256": "820acd11ebe9815a885e2909b68eb7c10e7b7a890b44b8e95e6e05c51a0bd7c7"
     },
     "render.mjs": {
       "role": "method-or-contract",

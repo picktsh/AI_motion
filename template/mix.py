@@ -67,9 +67,9 @@ def main():
    track=decode(r/asset['file'])[:n]
    if len(track)!=n:raise ValueError('Audio track is shorter than the output clock')
    if role=='voice':voice=norm(track,-16)
-   else:music=norm(track,-23)
+   else:music=norm(track,-19)
  if np.any(voice):
-  mono=np.sqrt(np.mean(voice*voice,axis=1));energy=np.sqrt(np.maximum(0,uniform_filter1d(mono*mono,size=round(.04*sr))));gate=(energy>.007).astype(float);gate=uniform_filter1d(gate,size=round(.25*sr));music*=10**(-11*np.clip(gate*2,0,1)/20)[:,None]
+  mono=np.sqrt(np.mean(voice*voice,axis=1));energy=np.sqrt(np.maximum(0,uniform_filter1d(mono*mono,size=round(.04*sr))));gate=(energy>.007).astype(float);gate=uniform_filter1d(gate,size=round(.25*sr));music*=10**(-8*np.clip(gate*2,0,1)/20)[:,None]
  full=voice+music+native+punct;fade=min(round(.6*sr),n);full[-fade:]*=np.linspace(1,0,fade)[:,None]**1.3;full=norm(full,-17 if np.any(voice)else -21)
  audio=r/'audio-output';audio.mkdir(exist_ok=True);raw=audio/'prelimit.wav';mix=audio/'mix.wav'
  if raw.exists()or mix.exists():raise ValueError('Preserve existing audio output')

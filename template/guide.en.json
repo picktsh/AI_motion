@@ -108,7 +108,7 @@
       "from": [
         "conversation"
       ],
-      "rule": "This English edition uses en. UI text, speech and captions are localized independently."
+      "rule": "Use zh or en. UI text, speech and captions are independently localized."
     },
     {
       "param": "layout",
