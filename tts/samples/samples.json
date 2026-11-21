@@ -1,0 +1,90 @@
+[
+  {
+    "id": "01-xiaoxiao-warm",
+    "file": "01-xiaoxiao-warm.mp3",
+    "voice": "zh-CN-XiaoxiaoNeural",
+    "label": "晓晓",
+    "style": "女·温暖·新闻小说",
+    "text": "写了八年代码，我想把这段摸索的经过，慢慢讲给你听。",
+    "rate": "+0%",
+    "pitch": "+0Hz",
+    "duration_s": 5.256
+  },
+  {
+    "id": "02-xiaoyi-lively",
+    "file": "02-xiaoyi-lively.mp3",
+    "voice": "zh-CN-XiaoyiNeural",
+    "label": "晓伊",
+    "style": "女·活泼·卡通",
+    "text": "哈喽，今天又做出一个新片子，快来看看我是怎么折腾的。",
+    "rate": "+0%",
+    "pitch": "+0Hz",
+    "duration_s": 5.64
+  },
+  {
+    "id": "03-yunjian-passion",
+    "file": "03-yunjian-passion.mp3",
+    "voice": "zh-CN-YunjianNeural",
+    "label": "云健",
+    "style": "男·激情·体育",
+    "text": "别犹豫，动手就对了。工具不怕多，敢试才能出成果。",
+    "rate": "+0%",
+    "pitch": "+0Hz",
+    "duration_s": 6.0
+  },
+  {
+    "id": "04-yunxi-sunshine",
+    "file": "04-yunxi-sunshine.mp3",
+    "voice": "zh-CN-YunxiNeural",
+    "label": "云希",
+    "style": "男·阳光·活泼",
+    "text": "嘿，朋友，这个方法挺有意思，咱们一块儿来试试吧。",
+    "rate": "+0%",
+    "pitch": "+0Hz",
+    "duration_s": 5.256
+  },
+  {
+    "id": "05-yunxia-cute",
+    "file": "05-yunxia-cute.mp3",
+    "voice": "zh-CN-YunxiaNeural",
+    "label": "云夏",
+    "style": "男·可爱·卡通",
+    "text": "哇，这个视频做得好好玩呀，我也想跟着学一学呢。",
+    "rate": "+0%",
+    "pitch": "+0Hz",
+    "duration_s": 5.376
+  },
+  {
+    "id": "06-yunyang-pro",
+    "file": "06-yunyang-pro.mp3",
+    "voice": "zh-CN-YunyangNeural",
+    "label": "云扬",
+    "style": "男·专业·新闻",
+    "text": "下面这段内容基于实际操作整理，建议结合自己的情况参考。",
+    "rate": "+0%",
+    "pitch": "+0Hz",
+    "duration_s": 5.184
+  },
+  {
+    "id": "07-liaoning-xiaobei",
+    "file": "07-liaoning-xiaobei.mp3",
+    "voice": "zh-CN-liaoning-XiaobeiNeural",
+    "label": "晓北",
+    "style": "女·辽宁方言·幽默",
+    "text": "哎妈呀，这玩意儿整得还真像那么回事，你说有意思不？",
+    "rate": "+0%",
+    "pitch": "+0Hz",
+    "duration_s": 5.76
+  },
+  {
+    "id": "08-shaanxi-xiaoni",
+    "file": "08-shaanxi-xiaoni.mp3",
+    "voice": "zh-CN-shaanxi-XiaoniNeural",
+    "label": "晓妮",
+    "style": "女·陕西方言·明亮",
+    "text": "今儿个给咱谝一谝，这新折腾出来的活，看着还真嫽得很。",
+    "rate": "+0%",
+    "pitch": "+0Hz",
+    "duration_s": 5.808
+  }
+]
