@@ -25,7 +25,7 @@ def _find_ffprobe() -> Path:
     local = ROOT / "bin" / "ffprobe"
     if local.exists():
         return local
-    raise FileNotFoundError("ffprobe not found on PATH or in <project-root>/bin")
+    raise FileNotFoundError("ffprobe not found on PATH or in studio/bin")
 
 
 FFPROBE = _find_ffprobe()

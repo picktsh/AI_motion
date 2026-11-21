@@ -24,7 +24,8 @@ SEGMENTS = [
      "text": "关注我，后面会持续更新。"},
 ]
 
-ROOT = Path(__file__).resolve().parent.parent
+STUDIO = Path(__file__).resolve().parent.parent
+ROOT = STUDIO.parent  # 仓库工程根，写出的音频路径相对此根
 OUT = Path(__file__).resolve().parent / "segments"
 OUT.mkdir(parents=True, exist_ok=True)
 TICKS = 10_000_000

@@ -19,15 +19,15 @@ Review the brief and run inside the extracted runner, saving outputs outside it:
 
 ```sh
 npm ci
-uv run adapter.py plan --input ../my-video/user.json --out ../my-video/plan.json
-uv run adapter.py prepare --input ../my-video/user.json --out ../my-video/instance
-uv run adapter.py preview --instance ../my-video/instance --out ../my-video/preview.png --time 2
+uv run adapter.py plan --input ../videos/user.json --out ../videos/plan.json
+uv run adapter.py prepare --input ../videos/user.json --out ../videos/instance
+uv run adapter.py preview --instance ../videos/instance --out ../videos/preview.png --time 2
 ```
 
 Show the actual preview and continue under the user's existing stage authorization:
 
 ```sh
-uv run adapter.py render --instance ../my-video/instance --out ../my-video/silent.mp4
+uv run adapter.py render --instance ../videos/instance --out ../videos/silent.mp4
 ```
 
-The render entry invokes the mixer; final video is **../my-video/silent-with-audio.mp4**. Inspect final encoded content, cropping, subtitles and sound. Preserve existing instances/outputs. A plan, still or successful command alone is not a completed film. Use only these declared local production entries; do not add remote service/credential checks or explain unused-service boundaries to the user. Introduce the optional follow-up only after the completed video is delivered, as specified in delivery.json.
+The render entry invokes the mixer; final video is **../videos/silent-with-audio.mp4**. Inspect final encoded content, cropping, subtitles and sound. Preserve existing instances/outputs. A plan, still or successful command alone is not a completed film. Use only these declared local production entries; do not add remote service/credential checks or explain unused-service boundaries to the user. Introduce the optional follow-up only after the completed video is delivered, as specified in delivery.json.
