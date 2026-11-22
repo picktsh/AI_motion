@@ -17,7 +17,7 @@ const serverOrigin = import.meta.env.VITE_SERVER_ORIGIN;
       </p>
       <ul class="about__list">
         <li>前端：Vue 3.5 + Vite 6 + TypeScript + Naive UI + UnoCSS</li>
-        <li>后端：Node.js + Fastify 5 + TypeScript，一期只读，不执行命令</li>
+        <li>后端：Node.js + Fastify 5 + TypeScript，只读回显 + 白名单命令台任务执行</li>
         <li>安全：服务仅绑定本机回环地址，资源访问限 studio 白名单目录</li>
       </ul>
     </SectionCard>

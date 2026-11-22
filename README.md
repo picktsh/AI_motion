@@ -16,7 +16,7 @@
 开发模式需要两个进程：
 
 ```bash
-# 后端：只读 API，127.0.0.1:5199
+# 后端：本地 API（只读回显 + 白名单命令台），127.0.0.1:5199
 pnpm dev:server
 
 # 前端：Vite 开发服务器，127.0.0.1:5173，/api 代理到后端
@@ -56,7 +56,7 @@ pnpm build
 
 | 路径 | 说明 | 是否入库 |
 |---|---|---|
-| `apps/server/` | 后端，Fastify 5 + TypeScript，只读 API | 入库（`node_modules`、`dist` 忽略） |
+| `apps/server/` | 后端，Fastify 5 + TypeScript，只读回显 + 命令台任务执行 | 入库（`node_modules`、`dist` 忽略） |
 | `apps/web/` | 前端，Vue3 + Vite + TS + Naive UI | 入库（`node_modules`、`dist` 忽略） |
 | `packages/shared/` | 前后端共享错误码、常量与契约类型 | 入库 |
 | `studio/template/` | 现有 MotionGit 模板工程（二期迁 `studio/templates/`） | 入库 |
@@ -77,9 +77,9 @@ pnpm build
 
 包里若含个人 key 或凭据，仅限本机使用，禁止外传和提交仓库。
 
-## 一期范围
+## 当前范围
 
-只读浏览与回显：环境检查、模板列表与详情、视频条目与产物、TTS 样例与分段。渲染、合成等执行命令在后续阶段接入。
+只读浏览与回显：环境检查、模板列表与详情（含参数概要）、视频条目与产物、TTS 样例与分段。命令台按白名单执行 plan / prepare / preview / render / tts 等本地脚本，任务异步排队、日志增量回流；发布配置与 BGM 选用的写回接口仍待开放。
 
 ## 素材边界
 
