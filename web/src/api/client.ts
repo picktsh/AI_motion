@@ -1,26 +1,74 @@
+import axios, { type AxiosError, type AxiosInstance } from 'axios';
+
 const API_PREFIX = import.meta.env.VITE_SERVER_API;
 const serverOrigin = import.meta.env.VITE_SERVER_ORIGIN;
 
-export function apiUrl(path: string): string {
-  return `${API_PREFIX}${path}`;
+/** 后端统一响应包络。 */
+export interface Envelope<T> {
+  ok: boolean;
+  data?: T;
+  meta?: { total?: number };
+  error?: { code: string; message: string; details?: unknown };
 }
 
-export async function getJson<T>(path: string): Promise<T> {
-  const url = apiUrl(path);
-  let res: Response;
+const http: AxiosInstance = axios.create({
+  baseURL: API_PREFIX,
+  headers: { Accept: 'application/json' },
+  timeout: 15_000,
+});
+
+function unreachableMessage(): string {
+  return `无法连接本地后端服务 ${serverOrigin}，请确认后端已启动`;
+}
+
+/** 把 axios 异常归一为带可读 message 的 Error；堆栈与内部细节不外抛给页面。 */
+function normalizeError(err: unknown): Error {
+  const axErr = err as AxiosError<Envelope<never>>;
+
+  // 没有响应：直连被拒、网络不可达或超时，fetch/XHR 层直接抛错。
+  if (!axErr.response) {
+    return new Error(unreachableMessage());
+  }
+
+  const status = axErr.response.status;
+  const body = axErr.response.data;
+  const isEnvelope = body != null && typeof body === 'object' && 'ok' in body;
+
+  // 500 且非 JSON：代理/网关层错误，说明后端没起来。
+  if (status >= 500 && !isEnvelope) {
+    return new Error(unreachableMessage());
+  }
+
+  const message = isEnvelope ? body.error?.message : undefined;
+  if (message) return new Error(message);
+  return new Error(`请求失败 ${status}${axErr.response.statusText ? ` ${axErr.response.statusText}` : ''}`);
+}
+
+async function request<T>(path: string): Promise<T> {
   try {
-    res = await fetch(url, { headers: { Accept: 'application/json' } });
-  } catch {
-    // 直连被拒 / 网络不可达：fetch 直接抛 TypeError，没有响应
-    throw new Error(`无法连接本地后端服务 ${serverOrigin}，请确认后端已启动`);
-  }
-  if (!res.ok) {
-    const contentType = res.headers.get('content-type') ?? '';
-    // 代理/网关层错误返回 text/plain，说明后端没起来；JSON 错误才是后端内部响应
-    if (res.status >= 500 && !contentType.includes('application/json')) {
-      throw new Error(`无法连接本地后端服务 ${serverOrigin}，请确认后端已启动`);
+    const res = await http.get<Envelope<T>>(path);
+    const body = res.data;
+    if (!body || body.ok === false || body.data === undefined) {
+      throw new Error('响应格式不符合规范');
     }
-    throw new Error(`请求失败 ${res.status} ${res.statusText}`);
+    return body.data;
+  } catch (err) {
+    throw normalizeError(err);
   }
-  return res.json() as Promise<T>;
+}
+
+/** 取单资源或报告：data 即资源本体。 */
+export function getJson<T>(path: string): Promise<T> {
+  return request<T>(path);
+}
+
+/** 取列表：自动解包 data.items，返回数组。 */
+export async function getList<T>(path: string): Promise<T[]> {
+  const data = await request<{ items: T[]; meta?: { total: number } }>(path);
+  return data.items;
+}
+
+/** 拼出可直接用于 img/audio/video 或直取静态文件的相对地址。 */
+export function assetUrl(relPath: string): string {
+  return `${API_PREFIX}${relPath}`;
 }

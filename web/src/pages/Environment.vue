@@ -1,15 +1,15 @@
 <script setup lang="ts">
 import { computed, onMounted } from 'vue';
-import { getJson } from '../api/client';
+import { getEnvironment } from '../api/env';
 import { useFetch } from '../composables/useFetch';
 import SectionCard from '../components/SectionCard.vue';
 import StatusTag from '../components/StatusTag.vue';
 import SkeletonBlock from '../components/SkeletonBlock.vue';
 import EmptyState from '../components/EmptyState.vue';
 import PathCopy from '../components/PathCopy.vue';
-import type { EnvReport, EnvItem } from '../types';
+import type { EnvItem } from '../types';
 
-const { data, loading, error, run } = useFetch(() => getJson<EnvReport>('/environment'));
+const { data, loading, error, run } = useFetch(() => getEnvironment());
 
 onMounted(run);
 

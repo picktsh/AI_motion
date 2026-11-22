@@ -7,17 +7,15 @@ import {
   OpenOutline,
   DownloadOutline,
 } from '@vicons/ionicons5';
-import { getJson } from '../api/client';
+import { listTemplates, getTemplateDetail, getTemplateRedirect } from '../api/templates';
 import { useFetch } from '../composables/useFetch';
 import StatusTag from '../components/StatusTag.vue';
 import SkeletonBlock from '../components/SkeletonBlock.vue';
 import EmptyState from '../components/EmptyState.vue';
 import PathCopy from '../components/PathCopy.vue';
-import type { TemplateSummary, TemplateDetail, FileNode } from '../types';
+import type { TemplateDetail, FileNode } from '../types';
 
-const { data, loading, error, run } = useFetch(
-  () => getJson<{ items: TemplateSummary[] }>('/templates'),
-);
+const { data, loading, error, run } = useFetch(listTemplates);
 
 onMounted(run);
 
@@ -36,10 +34,8 @@ async function open(id: string) {
   redirectUrl.value = null;
   try {
     const [d, r] = await Promise.all([
-      getJson<TemplateDetail>(`/templates/${id}`),
-      getJson<{ redirectUrl: string | null }>(`/templates/${id}/redirect`).catch(
-        () => null,
-      ),
+      getTemplateDetail(id),
+      getTemplateRedirect(id).catch(() => null),
     ]);
     detail.value = d;
     redirectUrl.value = r?.redirectUrl ?? null;
@@ -155,9 +151,9 @@ function onDownloadPlaceholder() {
         </div>
       </div>
 
-      <div v-if="data.items.length" class="tpl-grid">
+      <div v-if="data.length" class="tpl-grid">
         <button
-          v-for="t in data.items"
+          v-for="t in data"
           :key="t.id"
           type="button"
           class="tpl-card"

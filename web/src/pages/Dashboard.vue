@@ -1,7 +1,10 @@
 <script setup lang="ts">
 import { computed, onMounted } from 'vue';
 import { useRouter } from 'vue-router';
-import { getJson } from '../api/client';
+import { getEnvironment } from '../api/env';
+import { listTemplates } from '../api/templates';
+import { listVideos } from '../api/videos';
+import { listSegments } from '../api/tts';
 import { useFetch } from '../composables/useFetch';
 import StatCard from '../components/StatCard.vue';
 import SectionCard from '../components/SectionCard.vue';
@@ -9,25 +12,19 @@ import StatusTag from '../components/StatusTag.vue';
 import SkeletonBlock from '../components/SkeletonBlock.vue';
 import EmptyState from '../components/EmptyState.vue';
 import PathCopy from '../components/PathCopy.vue';
-import type {
-  EnvReport,
-  EnvItem,
-  TemplateSummary,
-  VideoSummary,
-  Segment,
-} from '../types';
+import type { EnvItem } from '../types';
 
 const router = useRouter();
 const backendOrigin = import.meta.env.VITE_SERVER_ORIGIN;
 
 const { data, loading, error, run } = useFetch(async () => {
   const [env, t, v, s] = await Promise.all([
-    getJson<EnvReport>('/environment'),
-    getJson<{ items: TemplateSummary[] }>('/templates'),
-    getJson<{ items: VideoSummary[] }>('/videos'),
-    getJson<{ items: Segment[] }>('/tts/segments'),
+    getEnvironment(),
+    listTemplates(),
+    listVideos(),
+    listSegments(),
   ]);
-  return { env, tpls: t.items, vids: v.items, segs: s.items };
+  return { env, tpls: t, vids: v, segs: s };
 });
 
 onMounted(run);

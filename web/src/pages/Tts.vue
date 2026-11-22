@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { computed, onMounted } from 'vue';
-import { getJson } from '../api/client';
+import { listSamples } from '../api/tts';
 import { useFetch } from '../composables/useFetch';
 import SectionCard from '../components/SectionCard.vue';
 import StatusTag from '../components/StatusTag.vue';
@@ -9,13 +9,11 @@ import EmptyState from '../components/EmptyState.vue';
 import SamplePlayer from '../components/SamplePlayer.vue';
 import type { Sample } from '../types';
 
-const { data, loading, error, run } = useFetch(() =>
-  getJson<{ items: Sample[] }>('/tts/samples'),
-);
+const { data, loading, error, run } = useFetch(listSamples);
 
 onMounted(run);
 
-const samples = computed<Sample[]>(() => data.value?.items ?? []);
+const samples = computed<Sample[]>(() => data.value ?? []);
 </script>
 
 <template>

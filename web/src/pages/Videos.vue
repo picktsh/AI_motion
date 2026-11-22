@@ -2,7 +2,9 @@
 import { computed, onMounted, ref, watch } from 'vue';
 import { NInput, NSelect, NImage, NIcon, NTooltip } from 'naive-ui';
 import { FilmOutline, DocumentOutline } from '@vicons/ionicons5';
-import { getJson, apiUrl } from '../api/client';
+import { listVideos, getVideoDetail } from '../api/videos';
+import { listSegments } from '../api/tts';
+import { fetchJsonAsset } from '../api/assets';
 import { useFetch } from '../composables/useFetch';
 import SectionCard from '../components/SectionCard.vue';
 import StatusTag from '../components/StatusTag.vue';
@@ -14,9 +16,7 @@ import Waveform from '../components/Waveform.vue';
 import type { VideoSummary, VideoDetail, Artifact, ProbeResult, Segment, PublishConfig } from '../types';
 
 /* 列表 */
-const { data, loading, error, run } = useFetch(
-  () => getJson<{ items: VideoSummary[] }>('/videos'),
-);
+const { data, loading, error, run } = useFetch(listVideos);
 
 onMounted(run);
 
@@ -29,7 +29,7 @@ const sortOptions = [
 ];
 
 const filtered = computed<VideoSummary[]>(() => {
-  const arr = (data.value?.items ?? []).filter(
+  const arr = (data.value ?? []).filter(
     (v) => !query.value || v.title.toLowerCase().includes(query.value.toLowerCase()),
   );
   if (sortBy.value === 'duration') return [...arr].sort((a, b) => (b.duration ?? 0) - (a.duration ?? 0));
@@ -52,7 +52,7 @@ async function loadDetail(id: string) {
   detail.value = null;
   activeCaption.value = null;
   try {
-    const d = await getJson<VideoDetail>(`/videos/${id}`);
+    const d = await getVideoDetail(id);
     if (seq !== reqSeq.value) return;
     detail.value = d;
   } catch (e) {
@@ -74,8 +74,7 @@ const segments = ref<Segment[]>([]);
 
 async function loadSegments() {
   try {
-    const g = await getJson<{ items: Segment[] }>('/tts/segments');
-    segments.value = g.items;
+    segments.value = await listSegments();
   } catch {
     segments.value = [];
   }
@@ -143,9 +142,9 @@ async function loadPublish() {
   const candidates = [`${dir}/publish.json`, `${dir}/publish-${activeId.value}.json`];
   for (const rel of candidates) {
     try {
-      const res = await fetch(apiUrl(`/assets?path=${encodeURIComponent(rel)}`));
-      if (res.ok) {
-        publish.value = (await res.json()) as PublishConfig;
+      const json = await fetchJsonAsset(rel);
+      if (json != null) {
+        publish.value = json as PublishConfig;
         return;
       }
     } catch {

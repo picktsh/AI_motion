@@ -10,9 +10,8 @@ import {
   ApertureOutline,
 } from '@vicons/ionicons5';
 import type { Component } from 'vue';
-import { getJson } from '../api/client';
+import { getEnvironment } from '../api/env';
 import { useTheme } from '../theme/useTheme';
-import type { EnvReport } from '../types';
 import AppFooter from './AppFooter.vue';
 
 const route = useRoute();
@@ -54,7 +53,7 @@ const unreachable = ref(false);
 
 async function loadSummary() {
   try {
-    const env = await getJson<EnvReport>('/environment');
+    const env = await getEnvironment();
     summary.value = env.summary;
     unreachable.value = false;
   } catch {
