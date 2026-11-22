@@ -14,13 +14,18 @@ function unreachableMessage(): string {
   return `无法连接本地后端服务 ${serverOrigin}，请确认后端已启动`;
 }
 
+/** 归一后的错误：保留后端错误体的 details（如缺失依赖清单），供页面二次展示。 */
+export interface NormalizedError extends Error {
+  details?: unknown;
+}
+
 /** 把 axios 异常归一为带可读 message 的 Error；堆栈与内部细节不外抛给页面。 */
-function normalizeError(err: unknown): Error {
+function normalizeError(err: unknown): NormalizedError {
   const axErr = err as AxiosError<Envelope<never>>;
 
   // 没有响应：直连被拒、网络不可达或超时，fetch/XHR 层直接抛错。
   if (!axErr.response) {
-    return new Error(unreachableMessage());
+    return new Error(unreachableMessage()) as NormalizedError;
   }
 
   const status = axErr.response.status;
@@ -29,12 +34,16 @@ function normalizeError(err: unknown): Error {
 
   // 500 且非 JSON：代理/网关层错误，说明后端没起来。
   if (status >= 500 && !isEnvelope) {
-    return new Error(unreachableMessage());
+    return new Error(unreachableMessage()) as NormalizedError;
   }
 
   const message = isEnvelope ? body.error?.message : undefined;
-  if (message) return new Error(message);
-  return new Error(`请求失败 ${status}${axErr.response.statusText ? ` ${axErr.response.statusText}` : ''}`);
+  const details = isEnvelope ? body.error?.details : undefined;
+  const e = new Error(
+    message ?? `请求失败 ${status}${axErr.response.statusText ? ` ${axErr.response.statusText}` : ''}`,
+  ) as NormalizedError;
+  if (details != null) e.details = details;
+  return e;
 }
 
 function unwrap<T>(body: Envelope<T> | undefined): T {

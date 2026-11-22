@@ -62,6 +62,31 @@ const templateDetail: JsonSchema = {
     output: { type: ['object', 'null'] },
     permissions: { type: ['object', 'null'] },
     extensions: { type: ['object', 'null'] },
+    parameters: {
+      type: 'object',
+      additionalProperties: true,
+      properties: {
+        file: { type: ['string', 'null'] },
+        fields: {
+          type: 'array',
+          items: {
+            type: 'object',
+            additionalProperties: true,
+            properties: {
+              name: { type: 'string' },
+              type: { type: ['string', 'null'] },
+              required: { type: 'boolean' },
+              enum: { type: ['array', 'null'], items: { type: 'string' } },
+              constValue: { type: ['string', 'null'] },
+              defaultValue: { type: ['string', 'number', 'boolean', 'array', 'object', 'null'] },
+              range: { type: ['string', 'null'] },
+              description: { type: ['string', 'null'] },
+              nested: { type: ['integer', 'null'] },
+            },
+          },
+        },
+      },
+    },
     fileTree: { type: 'array', items: fileNode },
   },
 };

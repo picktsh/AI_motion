@@ -145,7 +145,34 @@ async function select(id: string): Promise<void> {
   }
 }
 
+function validate(): string | null {
+  for (const f of currentMeta.value.fields) {
+    const v = form[f.key].trim();
+    if (f.key === 'time') continue;
+    if (!v) return `请填写「${f.label}」`;
+  }
+  const timeRaw = form.time.trim();
+  if (timeRaw) {
+    const n = Number(timeRaw);
+    if (!Number.isInteger(n) || n <= 0) return '时间（秒）须为正整数';
+  }
+  return null;
+}
+
+function describeError(e: unknown): string {
+  const msg = e instanceof Error ? e.message : String(e);
+  const details = (e as { details?: { missingBins?: string[] } }).details;
+  const bins = details?.missingBins;
+  if (Array.isArray(bins) && bins.length) return `${msg}：${bins.join('、')}`;
+  return msg;
+}
+
 async function submit(): Promise<void> {
+  const bad = validate();
+  if (bad) {
+    message.warning(bad);
+    return;
+  }
   const params: Record<string, unknown> = {};
   for (const f of currentMeta.value.fields) {
     const v = form[f.key].trim();
@@ -159,7 +186,7 @@ async function submit(): Promise<void> {
     await refreshList();
     await select(job.id);
   } catch (e) {
-    message.error(e instanceof Error ? e.message : String(e));
+    message.error(describeError(e));
   } finally {
     submitting.value = false;
   }
@@ -173,7 +200,7 @@ async function onCancel(): Promise<void> {
     message.info('已请求取消任务');
     await refreshList();
   } catch (e) {
-    message.error(e instanceof Error ? e.message : String(e));
+    message.error(describeError(e));
   }
 }
 

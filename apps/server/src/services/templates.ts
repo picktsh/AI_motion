@@ -22,6 +22,25 @@ interface MotionMeta {
   permissions?: Record<string, unknown> | null;
   output?: unknown;
   extensions?: Record<string, unknown> | null;
+  parameters?: { schema?: string };
+}
+
+/** 参数概要字段（一层只读摘要，不展开嵌套对象/数组）。 */
+export interface ParamField {
+  name: string;
+  type: string | null;
+  required: boolean;
+  enum: string[] | null;
+  constValue: string | null;
+  defaultValue: unknown;
+  range: string | null;
+  description: string | null;
+  nested: number | null;
+}
+
+export interface ParamSummary {
+  file: string | null;
+  fields: ParamField[];
 }
 
 interface Discovered {
@@ -65,6 +84,7 @@ export interface TemplateDetail {
   output: unknown;
   permissions: Record<string, unknown> | null;
   extensions: Record<string, unknown> | null;
+  parameters: ParamSummary;
   fileTree: FileNode[];
 }
 
@@ -74,6 +94,59 @@ function readJson(abs: string): MotionMeta | null {
   } catch {
     return null;
   }
+}
+
+interface RawParamSchema {
+  type?: string;
+  const?: unknown;
+  enum?: unknown[];
+  default?: unknown;
+  minimum?: number;
+  maximum?: number;
+  minLength?: number;
+  maxLength?: number;
+  minItems?: number;
+  maxItems?: number;
+  description?: string;
+  properties?: Record<string, RawParamSchema>;
+  items?: { properties?: Record<string, RawParamSchema> };
+  required?: string[];
+}
+
+function describeRange(d: RawParamSchema): string | null {
+  const parts: string[] = [];
+  if (d.minimum != null || d.maximum != null) parts.push(`范围 ${d.minimum ?? '−'}~${d.maximum ?? '−'}`);
+  if (d.minLength != null || d.maxLength != null) parts.push(`长度 ${d.minLength ?? '−'}~${d.maxLength ?? '−'}`);
+  if (d.minItems != null || d.maxItems != null) parts.push(`项数 ${d.minItems ?? '−'}~${d.maxItems ?? '−'}`);
+  return parts.length ? parts.join('，') : null;
+}
+
+// 只读概要化 params.schema.json：抽取一层字段的类型、必填、枚举/常量、默认值与范围；
+// schema 缺失或解析失败时返回空概要，不阻断模板详情。
+function summarizeSchema(tplDir: string, motion: MotionMeta | null): ParamSummary {
+  const schemaFile = motion?.parameters?.schema;
+  if (!schemaFile || typeof schemaFile !== 'string') return { file: null, fields: [] };
+  const raw = readJson(path.join(tplDir, schemaFile)) as unknown as RawParamSchema | null;
+  if (!raw || typeof raw !== 'object' || !raw.properties) return { file: schemaFile, fields: [] };
+
+  const required = new Set(Array.isArray(raw.required) ? raw.required : []);
+  const fields: ParamField[] = Object.entries(raw.properties).map(([name, def]) => {
+    const d = def ?? {};
+    const nestedProps = d.properties ?? d.items?.properties;
+    return {
+      name,
+      type: typeof d.type === 'string' ? d.type : d.const != null ? 'const' : null,
+      required: required.has(name),
+      enum: Array.isArray(d.enum) ? d.enum.map(String) : null,
+      constValue: d.const != null ? String(d.const) : null,
+      defaultValue: d.default !== undefined ? d.default : null,
+      range: describeRange(d),
+      description:
+        typeof d.description === 'string' && d.description ? d.description.slice(0, 120) : null,
+      nested: nestedProps ? Object.keys(nestedProps).length : null,
+    };
+  });
+  return { file: schemaFile, fields };
 }
 
 function listDirs(base: string): string[] {
@@ -168,6 +241,7 @@ export function getTemplate(id: string): TemplateDetail | null {
     output: motion?.output ?? null,
     permissions: motion?.permissions ?? null,
     extensions: motion?.extensions ?? null,
+    parameters: summarizeSchema(tplDir, motion),
     fileTree: fileTree(tplDir),
   };
 }

@@ -13,7 +13,7 @@ import StatusTag from '../components/data/StatusTag.vue';
 import SkeletonBlock from '../components/data/SkeletonBlock.vue';
 import EmptyState from '../components/data/EmptyState.vue';
 import PathCopy from '../components/data/PathCopy.vue';
-import type { TemplateDetail, FileNode } from '../shared/types';
+import type { TemplateDetail, FileNode, ParamField } from '../shared/types';
 import { OFFICIAL_SITE } from '../shared/constants';
 
 const { data, loading, error, run } = useFetch(listTemplates);
@@ -59,6 +59,39 @@ function networkTag(network: boolean | null) {
   if (network === true) return { tone: 'info' as const, text: '需联网' };
   if (network === false) return { tone: 'neutral' as const, text: '离线' };
   return { tone: 'neutral' as const, text: '未知' };
+}
+
+function typeLabel(t: string | null): string {
+  switch (t) {
+    case 'string':
+      return '文本';
+    case 'number':
+      return '数值';
+    case 'boolean':
+      return '开关';
+    case 'array':
+      return '数组';
+    case 'object':
+      return '对象';
+    case 'const':
+      return '常量';
+    default:
+      return '任意';
+  }
+}
+
+function formatScalar(v: unknown): string {
+  return typeof v === 'string' ? v : JSON.stringify(v);
+}
+
+function fieldSummary(f: ParamField): string[] {
+  const bits: string[] = [];
+  if (f.constValue != null) bits.push(`常量 ${f.constValue}`);
+  else if (f.enum) bits.push(`枚举 ${f.enum.join(' / ')}`);
+  if (f.defaultValue != null) bits.push(`默认 ${formatScalar(f.defaultValue)}`);
+  if (f.range) bits.push(f.range);
+  if (f.nested != null) bits.push(`含 ${f.nested} 个子项`);
+  return bits;
 }
 
 /* 文件树 */
@@ -239,6 +272,34 @@ function onDownloadPlaceholder() {
             <div class="row">
               <span class="row__label">输出</span>
               <span class="row__value">{{ outputText }}</span>
+            </div>
+          </section>
+
+          <section class="block">
+            <h3 class="block__title">参数</h3>
+            <div v-if="detail.parameters.file" class="row row--column">
+              <span class="row__label">Schema</span>
+              <PathCopy :path="detail.parameters.file" />
+            </div>
+            <EmptyState
+              v-if="!detail.parameters.fields.length"
+              description="未声明参数 schema"
+            />
+            <div v-else class="param-list">
+              <div v-for="f in detail.parameters.fields" :key="f.name" class="param-item">
+                <div class="param-item__head">
+                  <span class="mono param-item__name">{{ f.name }}</span>
+                  <StatusTag
+                    :status="f.required ? 'warning' : 'neutral'"
+                    :text="f.required ? '必填' : '可选'"
+                  />
+                  <StatusTag status="neutral" :text="typeLabel(f.type)" />
+                </div>
+                <div v-if="fieldSummary(f).length" class="param-item__meta">
+                  <span v-for="bit in fieldSummary(f)" :key="bit">{{ bit }}</span>
+                </div>
+                <p v-if="f.description" class="param-item__desc">{{ f.description }}</p>
+              </div>
             </div>
           </section>
 
@@ -444,5 +505,47 @@ function onDownloadPlaceholder() {
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
+}
+
+.param-list {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.param-item {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  padding: 10px 12px;
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-control);
+}
+
+.param-item__head {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.param-item__name {
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--color-text-primary);
+}
+
+.param-item__meta {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px;
+  font-size: 12px;
+  color: var(--color-text-secondary);
+}
+
+.param-item__desc {
+  margin: 0;
+  font-size: 12px;
+  color: var(--color-text-tertiary);
 }
 </style>

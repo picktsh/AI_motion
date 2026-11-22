@@ -18,6 +18,24 @@ export interface FileNode {
   children: FileNode[];
 }
 
+/** 参数概要字段（一层只读摘要）。 */
+export interface ParamField {
+  name: string;
+  type: string | null;
+  required: boolean;
+  enum: string[] | null;
+  constValue: string | null;
+  defaultValue: unknown;
+  range: string | null;
+  description: string | null;
+  nested: number | null;
+}
+
+export interface ParamSummary {
+  file: string | null;
+  fields: ParamField[];
+}
+
 export interface TemplateDetail {
   id: string;
   slug: string;
@@ -32,5 +50,6 @@ export interface TemplateDetail {
   output: Record<string, unknown> | null;
   permissions: Record<string, unknown> | null;
   extensions: Record<string, unknown> | null;
+  parameters: ParamSummary;
   fileTree: FileNode[];
 }
