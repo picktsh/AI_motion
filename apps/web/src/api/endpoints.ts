@@ -14,6 +14,7 @@ export const endpoints = {
   videos: {
     list: '/videos',
     detail: (id: string): string => `/videos/${encodeURIComponent(id)}`,
+    publish: (id: string): string => `/videos/${encodeURIComponent(id)}/publish`,
   },
 
   tts: {

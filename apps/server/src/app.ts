@@ -1,14 +1,15 @@
 import fastify, { type FastifyInstance } from 'fastify';
 import { JsonSchemaToTsProvider } from '@fastify/type-provider-json-schema-to-ts';
-import cors from '@fastify/cors';
 import swagger from '@fastify/swagger';
 import scalarApiReference from '@scalar/fastify-api-reference';
 import { config } from './config.js';
 import { registerErrorHandlers } from './core/errors.js';
+import { registerCors, registerAuthGuard } from './core/security.js';
 import { registerHealth } from './routes/health.js';
 import { registerEnvironment } from './routes/environment.js';
 import { registerTemplates } from './routes/templates.js';
 import { registerVideos } from './routes/videos.js';
+import { registerPublish } from './routes/publish.js';
 import { registerTts } from './routes/tts.js';
 import { registerJobs } from './routes/jobs.js';
 import { registerAssets } from './routes/assets.js';
@@ -18,14 +19,10 @@ export async function buildApp(): Promise<FastifyInstance> {
   const app = fastify({ logger: { level: process.env.LOG_LEVEL || 'info' } })
     .withTypeProvider<JsonSchemaToTsProvider>();
 
-  // CORS：当前保持全开放（本地单用户）；来源白名单收紧为独立安全条目。
-  await app.register(cors, {
-    origin: true,
-    methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
-    allowedHeaders: ['Content-Type', 'Authorization'],
-  });
-
   registerErrorHandlers(app);
+
+  await registerCors(app);
+  registerAuthGuard(app);
 
   // OpenAPI 文档：路由 schema 生成规范；Scalar 在 /docs 渲染。
   // 9.x 不再内置文档 HTTP 端点，这里手动暴露稳定 JSON 数据源，便于 codegen 与外部导入。
@@ -61,6 +58,7 @@ export async function buildApp(): Promise<FastifyInstance> {
   registerEnvironment(app, config.apiPrefix);
   registerTemplates(app, config.apiPrefix);
   registerVideos(app, config.apiPrefix);
+  registerPublish(app, config.apiPrefix);
   registerTts(app, config.apiPrefix);
   registerJobs(app, config.apiPrefix);
   registerAssets(app, config.apiPrefix);

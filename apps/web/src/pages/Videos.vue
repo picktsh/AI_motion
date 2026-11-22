@@ -1,10 +1,10 @@
 <script setup lang="ts">
-import { computed, onMounted, ref, watch } from 'vue';
-import { NInput, NSelect, NImage, NIcon, NTooltip } from 'naive-ui';
+import { computed, onMounted, reactive, ref, watch } from 'vue';
+import { NInput, NSelect, NImage, NIcon, NTooltip, NButton, useMessage } from 'naive-ui';
 import { FilmOutline, DocumentOutline } from '@vicons/ionicons5';
 import { listVideos, getVideoDetail } from '../api/videos';
 import { listSegments } from '../api/tts';
-import { fetchJsonAsset } from '../api/assets';
+import { getPublish, savePublish, type PublishSource } from '../api/publish';
 import { useFetch } from '../composables/useFetch';
 import SectionCard from '../components/data/SectionCard.vue';
 import StatusTag from '../components/data/StatusTag.vue';
@@ -14,9 +14,11 @@ import PathCopy from '../components/data/PathCopy.vue';
 import SamplePlayer from '../components/media/SamplePlayer.vue';
 import Waveform from '../components/media/Waveform.vue';
 import type { VideoSummary, VideoDetail, Artifact, ProbeResult, Segment, PublishConfig } from '../shared/types';
+import { activeItemIndex } from '../lib/timeline';
 
 /* 列表 */
 const { data, loading, error, run } = useFetch(listVideos);
+const message = useMessage();
 
 onMounted(run);
 
@@ -42,15 +44,28 @@ const activeId = ref<string | null>(null);
 const detail = ref<VideoDetail | null>(null);
 const detailLoading = ref(false);
 const detailError = ref('');
-const activeCaption = ref<number | null>(null);
+const mainVideoEl = ref<HTMLVideoElement | null>(null);
+const mainTime = ref(0);
+const mainDuration = ref(0);
 const reqSeq = ref(0);
+
+function onVideoTime() {
+  if (mainVideoEl.value) mainTime.value = mainVideoEl.value.currentTime;
+}
+function onVideoMeta() {
+  if (mainVideoEl.value?.duration) mainDuration.value = mainVideoEl.value.duration;
+}
+function seekTo(t: number) {
+  if (mainVideoEl.value) mainVideoEl.value.currentTime = t;
+}
 
 async function loadDetail(id: string) {
   const seq = ++reqSeq.value;
   detailLoading.value = true;
   detailError.value = '';
   detail.value = null;
-  activeCaption.value = null;
+  mainTime.value = 0;
+  mainDuration.value = 0;
   try {
     const d = await getVideoDetail(id);
     if (seq !== reqSeq.value) return;
@@ -84,6 +99,14 @@ onMounted(loadSegments);
 
 const captions = computed(() => detail.value?.meta.captions ?? []);
 
+/* 当前命中字幕：随主片播放头联动；-1 表示无命中。 */
+const activeCaption = computed(() =>
+  activeItemIndex(
+    captions.value.map((c, i) => ({ id: String(i), start: c.start, end: c.end })),
+    mainTime.value,
+  ),
+);
+
 const totalSegEnd = computed(() =>
   Math.max(1, ...segments.value.map((s) => s.windowEnd)),
 );
@@ -114,9 +137,13 @@ const bgmLicense = computed(() => {
   return media.music?.license ?? null;
 });
 
-/* 发布配置：独立 publish.json 只读回显，与渲染输入 user.json 解耦；本轮不提供编辑落盘 */
+/* 发布配置：独立 publish.json，与渲染输入 user.json 解耦；经后端读写接口落盘 */
 const publish = ref<PublishConfig | null>(null);
 const publishMissing = ref(false);
+const publishSource = ref<PublishSource | null>(null);
+const editing = ref(false);
+const saving = ref(false);
+const draft = reactive({ title: '', body: '', hashtags: '', horizontal: '', vertical: '', notes: '' });
 
 function assetByName(name?: string | null) {
   if (!name || !detail.value) return null;
@@ -134,24 +161,65 @@ function coverUrl(kind: 'horizontal' | 'vertical'): string | undefined {
   return hit?.url ?? undefined;
 }
 
+function fillDraft(c: PublishConfig) {
+  draft.title = c.title ?? '';
+  draft.body = c.body ?? '';
+  draft.hashtags = (c.hashtags ?? []).join(', ');
+  draft.horizontal = c.covers?.horizontal ?? '';
+  draft.vertical = c.covers?.vertical ?? '';
+  draft.notes = c.notes ?? '';
+}
+
 async function loadPublish() {
   publish.value = null;
   publishMissing.value = false;
-  if (!detail.value) return;
-  const dir = detail.value.inputFile.replace(/\/[^/]+$/, '');
-  const candidates = [`${dir}/publish.json`, `${dir}/publish-${activeId.value}.json`];
-  for (const rel of candidates) {
-    try {
-      const json = await fetchJsonAsset(rel);
-      if (json != null) {
-        publish.value = json as PublishConfig;
-        return;
-      }
-    } catch {
-      /* 继续试下一个候选 */
-    }
+  editing.value = false;
+  if (!detail.value || !activeId.value) return;
+  try {
+    const res = await getPublish(activeId.value);
+    publish.value = res.config;
+    publishSource.value = res.source;
+    publishMissing.value = !res.source.exists;
+    fillDraft(res.config);
+  } catch {
+    publishMissing.value = true;
   }
-  publishMissing.value = true;
+}
+
+function startEdit() {
+  fillDraft(publish.value ?? {});
+  editing.value = true;
+}
+
+function cancelEdit() {
+  editing.value = false;
+}
+
+async function saveEdit() {
+  if (!activeId.value) return;
+  saving.value = true;
+  try {
+    const config: PublishConfig = {
+      title: draft.title.trim(),
+      body: draft.body.trim(),
+      notes: draft.notes.trim(),
+      hashtags: draft.hashtags.split(/[,，\n]/).map((s) => s.trim()).filter(Boolean),
+      covers: {
+        ...(draft.horizontal.trim() ? { horizontal: draft.horizontal.trim() } : {}),
+        ...(draft.vertical.trim() ? { vertical: draft.vertical.trim() } : {}),
+      },
+    };
+    const res = await savePublish(activeId.value, config);
+    publish.value = res.config;
+    publishSource.value = res.source;
+    publishMissing.value = false;
+    editing.value = false;
+    message.success('发布配置已保存');
+  } catch (e) {
+    message.error(e instanceof Error ? e.message : String(e));
+  } finally {
+    saving.value = false;
+  }
 }
 
 watch(detail, () => void loadPublish());
@@ -308,9 +376,12 @@ function probeMeta(a: Artifact): string {
             <div class="player">
               <video
                 v-if="mainVideo"
+                ref="mainVideoEl"
                 :src="mainVideo.url"
                 controls
                 class="player__video"
+                @timeupdate="onVideoTime"
+                @loadedmetadata="onVideoMeta"
               />
               <div v-else class="player__empty">
                 <NIcon :size="28" class="player__empty-icon">
@@ -415,7 +486,7 @@ function probeMeta(a: Artifact): string {
                 type="button"
                 class="caption-row"
                 :class="{ 'caption-row--active': activeCaption === i }"
-                @click="activeCaption = activeCaption === i ? null : i"
+                @click="seekTo(c.start)"
               >
                 <span class="caption-row__time tnum">{{ c.start.toFixed(2) }}</span>
                 <span class="caption-row__time tnum">{{ c.end.toFixed(2) }}</span>
@@ -521,7 +592,47 @@ function probeMeta(a: Artifact): string {
 
           <!-- 发布配置 -->
           <SectionCard title="发布配置">
-            <template v-if="publish">
+            <div class="pub__toolbar">
+              <template v-if="editing">
+                <NButton size="small" @click="cancelEdit">取消</NButton>
+                <NButton size="small" type="primary" :loading="saving" @click="saveEdit">保存</NButton>
+              </template>
+              <NButton v-else size="small" quaternary @click="startEdit">
+                {{ publishMissing ? '新建配置' : '编辑' }}
+              </NButton>
+              <span v-if="publishSource?.exists && publishSource.rel" class="pub__source tnum">
+                {{ publishSource.rel }}
+              </span>
+            </div>
+
+            <div v-if="editing" class="pub-form">
+              <div class="pub-form__field">
+                <span class="meta__label">标题</span>
+                <NInput v-model:value="draft.title" size="small" placeholder="发布标题" />
+              </div>
+              <div class="pub-form__field pub-form__field--column">
+                <span class="meta__label">正文</span>
+                <NInput v-model:value="draft.body" type="textarea" :rows="3" size="small" />
+              </div>
+              <div class="pub-form__field">
+                <span class="meta__label">话题</span>
+                <NInput v-model:value="draft.hashtags" size="small" placeholder="逗号分隔，如：AI剪辑, 效率工具" />
+              </div>
+              <div class="pub-form__field">
+                <span class="meta__label">横封面</span>
+                <NInput v-model:value="draft.horizontal" size="small" placeholder="cover.png" />
+              </div>
+              <div class="pub-form__field">
+                <span class="meta__label">竖封面</span>
+                <NInput v-model:value="draft.vertical" size="small" placeholder="cover-vertical.png" />
+              </div>
+              <div class="pub-form__field pub-form__field--column">
+                <span class="meta__label">备注</span>
+                <NInput v-model:value="draft.notes" type="textarea" :rows="2" size="small" />
+              </div>
+            </div>
+
+            <template v-else-if="publish">
               <div class="pub__checks">
                 <span
                   v-for="c in publishChecks"
@@ -587,7 +698,7 @@ function probeMeta(a: Artifact): string {
             <EmptyState
               v-else-if="publishMissing"
               description="本作品尚未发布配置"
-              tip="在作品输入目录放置 publish.json（title / body / hashtags / covers / notes），与渲染输入 user.json 分开维护"
+              tip="点击「新建配置」在作品输入目录生成 publish.json（title / body / hashtags / covers / notes），与渲染输入 user.json 分开维护"
             />
           </SectionCard>
         </div>
@@ -1071,6 +1182,46 @@ function probeMeta(a: Artifact): string {
 }
 
 /* 发布配置 */
+.pub__toolbar {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin-bottom: 16px;
+}
+
+.pub__source {
+  font-size: 12px;
+  color: var(--color-text-tertiary);
+  word-break: break-all;
+}
+
+.pub-form {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.pub-form__field {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.pub-form__field--column {
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 6px;
+}
+
+.pub-form__field .meta__label {
+  flex: none;
+  width: 64px;
+}
+
+.pub-form__field--column .meta__label {
+  width: auto;
+}
+
 .pub__checks {
   display: flex;
   flex-wrap: wrap;

@@ -1,93 +1,43 @@
 <script setup lang="ts">
+import { computed } from 'vue';
 import SectionCard from '../components/data/SectionCard.vue';
+import { renderMarkdown } from '../lib/markdown';
 import changelogRaw from '../../../../docs/changelog.md?raw';
 import roadmapRaw from '../../../../docs/roadmap.md?raw';
 
-interface Entry {
-  type: string;
-  text: string;
-  ref: string;
-}
-
-interface Release {
+interface ReleaseSection {
   version: string;
   date: string;
-  items: Entry[];
+  html: string;
 }
 
-interface RoadmapGroup {
-  title: string;
-  items: Entry[];
-}
-
-const REF_RE = /#\d+/g;
-
-function releaseEntry(body: string): Entry {
-  const parts = body.split('·').map((s) => s.trim());
-  const refs = body.match(REF_RE) ?? [];
-  const text = parts
-    .slice(1)
-    .map((s) => s.replace(REF_RE, '').trim())
-    .filter(Boolean)
-    .join(' · ');
-  return { type: parts[0] ?? '', text, ref: refs.join(' ') };
-}
-
-function roadmapEntry(body: string): Entry {
-  const refs = body.match(REF_RE) ?? [];
-  const text = body.replace(REF_RE, '').replace(/^·\s*/, '').trim();
-  return { type: '规划', text, ref: refs.join(' ') };
-}
-
-function parseReleases(raw: string): Release[] {
-  const releases: Release[] = [];
-  let release: Release | null = null;
-
+function splitSections(raw: string): { head: string; body: string }[] {
+  const sections: { head: string; body: string }[] = [];
+  let current: { head: string; body: string } | null = null;
   for (const line of raw.split('\n')) {
-    const t = line.trim();
-    if (!t || t.startsWith('# ') || t.startsWith('>')) continue;
-
-    if (t.startsWith('## ')) {
-      const [version, date] = t.slice(3).trim().split('·').map((s) => s.trim());
-      release = { version: version ?? '', date: date ?? '', items: [] };
-      releases.push(release);
-    } else if (t.startsWith('- ')) {
-      release?.items.push(releaseEntry(t.slice(2).trim()));
+    if (line.startsWith('## ')) {
+      current = { head: line.slice(3).trim(), body: '' };
+      sections.push(current);
+    } else if (current) {
+      current.body += `${line}\n`;
     }
   }
-
-  return releases;
+  return sections;
 }
 
-function parseRoadmap(raw: string): RoadmapGroup[] {
-  const groups: RoadmapGroup[] = [];
-  let group: RoadmapGroup | null = null;
-
-  for (const line of raw.split('\n')) {
-    const t = line.trim();
-    if (!t || t.startsWith('# ') || t.startsWith('>')) continue;
-
-    if (t.startsWith('## ')) {
-      group = { title: t.slice(3).trim(), items: [] };
-      groups.push(group);
-    } else if (t.startsWith('- ')) {
-      group?.items.push(roadmapEntry(t.slice(2).trim()));
-    }
-  }
-
-  return groups;
+function parseHead(head: string): { version: string; date: string } {
+  const [version, date] = head.split('·').map((s) => s.trim());
+  return { version: version ?? head, date: date ?? '' };
 }
 
-const releases = parseReleases(changelogRaw);
-const roadmap = parseRoadmap(roadmapRaw);
+const roadmapHtml = computed(() => renderMarkdown(roadmapRaw));
 
-const typeTone: Record<string, string> = {
-  新增: 'success',
-  修复: 'danger',
-  调整: 'warning',
-  文档: 'neutral',
-  规划: 'info',
-};
+const releases = computed<ReleaseSection[]>(() =>
+  splitSections(changelogRaw).map((s) => {
+    const { version, date } = parseHead(s.head);
+    return { version, date, html: renderMarkdown(s.body) };
+  }),
+);
 
 const note =
   '完整变更记录见 docs/changelog.md，路线图与待办见 docs/roadmap.md，需求归属见 docs/requirements.md';
@@ -96,16 +46,7 @@ const note =
 <template>
   <div class="changelog">
     <SectionCard title="路线图 · 待办规划">
-      <div v-for="group in roadmap" :key="group.title" class="group">
-        <div class="group__title">{{ group.title }}</div>
-        <ul class="group__list">
-          <li v-for="(item, i) in group.items" :key="i" class="group__item">
-            <span class="tag tag--info">{{ item.type }}</span>
-            <span class="group__text">{{ item.text }}</span>
-            <span v-if="item.ref" class="group__ref tnum">{{ item.ref }}</span>
-          </li>
-        </ul>
-      </div>
+      <div class="md-body" v-html="roadmapHtml" />
       <p class="changelog__note">{{ note }}</p>
     </SectionCard>
 
@@ -115,14 +56,7 @@ const note =
           <span class="release__version">{{ release.version }}</span>
           <span v-if="release.date" class="release__date tnum">{{ release.date }}</span>
         </div>
-
-        <ul class="group__list">
-          <li v-for="(item, i) in release.items" :key="i" class="group__item">
-            <span class="tag" :class="`tag--${typeTone[item.type] ?? 'neutral'}`">{{ item.type }}</span>
-            <span class="group__text">{{ item.text }}</span>
-            <span v-if="item.ref" class="group__ref tnum">{{ item.ref }}</span>
-          </li>
-        </ul>
+        <div class="md-body" v-html="release.html" />
       </div>
     </SectionCard>
   </div>
@@ -135,11 +69,16 @@ const note =
   gap: 16px;
 }
 
+.release {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
 .release__head {
   display: flex;
   align-items: baseline;
   gap: 12px;
-  margin-bottom: 16px;
 }
 
 .release__version {
@@ -153,80 +92,66 @@ const note =
   color: var(--color-text-tertiary);
 }
 
-.group {
-  margin-bottom: 16px;
-}
-
-.group:last-child {
-  margin-bottom: 0;
-}
-
-.group__title {
-  font-size: 13px;
-  font-weight: 600;
-  color: var(--color-text-secondary);
-  margin-bottom: 10px;
-}
-
-.group__list {
-  margin: 0;
-  padding: 0;
-  list-style: none;
-  display: flex;
-  flex-direction: column;
-  gap: 10px;
-}
-
-.group__item {
-  display: flex;
-  align-items: baseline;
-  gap: 10px;
-  font-size: 13px;
-  color: var(--color-text-primary);
-}
-
-.group__text {
-  line-height: 20px;
-}
-
-.group__ref {
-  flex: none;
-  font-size: 12px;
-  color: var(--color-text-tertiary);
-}
-
-.tag {
-  flex: none;
-  font-size: 11px;
-  padding: 2px 8px;
-  border-radius: var(--radius-tag);
-  background: var(--color-neutral-soft);
-  color: var(--color-text-secondary);
-}
-
-.tag--success {
-  color: var(--color-success);
-  background: var(--color-success-soft);
-}
-
-.tag--danger {
-  color: var(--color-danger);
-  background: var(--color-danger-soft);
-}
-
-.tag--warning {
-  color: var(--color-warning);
-  background: var(--color-warning-soft);
-}
-
-.tag--info {
-  color: var(--color-brand);
-  background: var(--color-brand-soft);
-}
-
 .changelog__note {
   margin: 16px 0 0;
   font-size: 12px;
   color: var(--color-text-tertiary);
+}
+
+.md-body :deep(h2),
+.md-body :deep(h3),
+.md-body :deep(h4) {
+  margin: 12px 0 8px;
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--color-text-secondary);
+}
+
+.md-body :deep(h2:first-child),
+.md-body :deep(h3:first-child) {
+  margin-top: 0;
+}
+
+.md-body :deep(ul) {
+  margin: 0;
+  padding-left: 18px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.md-body :deep(li) {
+  font-size: 13px;
+  line-height: 20px;
+  color: var(--color-text-primary);
+}
+
+.md-body :deep(li ul) {
+  margin-top: 8px;
+}
+
+.md-body :deep(code) {
+  font-family: var(--font-mono, monospace);
+  font-size: 12px;
+  padding: 1px 4px;
+  border-radius: 4px;
+  background: var(--color-neutral-soft);
+}
+
+.md-body :deep(a) {
+  color: var(--color-brand);
+  text-decoration: none;
+}
+
+.md-body :deep(a:hover) {
+  text-decoration: underline;
+}
+
+.md-body :deep(blockquote) {
+  margin: 8px 0;
+  padding-left: 12px;
+  border-left: 2px solid var(--color-border);
+  color: var(--color-text-tertiary);
+  font-size: 12px;
 }
 </style>

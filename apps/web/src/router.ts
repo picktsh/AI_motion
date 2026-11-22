@@ -3,6 +3,7 @@ import { createRouter, createWebHashHistory } from 'vue-router';
 import {
   HomeOutline,
   CubeOutline,
+  AlbumsOutline,
   FilmOutline,
   MicOutline,
   TerminalOutline,
@@ -45,6 +46,17 @@ const router = createRouter({
         description: 'MotionGit .motion 模板包，含渲染入口、许可与完整文件树',
         menu: '模板',
         icon: CubeOutline,
+      },
+    },
+    {
+      path: '/works',
+      name: 'works',
+      component: () => import('./pages/Works.vue'),
+      meta: {
+        title: '作品',
+        description: '发布清单：发布配置、封面与成片交付物（清单接口待落地）',
+        menu: '作品',
+        icon: AlbumsOutline,
       },
     },
     {
