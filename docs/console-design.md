@@ -15,16 +15,18 @@
 
 ```
 AI_motion/
-├── package.json              # 根：pnpm 依赖、scripts、workspace 约定
-├── pnpm-lock.yaml
-├── .gitignore
-├── server/                   # 后端 Node http 服务（入库）
-├── web/                      # 前端 Vite + Vue3 工程（入库）
+├── package.json              # 根：pnpm scripts、workspace 约定
+├── pnpm-workspace.yaml       # apps/*、packages/*
+├── apps/
+│   ├── server/               # 后端 Fastify 5 + TypeScript（入库）
+│   └── web/                  # 前端 Vite + Vue3 + TS 工程（入库）
+├── packages/
+│   └── shared/               # 前后端共享错误码、常量与契约类型
 ├── docs/                     # 设计与说明文档
 └── studio/                   # 业务资产收拢目录
     ├── templates/            # 自有和已落地模板源码（入库）
     ├── templates-cache/      # 第三方模板下载缓存（不入库，类比 node_modules）
-    ├── templates.lock.json   # 模板锁清单（入库）
+    ├── templates.lock.json   # 模板锁清单（规划预留）
     ├── public/               # 公共 demo 素材（入库，可再分发）
     ├── videos/               # 每条视频的输入素材与产物（不入库）
     ├── tts/                  # 公共配音脚本与样例（入库）
@@ -128,7 +130,7 @@ AI_motion/
 - Node、pnpm 版本与路径。
 - uv 版本与路径。
 - ffmpeg、ffprobe 版本、路径、可用性。
-- Chrome 可执行路径（chrome.mjs 同一套探测逻辑）。
+- Chrome 可执行路径（environment 服务内同一套探测逻辑）。
 - Python：uv 可用即可，解释器按脚本头隔离创建。
 - 依赖目录：`node_modules`、`studio/tts/.venv`、`studio/bin` 二进制是否就位。
 
@@ -153,25 +155,28 @@ AI_motion/
 
 一期不提供任何 execute / spawn 类接口。
 
-### 后端分层骨架（#77 框架化目标）
+### 后端分层骨架（Fastify 5 + TypeScript，已落地）
 
-一期现状：服务层已按域拆出（env、probe、templates、videos、tts、assets），路由、响应、错误处理与中间件仍堆在 index.mjs，assets.mjs 直接操作响应对象。框架化只做原地重构，现有 8 个 GET 接口的路径与响应字段保持不变，前端零改动。
-
-目标目录：
+后端为独立 pnpm 包 `apps/server`，源码在 `src/`，分层如下；接口路径与响应字段保持不变，前端零改动。
 
 ```
-server/
-  index.mjs          # 入口：创建服务、挂载路由、启动监听
-  config.mjs         # 配置层：HOST/PORT/访问密钥/白名单目录，读环境变量并给缺省值
-  paths.mjs          # 白名单路径与可执行文件查找（保留）
-  http/
-    router.mjs       # 路由层：路由表、方法与路径参数匹配
-    response.mjs     # 统一响应：JSON 成功与错误格式收口
-    errors.mjs       # 错误类型与状态码映射（400/401/403/404/405/500）
-    middleware.mjs   # 中间件链：CORS 白名单、访问日志、鉴权钩子（预留）
+apps/server/src/
+  index.ts           # 启停层：创建实例、监听、优雅停机
+  app.ts             # 装配层：插件、错误收口、OpenAPI/Scalar 文档与路由挂载
+  config.ts          # 配置层：HOST/PORT/前缀/服务名，读环境变量并给缺省值
+  core/
+    errors.ts        # 错误类型、错误码与错误处理器收口（400/401/403/404/405/500）
+    response.ts      # 统一成功包络：单资源 data，列表 items + meta.total
+    schemas.ts       # 复用 JSON Schema 片段，兼作入参校验与 OpenAPI 文档源
+  infra/
+    paths.ts         # 白名单路径解析与可执行文件查找
+    probe.ts         # ffprobe 媒体探测
+    assets.ts        # 白名单资产解析：越界/目录/不存在分别归错
+  services/          # 服务层：读文件、探测、业务规则，不接触 req/res
   routes/            # 路由处理器：按域组织，只取参数并调服务层
-  services/          # 服务层：现有读文件与探测函数迁入，不碰 req/res
 ```
+
+运行时：开发用 `tsx watch` 直跑 TS 源码；生产 `tsc` 编译到 `dist/` 后由 Node 启动。错误日志由 Fastify 内置 Pino 接管，不在业务层手写 `console.error`。
 
 分层职责：
 
@@ -182,7 +187,7 @@ server/
 5. 响应层：统一 JSON 结构、状态码、Content-Type、Cache-Control，错误格式收口到一处。
 6. 中间件：CORS 白名单、访问日志、鉴权钩子；未捕获异常兜底收口。
 
-选型对比（待拍板；未确认前不引入第三方依赖）。性能基准来自 Fastify 官方 2026-11 单实例数据：Fastify 与 Hono 吞吐接近且高于 Express；但本项目是本机单用户低并发，真实瓶颈在渲染与子进程，框架吞吐差异基本不敏感。
+选型已定为 Fastify 5；下表为当初多维对比依据。性能基准来自 Fastify 官方 2026-11 单实例数据：Fastify 与 Hono 吞吐接近且高于 Express；但本项目是本机单用户低并发，真实瓶颈在渲染与子进程，框架吞吐差异基本不敏感。
 
 | 维度 | Fastify（推荐） | Express | Hono | 零依赖薄骨架 |
 | --- | --- | --- | --- | --- |
@@ -217,13 +222,7 @@ NestJS：企业级模块化、依赖注入、TS 全家桶，但对单机本地�
 4. 框架需要配合的点：异步路由不阻塞事件循环；超时与取消信号可透传并终止子进程树；结构化日志收子进程输出行；服务关闭时终止在跑的子进程。
 5. 三家在这块的差异：子进程能力都来自 Node 内置，框架不替代；差别在异步模型、错误与超时收口、停机钩子和后台任务插件的成熟度。Fastify 的封装插件与关闭钩子更适合管这类后台任务；Express、Hono 同样能做，队列与停机要自己拼得更多。
 
-迁移步骤：
-
-1. 先抽配置层与统一响应/错误，不换 http 内核。
-2. 拆路由表，把 index.mjs 的 switch 迁到 routes 处理器；服务函数签名保持不变。
-3. 接中间件链（CORS、日志），预留鉴权钩子。
-4. 选型定稿后再决定是否换框架内核；若用 Fastify，路由与服务层平移，响应与错误映射到框架约定。
-5. 补 server/package.json 并入 pnpm workspace；接口契约与前端逐页回归。
+落地记录：配置层与统一响应/错误先行抽出；路由拆到 routes 处理器，服务函数不碰 req/res；CORS 与日志经 Fastify 插件接入，鉴权钩子预留；后端独立成包并入 pnpm workspace。访问密钥鉴权、写接口请求体/参数 schema 留待二期。
 
 ## 五、前端页面（Vue3 + Vite + TS）
 
@@ -236,7 +235,7 @@ NestJS：企业级模块化、依赖注入、TS 全家桶，但对单机本地�
 4. TTS `/tts`：样例试听、分段台词与词边界查看。
 5. 环境 `/environment`：逐项版本、路径、可用性、补装提示。
 
-数据层：后端 JSON 接口封装成 composable；类型按接口响应定义 TS 类型，方便后续 AI 改代码时不猜错字段。
+数据层：axios 实例集中前缀、超时与错误归一，接口按域拆出类型化函数；契约类型按域归入 `shared/types`，包络与媒体探测结果复用 `packages/shared`。
 
 ## 六、公私素材边界
 

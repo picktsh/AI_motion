@@ -25,7 +25,7 @@ pnpm dev:web
 
 浏览器打开 http://127.0.0.1:5173 。
 
-前端生产构建：
+生产构建（后端编译到 `dist/`，前端打包）：
 
 ```bash
 pnpm build
@@ -35,8 +35,9 @@ pnpm build
 
 | 路径 | 说明 | 是否入库 |
 |---|---|---|
-| `server/` | 后端，Node 内置 http，零框架 | 入库 |
-| `web/` | 前端，Vue3 + Vite + TS + Naive UI | 入库（`node_modules`、`dist` 忽略） |
+| `apps/server/` | 后端，Fastify 5 + TypeScript，只读 API | 入库（`node_modules`、`dist` 忽略） |
+| `apps/web/` | 前端，Vue3 + Vite + TS + Naive UI | 入库（`node_modules`、`dist` 忽略） |
+| `packages/shared/` | 前后端共享错误码、常量与契约类型 | 入库 |
 | `studio/template/` | 现有 MotionGit 模板工程（二期迁 `studio/templates/`） | 入库 |
 | `studio/templates/` | 自有模板 | 入库 |
 | `studio/templates-cache/` | 第三方模板本地缓存 | 忽略 |

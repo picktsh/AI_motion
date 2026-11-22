@@ -9,6 +9,7 @@
 
 | 状态 | 类型 | 领域 | 简介 | 添加时间 |
 | --- | --- | --- | --- | --- |
+| 完成 | 变更 | 框架 | monorepo 骨架重构 #102–#106：拆 `apps/web`、`apps/server`、`packages/shared` 三包；后端 Fastify 5 转 TypeScript 并按 core/routes/services/infra 分层；前端 API、类型、常量与组件目录收口；两端补 typecheck | 2026-11-22 |
 | 完成 | 新增 | 后端 | OpenAPI 文档 #100：路由 JSON Schema 兼作校验与文档源，swagger 生成 3.1 规范，Scalar 在 /docs 渲染，提供 JSON/YAML 数据源 | 2026-11-22 |
 | 完成 | 变更 | 框架 | 前端请求层 #98：改用 axios，实例集中前缀、超时与错误归一；接口路径收拢 api/endpoints，按域拆分类型化 API 模块，页面不拼路径 | 2026-11-22 |
 | 完成 | 变更 | 后端 | 后端框架化 #77：迁到 Fastify 5，配置、错误类型与码、响应包络分层，路由按域拆分；统一成功与错误包络，错误码对应 HTTP 状态，接口前缀 `/api/v1`；前端请求层统一解包 | 2026-11-22 |

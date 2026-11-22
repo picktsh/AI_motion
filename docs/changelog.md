@@ -7,6 +7,10 @@
 
 ## 0.1.0 · 2026-11-22
 
+- 调整 · #102 #104 monorepo 包化：前端、后端、共享层拆为 `apps/web`、`apps/server`、`packages/shared`，pnpm workspace 纳入三包；后端依赖下沉到独立包，错误码、接口前缀与契约类型收口到 shared 单一来源
+- 调整 · #103 后端转 TypeScript：开发用 tsx、生产 tsc 编译到 `dist/`；源码按 `core / routes / services / infra` 分层，配置、错误、响应、Schema 收口到 core；错误日志由 Fastify 内置 Pino 接管
+- 调整 · #105 #91 前端目录收口：API 按域拆分，契约类型按域归入 `shared/types`，外链与仓库地址收拢到 `shared/constants`，无响应式单例迁入 `lib/`，组件按 `layout / media / data` 分组；补两端 typecheck 脚本
+- 文档 · #106 订正目录结构、后端分层现状与框架选型表述；内容规划文档改为 kebab 命名 `content-plan.md`；gitignore 构建产物路径对齐 apps 布局
 - 新增 · #100 接入 OpenAPI 文档：路由补 JSON Schema 兼作校验与文档源，`@fastify/swagger` 生成 OpenAPI 3.1，Scalar 在 `/docs` 渲染；JSON 数据源 `/documentation/json`，自带 `/docs/openapi.json` 与 `/docs/openapi.yaml`
 - 调整 · #98 前端请求层改用 axios：传输实例集中基础前缀、超时与错误归一；接口路径收拢到 `api/endpoints`，环境/模板/视频/配音/资产按域拆出类型化函数，页面只调领域函数、不再出现接口路径字面量 · #98 #99
 - 调整 · #77 后端迁到 Fastify 5：配置、错误类型与码、响应包络按层拆分，路由按健康/环境/模板/视频/配音/资产分域；统一成功包络（单资源 `data`，列表 `items` + `meta.total`）与错误包络（`code`/`message`/`details`），错误码对应 400/401/403/404/405/500；接口前缀 `/api/v1` · #94 #95

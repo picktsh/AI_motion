@@ -7,7 +7,6 @@
 ## 二期近期：命令台执行闭环（优先）
 
 - 二期命令台：prepare、preview、render、tts 白名单执行，日志回流，长任务异步轮询，模板依赖安装联动；先在本机跑通一条完整出片链路
-- #77 后端框架化收尾（Fastify 骨架、路由拆分、统一包络与错误码、只读路由 schema 已交付，见 changelog）：现有服务函数物理迁入 `server/services/`；补 `server` 独立 `package.json` 并纳入 pnpm workspace；接 Pino 结构化日志；写接口落地时补对应请求体/参数 schema（只读路由 schema 已兼作 OpenAPI 文档源）。目标分层、选型对比与 Python 子进程长任务约束见 console-design 第四节
 - 健康状态定时轮询：后端自动恢复后前端不需手动刷新即回到已连接态
 - 命令台依赖联动：node_modules、studio/tts/.venv、studio/bin 就位检查与安装引导
 - 后端监听可配置：HOST/PORT 由环境变量配置，默认回环；CORS 按来源白名单收紧，不再用全开放 *
@@ -36,10 +35,8 @@
 
 ## 工程与体验优化（穿插进行）
 
-- #91 前端工程化整理（接口路径已收拢到 `src/api/endpoints`，API 按域拆分完成）：外链、仓库地址抽到 `src/constants`；按专业工程目录分层组织其余代码
 - 运行时配置层：后端地址、AI 提供商与密钥可在页面配置；读取优先级为页面本地设置 > 构建期 env > 内置兜底；配置与业务代码分离
-- 前端解耦与契约共享：前后端 API 类型抽到 `packages/shared`；声明协议版本，不兼容时给出提示；后端地址改为运行时可读，前端构建不写死 origin，可连接任意兼容后端
-- Monorepo 包化：拆分 `apps/web`、`apps/server`、`packages/shared`；server 补包配置与入口；shared 抽取类型、reader、validator、常量；目录迁移独立提交，迁移期保留路径映射
+- 契约不兼容提示：协议版本在运行时比对，前后端版本不兼容时前端给出明确提示
 - #95 About 页可视化：图形化展示阶段路线图、能力地图、服务架构拓扑图与运行配置说明，替代纯 markdown 表格；组件与配色沿用现有克制主题；阶段、条目与配置数据从单一来源取，避免文档和页面两套口径
 - 前端体验补全：Naive UI 全量引入拆包；折叠状态持久化；骨架屏与错误分支实测；全局检索；`<768px>` 移动端视图适配
 - #93 Markdown 渲染：更新日志页改用轻量成熟的 Markdown 渲染库（markdown-it 或 marked，选型待确认）直接渲染 changelog.md、roadmap.md，替换当前手写条目解析；评估产物体积与 HTML 消毒防 XSS，新依赖先确认再引入

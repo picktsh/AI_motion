@@ -56,7 +56,7 @@
 
 ### 4.3 与内容账号规划的区分
 
-1. 工具项目（本文件）与内容账号规划是两条线；账号人设、栏目与发布顺序见 [AI创作规划.md](./AI创作规划.md)。
+1. 工具项目（本文件）与内容账号规划是两条线；账号人设、栏目与发布顺序见 [content-plan.md](./content-plan.md)。
 2. 交叉点：工具项目本身可作为「前端工程师搭 AI 工具链」的复盘选题，但文档与代码不混用两套口径。
 
 ## 五、能力地图
@@ -95,23 +95,23 @@
 3. 当前 `package.json` 与 README 中的 ai-motion-studio 为临时名称，待代号确定后统一替换。
 4. 若对外发布，README 与关于页需标注「非官方项目，与 MotionGit 无隶属或背书关系」。
 
-## 九、工程结构（目标 monorepo）
+## 九、工程结构（monorepo 已落位）
 
-当前为 pnpm workspace 雏形（仅纳入 web），目标演进为标准 monorepo：
+pnpm workspace 已纳入前后端与共享包：
 
 ```
 apps/
-  web/        # 前端控制台
-  server/     # 后端服务（独立包，补 package.json 与入口）
+  web/        # 前端控制台（Vue3 + Vite + TS + Naive UI）
+  server/     # 后端服务（Fastify 5 + TypeScript，独立包）
 packages/
-  shared/     # TS 类型、.motion reader、validator、常量；前后端共享内核
+  shared/     # 前后端共享的错误码、常量与契约类型；reader、validator 等内核能力后续抽离
 studio/       # 业务资产目录，非 JS 包，不纳入 workspace
 docs/         # 文档
 ```
 
-1. `packages/shared` 承接可抽离内核，web 与 server 共同引用，类型保持单一来源。
+1. `packages/shared` 承接可抽离内核，web 与 server 共同引用，类型与错误码保持单一来源。
 2. Python 侧脚本（adapter.py、make_voice.py、uv 环境）不进 pnpm workspace，保留 PEP723 声明与目录约定。
-3. 目录迁移作为独立重构提交，不与功能改动混合；迁移期保留路径映射适配。
+3. 目录迁移作为独立重构提交，不与功能改动混合。
 
 ### 架构分层（About 页拓扑图依据）
 
