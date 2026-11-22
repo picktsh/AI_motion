@@ -1,6 +1,7 @@
 import type { FastifyInstance } from 'fastify';
 import { buildApp } from './app.js';
 import { config } from './config.js';
+import { shutdownJobs } from './services/jobs.js';
 
 let app: FastifyInstance | null = null;
 
@@ -18,6 +19,7 @@ async function start(): Promise<void> {
 async function shutdown(signal: NodeJS.Signals): Promise<void> {
   app?.log.info(`[${config.service}] 收到 ${signal}，正在关闭`);
   try {
+    shutdownJobs();
     await app?.close();
   } finally {
     process.exit(0);

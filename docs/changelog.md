@@ -7,6 +7,7 @@
 
 ## 0.1.0 · 2026-11-22
 
+- 新增 · #109 后端命令台任务接口：白名单命令注册（plan/prepare/preview/render/tts:voice/tts:samples），提供任务提交、列表、快照、增量日志与取消；内存任务表按渲染/默认分组并发，子进程独立进程组终止，超时、缺依赖与路径越界收口为统一错误体；本地 bin 目录注入子进程 PATH
 - 文档 · README 补后端与前端配置项对照表：`HOST`/`PORT`/`API_PREFIX`/`SERVICE_NAME`/`LOG_LEVEL` 与 `VITE_SERVER_ORIGIN`/`VITE_SERVER_API` 的来源、作用与缺省值；访问密钥与 CORS 来源白名单仍留待二期
 - 调整 · #102 #104 monorepo 包化：前端、后端、共享层拆为 `apps/web`、`apps/server`、`packages/shared`，pnpm workspace 纳入三包；后端依赖下沉到独立包，错误码、接口前缀与契约类型收口到 shared 单一来源
 - 调整 · #103 后端转 TypeScript：开发用 tsx、生产 tsc 编译到 `dist/`；源码按 `core / routes / services / infra` 分层，配置、错误、响应、Schema 收口到 core；错误日志由 Fastify 内置 Pino 接管

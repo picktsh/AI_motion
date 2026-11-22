@@ -22,6 +22,10 @@ function resolveRoot(): string {
 
 export const ROOT = resolveRoot();
 
+// 本地可执行目录（ffmpeg/ffprobe/uv 等）；子进程 PATH 需前置该目录，
+// 否则 Python/渲染脚本内部按名字调用时解析不到。
+export const BIN_DIR = path.join(ROOT, 'studio', 'bin');
+
 // 允许通过 /api/v1/assets 回显的白名单目录（相对工程根）。
 // studio/public、studio/templates 为规划预留目录，落地后自然生效；
 // templates-cache 是第三方模板解压缓存，不通过资产回显路由对外暴露。
@@ -48,7 +52,7 @@ export function resolveSafe(rel: string): string | null {
 
 // 在 studio/bin/ 或 PATH 中查找可执行文件
 export function findBin(name: string): string | null {
-  const local = path.join(ROOT, 'studio', 'bin', name);
+  const local = path.join(BIN_DIR, name);
   if (fs.existsSync(local)) return local;
   const exts = process.platform === 'win32' ? ['.exe', '.cmd', ''] : [''];
   const pathDirs = (process.env.PATH || '').split(path.delimiter);

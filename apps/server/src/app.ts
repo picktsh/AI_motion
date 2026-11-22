@@ -10,6 +10,7 @@ import { registerEnvironment } from './routes/environment.js';
 import { registerTemplates } from './routes/templates.js';
 import { registerVideos } from './routes/videos.js';
 import { registerTts } from './routes/tts.js';
+import { registerJobs } from './routes/jobs.js';
 import { registerAssets } from './routes/assets.js';
 
 // 装配 Fastify 实例：插件、错误收口、文档与路由挂载。启停逻辑在 index.ts。
@@ -34,7 +35,7 @@ export async function buildApp(): Promise<FastifyInstance> {
       info: {
         title: 'AI Motion Studio API',
         version: '0.1.0',
-        description: '本地 AI 视频制作工作台后端接口；一期为只读回显。',
+        description: '本地 AI 视频制作工作台后端接口；只读回显与命令台任务执行。',
       },
       servers: [{ url: `http://${config.host}:${config.port}${config.apiPrefix}` }],
       tags: [
@@ -43,6 +44,7 @@ export async function buildApp(): Promise<FastifyInstance> {
         { name: 'templates', description: 'MotionGit 模板' },
         { name: 'videos', description: '视频条目' },
         { name: 'tts', description: '配音样例与分段' },
+        { name: 'jobs', description: '命令台任务执行与日志' },
         { name: 'assets', description: '静态资产回显' },
       ],
     },
@@ -60,6 +62,7 @@ export async function buildApp(): Promise<FastifyInstance> {
   registerTemplates(app, config.apiPrefix);
   registerVideos(app, config.apiPrefix);
   registerTts(app, config.apiPrefix);
+  registerJobs(app, config.apiPrefix);
   registerAssets(app, config.apiPrefix);
 
   return app;

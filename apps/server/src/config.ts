@@ -6,6 +6,14 @@ export interface AppConfig {
   port: number;
   apiPrefix: string;
   service: string;
+  job: {
+    defaultTimeoutMs: number;
+    renderTimeoutMs: number;
+    maxRetained: number;
+    logCapacity: number;
+    renderConcurrency: number;
+    defaultConcurrency: number;
+  };
 }
 
 const DEFAULTS = {
@@ -25,4 +33,12 @@ export const config: AppConfig = {
   port: readPort(process.env.PORT),
   apiPrefix: (process.env.API_PREFIX || DEFAULTS.apiPrefix).replace(/\/+$/, ''),
   service: process.env.SERVICE_NAME || DEFAULTS.service,
+  job: {
+    defaultTimeoutMs: 120_000,
+    renderTimeoutMs: 600_000,
+    maxRetained: 50,
+    logCapacity: 2_000,
+    renderConcurrency: 1,
+    defaultConcurrency: 2,
+  },
 };
