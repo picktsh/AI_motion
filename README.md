@@ -31,6 +31,27 @@ pnpm dev:web
 pnpm build
 ```
 
+## 配置项
+
+后端配置在进程启动时读取环境变量，未设置时回退到内置缺省；业务代码不直接读裸环境变量，统一经 `apps/server/src/config.ts`。
+
+| 变量 | 作用 | 缺省值 |
+|---|---|---|
+| `HOST` | 后端监听地址 | `127.0.0.1`（仅本机回环） |
+| `PORT` | 后端监听端口 | `5199`（非 1–65535 整数时回退缺省） |
+| `API_PREFIX` | 接口路径前缀 | `/api/v1`（自动去除尾部斜杠） |
+| `SERVICE_NAME` | 服务名，健康检查回显 | `ai-motion-studio` |
+| `LOG_LEVEL` | Pino 日志级别 | `info` |
+
+前端配置为 Vite 构建期变量，写在 `apps/web/.env`，改完需重启 dev 或重新构建：
+
+| 变量 | 作用 | 缺省/示例 |
+|---|---|---|
+| `VITE_SERVER_ORIGIN` | 后端服务源 | `http://127.0.0.1:5199` |
+| `VITE_SERVER_API` | 接口路径前缀 | `/api/v1` |
+
+访问密钥、CORS 来源白名单属二期安全条目，方案待定，见 [docs/roadmap.md](./docs/roadmap.md)。
+
 ## 目录
 
 | 路径 | 说明 | 是否入库 |
