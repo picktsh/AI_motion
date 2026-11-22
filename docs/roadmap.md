@@ -7,7 +7,7 @@
 ## 二期近期：命令台执行闭环（优先）
 
 - 二期命令台：prepare、preview、render、tts 白名单执行，日志回流，长任务异步轮询，模板依赖安装联动；先在本机跑通一条完整出片链路
-- #77 后端框架化升级：替代当前散文件 Node http 实现，拆分路由层、服务层、校验层、错误处理，统一响应与中间件；框架选型待定
+- #77 后端框架化收尾（Fastify 骨架、路由拆分、统一包络与错误码、只读路由 schema 已交付，见 changelog）：现有服务函数物理迁入 `server/services/`；补 `server` 独立 `package.json` 并纳入 pnpm workspace；接 Pino 结构化日志；写接口落地时补对应请求体/参数 schema（只读路由 schema 已兼作 OpenAPI 文档源）。目标分层、选型对比与 Python 子进程长任务约束见 console-design 第四节
 - 健康状态定时轮询：后端自动恢复后前端不需手动刷新即回到已连接态
 - 命令台依赖联动：node_modules、studio/tts/.venv、studio/bin 就位检查与安装引导
 - 后端监听可配置：HOST/PORT 由环境变量配置，默认回环；CORS 按来源白名单收紧，不再用全开放 *
@@ -36,7 +36,7 @@
 
 ## 工程与体验优化（穿插进行）
 
-- #91 前端工程化整理：接口路径常量集中到 `src/api`；外链、仓库地址抽到 `src/constants`；按专业工程目录分层组织代码
+- #91 前端工程化整理（接口路径已收拢到 `src/api/endpoints`，API 按域拆分完成）：外链、仓库地址抽到 `src/constants`；按专业工程目录分层组织其余代码
 - 运行时配置层：后端地址、AI 提供商与密钥可在页面配置；读取优先级为页面本地设置 > 构建期 env > 内置兜底；配置与业务代码分离
 - 前端解耦与契约共享：前后端 API 类型抽到 `packages/shared`；声明协议版本，不兼容时给出提示；后端地址改为运行时可读，前端构建不写死 origin，可连接任意兼容后端
 - Monorepo 包化：拆分 `apps/web`、`apps/server`、`packages/shared`；server 补包配置与入口；shared 抽取类型、reader、validator、常量；目录迁移独立提交，迁移期保留路径映射
