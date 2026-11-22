@@ -1,0 +1,100 @@
+/* ------------------------------------------------------------------
+ * 设计令牌（CSS 变量）
+ * 亮色为 :root，暗色由 <html data-theme="dark"> 覆盖。
+ * 页面与组件只允许引用 var(--*)，不出现硬编码 hex。
+ * ------------------------------------------------------------------ */
+
+:root {
+  /* 表面 */
+  --color-bg: #f6f7f9;
+  --color-panel: #ffffff;
+  --color-overlay: #ffffff;
+  --color-border: #e6e8ec;
+  --color-divider: #edf0f3;
+
+  /* 文字 */
+  --color-text-primary: #111827;
+  --color-text-secondary: #6b7280;
+  --color-text-tertiary: #9ca3af;
+
+  /* 品牌与语义 */
+  --color-brand: #bc8cff;
+  --color-brand-hover: #cca6ff;
+  --color-brand-pressed: #a66ef0;
+  --color-cyan: #22d3ee;
+  --color-success: #34d399;
+  --color-warning: #f5a524;
+  --color-danger: #f26d6d;
+
+  /* 12% 语义浅底（用 color-mix 派生，避免再写一套 hex） */
+  --color-brand-soft: color-mix(in srgb, var(--color-brand) 12%, transparent);
+  --color-success-soft: color-mix(in srgb, var(--color-success) 14%, transparent);
+  --color-warning-soft: color-mix(in srgb, var(--color-warning) 14%, transparent);
+  --color-danger-soft: color-mix(in srgb, var(--color-danger) 13%, transparent);
+  --color-neutral-soft: color-mix(in srgb, var(--color-text-secondary) 10%, transparent);
+
+  /* 形状 */
+  --radius-card: 12px;
+  --radius-control: 8px;
+  --radius-tag: 6px;
+
+  /* 阴影（仅两级） */
+  --shadow-card: 0 1px 2px rgba(16, 24, 40, 0.06);
+  --shadow-overlay: 0 8px 24px rgba(16, 24, 40, 0.18);
+
+  /* 布局尺寸 */
+  --space-page: 24px;
+  --sidebar-width: 240px;
+  --sidebar-collapsed: 50px;
+  --topbar-height: 64px;
+  --content-max: 1440px;
+
+  /* 字体 */
+  --font-family: -apple-system, "SF Pro Text", "PingFang SC", Inter, "Segoe UI",
+    "Microsoft YaHei", sans-serif;
+  --font-mono: "SF Mono", "JetBrains Mono", Menlo, Consolas, monospace;
+
+  /* 动效：只动 opacity / transform */
+  --transition: 150ms ease-out;
+}
+
+[data-theme="dark"] {
+  --color-bg: #0e1014;
+  --color-panel: #16181f;
+  --color-overlay: #1c1f27;
+  --color-border: #262a33;
+  --color-divider: #1f232b;
+
+  --color-text-primary: #e8eaf0;
+  --color-text-secondary: #9aa2b1;
+  --color-text-tertiary: #5c6470;
+
+  --shadow-card: 0 1px 2px rgba(0, 0, 0, 0.3);
+  --shadow-overlay: 0 8px 24px rgba(0, 0, 0, 0.45);
+}
+
+/* 基础排版 */
+html,
+body,
+#app {
+  height: 100%;
+}
+
+body {
+  margin: 0;
+  font-family: var(--font-family);
+  font-size: 13px;
+  color: var(--color-text-primary);
+  background-color: var(--color-bg);
+  overflow: hidden;
+  -webkit-font-smoothing: antialiased;
+}
+
+/* 数字统一等宽 */
+.tnum {
+  font-variant-numeric: tabular-nums;
+}
+
+.mono {
+  font-family: var(--font-mono);
+}
