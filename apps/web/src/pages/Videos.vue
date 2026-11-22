@@ -1,10 +1,10 @@
 <script setup lang="ts">
-import { computed, onMounted, reactive, ref, watch } from 'vue';
-import { NInput, NSelect, NImage, NIcon, NTooltip, NButton, useMessage } from 'naive-ui';
+import { computed, onMounted, ref } from 'vue';
+import { NSelect, NImage, NIcon, NTooltip, NButton, NInputNumber, useMessage } from 'naive-ui';
 import { FilmOutline, DocumentOutline } from '@vicons/ionicons5';
 import { listVideos, getVideoDetail } from '../api/videos';
 import { listSegments } from '../api/tts';
-import { getPublish, savePublish, type PublishSource } from '../api/publish';
+import { submitJob } from '../api/jobs';
 import { useFetch } from '../composables/useFetch';
 import SectionCard from '../components/data/SectionCard.vue';
 import StatusTag from '../components/data/StatusTag.vue';
@@ -12,13 +12,12 @@ import SkeletonBlock from '../components/data/SkeletonBlock.vue';
 import EmptyState from '../components/data/EmptyState.vue';
 import PathCopy from '../components/data/PathCopy.vue';
 import SamplePlayer from '../components/media/SamplePlayer.vue';
-import Waveform from '../components/media/Waveform.vue';
-import type { VideoSummary, VideoDetail, Artifact, ProbeResult, Segment, PublishConfig } from '../shared/types';
-import { activeItemIndex } from '../lib/timeline';
+import TimelineTrack from '../components/media/TimelineTrack.vue';
+import type { VideoSummary, VideoDetail, Artifact, ProbeResult, Segment, CommandName } from '../shared/types';
+import { activeItemIndex, type TimelineItem } from '../lib/timeline';
 
 /* 列表 */
 const { data, loading, error, run } = useFetch(listVideos);
-const message = useMessage();
 
 onMounted(run);
 
@@ -70,6 +69,7 @@ async function loadDetail(id: string) {
     const d = await getVideoDetail(id);
     if (seq !== reqSeq.value) return;
     detail.value = d;
+    selectedInstance.value = 'instance';
   } catch (e) {
     if (seq !== reqSeq.value) return;
     detailError.value = e instanceof Error ? e.message : String(e);
@@ -82,6 +82,39 @@ function select(id: string) {
   if (activeId.value === id) return;
   activeId.value = id;
   void loadDetail(id);
+}
+
+/* 命令动作：参数由当前条目上下文自动带入，命令台只负责队列与日志 */
+const message = useMessage();
+const busyAction = ref<CommandName | null>(null);
+const selectedInstance = ref('instance');
+const previewTime = ref(1);
+
+const instanceOptions = computed(() => {
+  const dirs = detail.value?.instanceDirs ?? [];
+  return [...new Set(['instance', ...dirs])].map((d) => ({ label: d, value: d }));
+});
+
+function describeError(e: unknown): string {
+  const msg = e instanceof Error ? e.message : String(e);
+  const bins = (e as { details?: { missingBins?: string[] } }).details?.missingBins;
+  return Array.isArray(bins) && bins.length ? `${msg}：${bins.join('、')}` : msg;
+}
+
+async function runAction(command: CommandName): Promise<void> {
+  if (!detail.value || busyAction.value) return;
+  busyAction.value = command;
+  try {
+    const params: Record<string, unknown> = { entryId: detail.value.id };
+    if (command !== 'plan') params.instanceName = selectedInstance.value;
+    if (command === 'preview') params.time = previewTime.value;
+    const job = await submitJob(command, params);
+    message.success(`任务已提交：${job.id}`);
+  } catch (e) {
+    message.error(describeError(e));
+  } finally {
+    busyAction.value = null;
+  }
 }
 
 /* 配音分段与词边界：全局一份回显，仅归属到时长匹配的当前视频 */
@@ -106,6 +139,17 @@ const activeCaption = computed(() =>
     mainTime.value,
   ),
 );
+
+const captionItems = computed<TimelineItem[]>(() =>
+  captions.value.map((c, i) => ({
+    id: String(i),
+    start: Number(c.start) || 0,
+    end: Number(c.end) || 0,
+    label: String(c.text ?? ''),
+  })),
+);
+
+const trackDuration = computed(() => mainDuration.value || detail.value?.meta.duration || 0);
 
 const totalSegEnd = computed(() =>
   Math.max(1, ...segments.value.map((s) => s.windowEnd)),
@@ -135,105 +179,6 @@ const bgm = computed(() => detail.value?.mediaRefs.find((m) => m.role === 'music
 const bgmLicense = computed(() => {
   const media = (detail.value?.meta.media ?? {}) as Record<string, { license?: string }>;
   return media.music?.license ?? null;
-});
-
-/* 发布配置：独立 publish.json，与渲染输入 user.json 解耦；经后端读写接口落盘 */
-const publish = ref<PublishConfig | null>(null);
-const publishMissing = ref(false);
-const publishSource = ref<PublishSource | null>(null);
-const editing = ref(false);
-const saving = ref(false);
-const draft = reactive({ title: '', body: '', hashtags: '', horizontal: '', vertical: '', notes: '' });
-
-function assetByName(name?: string | null) {
-  if (!name || !detail.value) return null;
-  const all = [
-    ...detail.value.mediaRefs.map((m) => ({ file: m.file, url: m.url })),
-    ...detail.value.extraAssets.map((e) => ({ file: e.name, url: e.url })),
-  ];
-  return all.find((a) => a.file === name) ?? null;
-}
-
-function coverUrl(kind: 'horizontal' | 'vertical'): string | undefined {
-  const name = publish.value?.covers?.[kind];
-  let hit = assetByName(name);
-  if (!hit && kind === 'horizontal') hit = assetByName('cover.png');
-  return hit?.url ?? undefined;
-}
-
-function fillDraft(c: PublishConfig) {
-  draft.title = c.title ?? '';
-  draft.body = c.body ?? '';
-  draft.hashtags = (c.hashtags ?? []).join(', ');
-  draft.horizontal = c.covers?.horizontal ?? '';
-  draft.vertical = c.covers?.vertical ?? '';
-  draft.notes = c.notes ?? '';
-}
-
-async function loadPublish() {
-  publish.value = null;
-  publishMissing.value = false;
-  editing.value = false;
-  if (!detail.value || !activeId.value) return;
-  try {
-    const res = await getPublish(activeId.value);
-    publish.value = res.config;
-    publishSource.value = res.source;
-    publishMissing.value = !res.source.exists;
-    fillDraft(res.config);
-  } catch {
-    publishMissing.value = true;
-  }
-}
-
-function startEdit() {
-  fillDraft(publish.value ?? {});
-  editing.value = true;
-}
-
-function cancelEdit() {
-  editing.value = false;
-}
-
-async function saveEdit() {
-  if (!activeId.value) return;
-  saving.value = true;
-  try {
-    const config: PublishConfig = {
-      title: draft.title.trim(),
-      body: draft.body.trim(),
-      notes: draft.notes.trim(),
-      hashtags: draft.hashtags.split(/[,，\n]/).map((s) => s.trim()).filter(Boolean),
-      covers: {
-        ...(draft.horizontal.trim() ? { horizontal: draft.horizontal.trim() } : {}),
-        ...(draft.vertical.trim() ? { vertical: draft.vertical.trim() } : {}),
-      },
-    };
-    const res = await savePublish(activeId.value, config);
-    publish.value = res.config;
-    publishSource.value = res.source;
-    publishMissing.value = false;
-    editing.value = false;
-    message.success('发布配置已保存');
-  } catch (e) {
-    message.error(e instanceof Error ? e.message : String(e));
-  } finally {
-    saving.value = false;
-  }
-}
-
-watch(detail, () => void loadPublish());
-
-const publishChecks = computed(() => {
-  const p = publish.value;
-  if (!p) return [];
-  return [
-    { label: '标题', ok: !!p.title?.trim() },
-    { label: '正文', ok: !!p.body?.trim() },
-    { label: '话题', ok: !!p.hashtags?.length },
-    { label: '横封面', ok: !!coverUrl('horizontal') },
-    { label: '竖封面', ok: !!coverUrl('vertical') },
-  ];
 });
 
 const mainVideo = computed<Artifact | null>(
@@ -392,6 +337,28 @@ function probeMeta(a: Artifact): string {
             </div>
           </SectionCard>
 
+          <!-- 生成操作：命令按当前条目上下文触发，路径自动带入 -->
+          <SectionCard title="生成操作">
+            <div class="actions">
+              <div class="actions__controls">
+                <div class="actions__field">
+                  <label class="actions__label">实例目录</label>
+                  <NSelect v-model:value="selectedInstance" :options="instanceOptions" size="small" />
+                </div>
+                <div class="actions__field">
+                  <label class="actions__label">预览时刻（秒）</label>
+                  <NInputNumber v-model:value="previewTime" :min="0.1" :step="0.5" size="small" />
+                </div>
+              </div>
+              <div class="actions__buttons">
+                <NButton size="small" :loading="busyAction === 'plan'" @click="runAction('plan')">计划校验</NButton>
+                <NButton size="small" :loading="busyAction === 'prepare'" @click="runAction('prepare')">准备实例</NButton>
+                <NButton size="small" :loading="busyAction === 'preview'" @click="runAction('preview')">预览单帧</NButton>
+                <NButton type="primary" size="small" :loading="busyAction === 'render'" @click="runAction('render')">渲染成片</NButton>
+              </div>
+            </div>
+          </SectionCard>
+
           <!-- 元信息 -->
           <SectionCard title="工程信息">
             <div class="meta-grid">
@@ -431,10 +398,7 @@ function probeMeta(a: Artifact): string {
                 <StatusTag status="neutral" :text="bgm.file" />
                 <span v-if="bgmLicense" class="bgm__license">{{ bgmLicense }}</span>
               </div>
-              <Waveform :url="bgm.url" :height="48" />
-              <audio v-if="bgm.url" controls class="bgm__audio">
-                <source :src="bgm.url" />
-              </audio>
+              <SamplePlayer :url="bgm.url" />
             </div>
           </SectionCard>
 
@@ -454,10 +418,7 @@ function probeMeta(a: Artifact): string {
                     object-fit="contain"
                   />
                   <div v-else-if="m.type === 'audio' && m.url" class="media__audio-wrap">
-                    <Waveform :url="m.url" :height="32" />
-                    <audio controls class="media__audio">
-                      <source :src="m.url" />
-                    </audio>
+                    <SamplePlayer :url="m.url" />
                   </div>
                   <audio v-else-if="m.url" controls class="media__audio">
                     <source :src="m.url" />
@@ -474,6 +435,16 @@ function probeMeta(a: Artifact): string {
 
           <!-- 字幕 -->
           <SectionCard :title="`字幕（${captions.length}）`">
+            <TimelineTrack
+              v-if="captions.length"
+              class="captions__track"
+              :items="captionItems"
+              :duration="trackDuration"
+              :active-id="activeCaption >= 0 ? String(activeCaption) : null"
+              :current-time="mainTime"
+              :height="36"
+              @seek="seekTo"
+            />
             <div v-if="captions.length" class="captions">
               <div class="captions__head">
                 <span class="captions__col captions__col--time">开始</span>
@@ -576,131 +547,14 @@ function probeMeta(a: Artifact): string {
                 </div>
                 <video v-if="a.type === 'video'" :src="a.url" controls class="artifact__media" />
                 <NImage v-else-if="a.type === 'image'" :src="a.url" :width="200" object-fit="contain" />
-                <div v-else-if="a.type === 'audio' && a.url" class="artifact__audio-wrap">
-                  <Waveform :url="a.url" :height="32" />
-                  <audio controls class="artifact__media">
-                    <source :src="a.url" />
-                  </audio>
+                <div v-else-if="a.type === 'audio'" class="artifact__audio-wrap">
+                  <SamplePlayer :url="a.url" />
                 </div>
-                <audio v-else-if="a.type === 'audio'" controls class="artifact__media">
-                  <source :src="a.url" />
-                </audio>
               </div>
             </div>
             <EmptyState v-else description="暂无产物" />
           </SectionCard>
 
-          <!-- 发布配置 -->
-          <SectionCard title="发布配置">
-            <div class="pub__toolbar">
-              <template v-if="editing">
-                <NButton size="small" @click="cancelEdit">取消</NButton>
-                <NButton size="small" type="primary" :loading="saving" @click="saveEdit">保存</NButton>
-              </template>
-              <NButton v-else size="small" quaternary @click="startEdit">
-                {{ publishMissing ? '新建配置' : '编辑' }}
-              </NButton>
-              <span v-if="publishSource?.exists && publishSource.rel" class="pub__source tnum">
-                {{ publishSource.rel }}
-              </span>
-            </div>
-
-            <div v-if="editing" class="pub-form">
-              <div class="pub-form__field">
-                <span class="meta__label">标题</span>
-                <NInput v-model:value="draft.title" size="small" placeholder="发布标题" />
-              </div>
-              <div class="pub-form__field pub-form__field--column">
-                <span class="meta__label">正文</span>
-                <NInput v-model:value="draft.body" type="textarea" :rows="3" size="small" />
-              </div>
-              <div class="pub-form__field">
-                <span class="meta__label">话题</span>
-                <NInput v-model:value="draft.hashtags" size="small" placeholder="逗号分隔，如：AI剪辑, 效率工具" />
-              </div>
-              <div class="pub-form__field">
-                <span class="meta__label">横封面</span>
-                <NInput v-model:value="draft.horizontal" size="small" placeholder="cover.png" />
-              </div>
-              <div class="pub-form__field">
-                <span class="meta__label">竖封面</span>
-                <NInput v-model:value="draft.vertical" size="small" placeholder="cover-vertical.png" />
-              </div>
-              <div class="pub-form__field pub-form__field--column">
-                <span class="meta__label">备注</span>
-                <NInput v-model:value="draft.notes" type="textarea" :rows="2" size="small" />
-              </div>
-            </div>
-
-            <template v-else-if="publish">
-              <div class="pub__checks">
-                <span
-                  v-for="c in publishChecks"
-                  :key="c.label"
-                  class="pub-check"
-                  :class="c.ok ? 'pub-check--ok' : 'pub-check--miss'"
-                >
-                  <span class="pub-check__dot" />{{ c.label }}{{ c.ok ? '齐备' : '缺失' }}
-                </span>
-              </div>
-
-              <div class="pub__row">
-                <span class="meta__label">标题</span>
-                <span class="pub__text">{{ publish.title || detail.meta.title || '—' }}</span>
-              </div>
-
-              <div class="pub__row pub__row--column">
-                <span class="meta__label">正文</span>
-                <p class="pub__body">{{ publish.body || '—' }}</p>
-              </div>
-
-              <div class="pub__row pub__row--column">
-                <span class="meta__label">话题</span>
-                <div class="pub__tags">
-                  <StatusTag
-                    v-for="t in publish.hashtags ?? []"
-                    :key="t"
-                    status="info"
-                    :text="`#${t.replace(/^#/, '')}`"
-                  />
-                  <span v-if="!publish.hashtags?.length" class="pub__empty">未配置</span>
-                </div>
-              </div>
-
-              <div class="pub__covers">
-                <div class="pub-cover">
-                  <span class="pub-cover__label">横屏封面</span>
-                  <NImage
-                    v-if="coverUrl('horizontal')"
-                    :src="coverUrl('horizontal')"
-                    :width="160"
-                    object-fit="contain"
-                  />
-                  <div v-else class="pub-cover__missing">未配置</div>
-                </div>
-                <div class="pub-cover">
-                  <span class="pub-cover__label">竖屏封面</span>
-                  <NImage
-                    v-if="coverUrl('vertical')"
-                    :src="coverUrl('vertical')"
-                    :width="120"
-                    object-fit="contain"
-                  />
-                  <div v-else class="pub-cover__missing">未配置</div>
-                </div>
-              </div>
-
-              <div v-if="publish.notes" class="pub__row pub__row--column">
-                <span class="meta__label">备注</span>
-                <p class="pub__note">{{ publish.notes }}</p>
-              </div>
-            </template>
-            <EmptyState
-              v-else-if="publishMissing"
-              description="本作品尚未发布配置"
-              tip="点击「新建配置」在作品输入目录生成 publish.json（title / body / hashtags / covers / notes），与渲染输入 user.json 分开维护"
-            />
-          </SectionCard>
         </div>
       </section>
     </div>
@@ -840,6 +694,38 @@ function probeMeta(a: Artifact): string {
   font-size: 13px;
 }
 
+.actions {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-end;
+  gap: 16px;
+}
+
+.actions__controls {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px;
+}
+
+.actions__field {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  min-width: 160px;
+}
+
+.actions__label {
+  font-size: 12px;
+  color: var(--color-text-tertiary);
+}
+
+.actions__buttons {
+  margin-left: auto;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
 .meta-grid {
   display: grid;
   grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
@@ -926,6 +812,10 @@ function probeMeta(a: Artifact): string {
   gap: 6px;
   color: var(--color-text-tertiary);
   font-size: 12px;
+}
+
+.captions__track {
+  margin-bottom: 12px;
 }
 
 .captions {
@@ -1181,147 +1071,4 @@ function probeMeta(a: Artifact): string {
   width: 100%;
 }
 
-/* 发布配置 */
-.pub__toolbar {
-  display: flex;
-  align-items: center;
-  gap: 12px;
-  margin-bottom: 16px;
-}
-
-.pub__source {
-  font-size: 12px;
-  color: var(--color-text-tertiary);
-  word-break: break-all;
-}
-
-.pub-form {
-  display: flex;
-  flex-direction: column;
-  gap: 12px;
-}
-
-.pub-form__field {
-  display: flex;
-  align-items: center;
-  gap: 12px;
-}
-
-.pub-form__field--column {
-  flex-direction: column;
-  align-items: flex-start;
-  gap: 6px;
-}
-
-.pub-form__field .meta__label {
-  flex: none;
-  width: 64px;
-}
-
-.pub-form__field--column .meta__label {
-  width: auto;
-}
-
-.pub__checks {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 8px;
-  margin-bottom: 16px;
-}
-
-.pub-check {
-  display: inline-flex;
-  align-items: center;
-  gap: 6px;
-  font-size: 12px;
-  padding: 3px 10px;
-  border-radius: var(--radius-tag);
-  background: var(--color-neutral-soft);
-  color: var(--color-text-secondary);
-}
-
-.pub-check__dot {
-  width: 7px;
-  height: 7px;
-  border-radius: 50%;
-  background: currentColor;
-}
-
-.pub-check--ok {
-  color: var(--color-success);
-  background: var(--color-success-soft);
-}
-
-.pub-check--miss {
-  color: var(--color-warning);
-  background: var(--color-warning-soft);
-}
-
-.pub__row {
-  display: flex;
-  align-items: baseline;
-  gap: 8px;
-  font-size: 13px;
-  padding: 6px 0;
-}
-
-.pub__row--column {
-  flex-direction: column;
-  align-items: flex-start;
-  gap: 6px;
-}
-
-.pub__text {
-  color: var(--color-text-primary);
-}
-
-.pub__body,
-.pub__note {
-  margin: 0;
-  font-size: 13px;
-  line-height: 20px;
-  color: var(--color-text-secondary);
-  white-space: pre-wrap;
-}
-
-.pub__tags {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 8px;
-}
-
-.pub__empty {
-  font-size: 12px;
-  color: var(--color-text-tertiary);
-}
-
-.pub__covers {
-  display: flex;
-  gap: 16px;
-  padding: 8px 0;
-  flex-wrap: wrap;
-}
-
-.pub-cover {
-  display: flex;
-  flex-direction: column;
-  gap: 8px;
-}
-
-.pub-cover__label {
-  font-size: 12px;
-  color: var(--color-text-tertiary);
-}
-
-.pub-cover__missing {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  width: 160px;
-  height: 90px;
-  border: 1px dashed var(--color-border);
-  border-radius: var(--radius-control);
-  font-size: 12px;
-  color: var(--color-text-tertiary);
-}
 </style>

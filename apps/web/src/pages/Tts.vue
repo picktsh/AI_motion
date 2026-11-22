@@ -1,19 +1,43 @@
 <script setup lang="ts">
-import { computed, onMounted } from 'vue';
+import { computed, onMounted, ref } from 'vue';
+import { NButton, useMessage } from 'naive-ui';
 import { listSamples } from '../api/tts';
+import { submitJob } from '../api/jobs';
 import { useFetch } from '../composables/useFetch';
 import SectionCard from '../components/data/SectionCard.vue';
 import StatusTag from '../components/data/StatusTag.vue';
 import SkeletonBlock from '../components/data/SkeletonBlock.vue';
 import EmptyState from '../components/data/EmptyState.vue';
 import SamplePlayer from '../components/media/SamplePlayer.vue';
-import type { Sample } from '../shared/types';
+import type { Sample, CommandName } from '../shared/types';
 
 const { data, loading, error, run } = useFetch(listSamples);
 
 onMounted(run);
 
 const samples = computed<Sample[]>(() => data.value ?? []);
+
+const message = useMessage();
+const busyAction = ref<CommandName | null>(null);
+
+function describeError(e: unknown): string {
+  const msg = e instanceof Error ? e.message : String(e);
+  const bins = (e as { details?: { missingBins?: string[] } }).details?.missingBins;
+  return Array.isArray(bins) && bins.length ? `${msg}：${bins.join('、')}` : msg;
+}
+
+async function runTtsAction(command: CommandName): Promise<void> {
+  if (busyAction.value) return;
+  busyAction.value = command;
+  try {
+    const job = await submitJob(command, {});
+    message.success(`任务已提交：${job.id}`);
+  } catch (e) {
+    message.error(describeError(e));
+  } finally {
+    busyAction.value = null;
+  }
+}
 </script>
 
 <template>
@@ -31,6 +55,13 @@ const samples = computed<Sample[]>(() => data.value ?? []);
     </div>
 
     <template v-else-if="data">
+      <SectionCard title="配音生成">
+        <div class="tts__actions">
+          <NButton size="small" :loading="busyAction === 'tts:voice'" @click="runTtsAction('tts:voice')">生成配音分段</NButton>
+          <NButton size="small" :loading="busyAction === 'tts:samples'" @click="runTtsAction('tts:samples')">生成试音样例</NButton>
+        </div>
+      </SectionCard>
+
       <SectionCard title="音色试音">
         <div v-if="samples.length" class="sample-grid">
           <div v-for="s in samples" :key="s.id" class="sample">
@@ -67,6 +98,12 @@ const samples = computed<Sample[]>(() => data.value ?? []);
   display: flex;
   flex-direction: column;
   gap: 16px;
+}
+
+.tts__actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
 }
 
 .sample-grid {

@@ -72,6 +72,7 @@ export const errorStatuses: Record<number, JsonSchema> = {
   403: errorResponse,
   404: errorResponse,
   405: errorResponse,
+  409: errorResponse,
   500: errorResponse,
 };
 

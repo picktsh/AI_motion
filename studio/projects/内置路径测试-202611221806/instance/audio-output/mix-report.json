@@ -1,0 +1,53 @@
+{
+  "normalConsumerEntry": true,
+  "sourceSFX": 312,
+  "selectedEvents": 3,
+  "sourcePunctuation": 24,
+  "sfxPolicy": "native",
+  "voice": "none",
+  "music": "none",
+  "video": "video-with-audio.mp4",
+  "waveformEquivalence": "not asserted; synthesized source recipe",
+  "crossSceneTails": "sample ownership remapped, then shared reverb on the complete output; ordinary cut does not slice the SFX stem",
+  "movieBoundary": "trimmed at explicit movie end; negative source pre-roll is clipped at movie start",
+  "events": [
+    {
+      "source": {
+        "t": 250.58,
+        "type": "thud",
+        "g": 0.55,
+        "p": 0
+      },
+      "owner": "B1",
+      "call": "B1.hit/0",
+      "origin": "new expression",
+      "outputTime": 0.5800000000000125
+    },
+    {
+      "source": {
+        "t": 251.25,
+        "type": "write",
+        "g": 0.25,
+        "p": 0,
+        "d": 1.2
+      },
+      "owner": "B1",
+      "call": "B1.line/0",
+      "origin": "new expression",
+      "outputTime": 1.25
+    },
+    {
+      "source": {
+        "t": 257.6,
+        "type": "swoosh",
+        "g": 0.3,
+        "p": 0
+      },
+      "owner": "B1",
+      "call": "B1.exit/0",
+      "origin": "new expression",
+      "outputTime": 7.600000000000023
+    }
+  ],
+  "coverageComplete": false
+}

@@ -1,54 +1,35 @@
 <script setup lang="ts">
-import { ref, onBeforeUnmount } from 'vue';
+import { ref } from 'vue';
 import { NIcon } from 'naive-ui';
 import { PlayOutline, PauseOutline } from '@vicons/ionicons5';
-import Waveform from './Waveform.vue';
+import InteractiveWave from './InteractiveWave.vue';
 
 const props = defineProps<{
   url: string | null;
   durationS?: number;
 }>();
 
-const audio = ref<HTMLAudioElement | null>(null);
+const waveRef = ref<InstanceType<typeof InteractiveWave> | null>(null);
 const playing = ref(false);
 const current = ref(0);
 const duration = ref(props.durationS ?? 0);
 
-function onMeta() {
-  if (audio.value?.duration) duration.value = audio.value.duration;
+function onTime(t: number, d: number) {
+  current.value = t;
+  if (d > 0) duration.value = d;
 }
 
-function onTime() {
-  if (!audio.value) return;
-  current.value = audio.value.currentTime;
-}
-
-function onEnd() {
-  playing.value = false;
-  current.value = 0;
+function onPlay(p: boolean) {
+  playing.value = p;
 }
 
 async function toggle() {
-  if (!audio.value || !props.url) return;
-  if (playing.value) {
-    audio.value.pause();
-  } else {
-    try {
-      await audio.value.play();
-      playing.value = true;
-    } catch {
-      playing.value = false;
-    }
-  }
+  await waveRef.value?.toggle();
 }
 
 function fmt(t: number): string {
   return `${t.toFixed(1)}s`;
 }
-
-onBeforeUnmount(() => {
-  audio.value?.pause();
-});
 </script>
 
 <template>
@@ -58,18 +39,15 @@ onBeforeUnmount(() => {
         <component :is="playing ? PauseOutline : PlayOutline" />
       </n-icon>
     </button>
-    <Waveform :url="url" :height="28" class="sample-player__wave" />
+    <InteractiveWave
+      ref="waveRef"
+      :url="url"
+      :height="28"
+      class="sample-player__wave"
+      @time="onTime"
+      @play="onPlay"
+    />
     <span class="sample-player__time tnum">{{ fmt(current) }} / {{ fmt(duration) }}</span>
-    <audio
-      ref="audio"
-      preload="none"
-      @timeupdate="onTime"
-      @ended="onEnd"
-      @loadedmetadata="onMeta"
-      @pause="playing = false"
-    >
-      <source :src="url" />
-    </audio>
   </div>
   <div v-else class="sample-player__missing">音频缺失</div>
 </template>

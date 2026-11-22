@@ -1,6 +1,12 @@
 import type { FastifyInstance } from 'fastify';
+import fs from 'node:fs';
+import os from 'node:os';
+import path from 'node:path';
+import { pipeline } from 'node:stream/promises';
 import { listTemplates, getTemplate } from '../services/templates.js';
-import { notFound } from '../core/errors.js';
+import { importMotionPackage } from '../services/templateImport.js';
+import { getCatalog } from '../services/templateCatalog.js';
+import { badRequest, notFound } from '../core/errors.js';
 import { ok, list } from '../core/response.js';
 import { envelope, listEnvelope, errorStatuses, idParam, type JsonSchema } from '../core/schemas.js';
 
@@ -59,7 +65,15 @@ const templateDetail: JsonSchema = {
         present: { type: 'boolean' },
       },
     },
-    output: { type: ['object', 'null'] },
+    output: {
+      type: ['object', 'null'],
+      additionalProperties: true,
+      properties: {
+        width: { type: ['number', 'null'] },
+        height: { type: ['number', 'null'] },
+        layout: { type: ['string', 'null'] },
+      },
+    },
     permissions: { type: ['object', 'null'] },
     extensions: { type: ['object', 'null'] },
     parameters: {
@@ -102,6 +116,53 @@ const redirectResult: JsonSchema = {
 
 type IdParams = { id: string };
 
+const importResult: JsonSchema = {
+  type: 'object',
+  additionalProperties: true,
+  properties: {
+    id: { type: 'string' },
+    slug: { type: 'string' },
+    name: { type: 'string' },
+    version: { type: ['string', 'null'] },
+    localPath: { type: 'string' },
+    fileCount: { type: 'integer' },
+    bytes: { type: 'integer' },
+    packageSha256: { type: 'string' },
+    integrity: { type: 'string', enum: ['verified', 'absent'] },
+    verifiedFiles: { type: 'integer' },
+    sourceFilename: { type: 'string' },
+    importedAt: { type: 'string' },
+  },
+};
+
+const catalogItem: JsonSchema = {
+  type: 'object',
+  additionalProperties: true,
+  properties: {
+    templateId: { type: 'integer' },
+    repositoryId: { type: ['string', 'null'] },
+    name: { type: 'string' },
+    nameEn: { type: ['string', 'null'] },
+    summary: { type: ['string', 'null'] },
+    orientation: { type: 'string', enum: ['landscape', 'portrait'] },
+    ratio: { type: ['string', 'null'] },
+    width: { type: ['integer', 'null'] },
+    height: { type: ['integer', 'null'] },
+    fps: { type: ['number', 'null'] },
+    version: { type: ['string', 'null'] },
+    group: { type: ['string', 'null'] },
+    poster: { type: ['string', 'null'] },
+    demo: { type: ['string', 'null'] },
+    website: { type: ['string', 'null'] },
+    repository: { type: ['string', 'null'] },
+    downloadType: { type: ['string', 'null'] },
+    downloadUrl: { type: ['string', 'null'] },
+    availability: { type: ['string', 'null'] },
+    materials: { type: ['string', 'null'] },
+    openSource: { type: ['boolean', 'null'] },
+  },
+};
+
 export function registerTemplates(app: FastifyInstance, prefix: string): void {
   app.get(`${prefix}/templates`, {
     schema: {
@@ -110,6 +171,68 @@ export function registerTemplates(app: FastifyInstance, prefix: string): void {
       response: { 200: listEnvelope(templateSummary), ...errorStatuses },
     },
   }, () => list(listTemplates()));
+
+  app.get(`${prefix}/templates/catalog`, {
+    schema: {
+      tags: ['templates'],
+      summary: '模板中心公开清单（motiontemplates/all catalog，镜像拉取并本地缓存）',
+      querystring: {
+        type: 'object',
+        additionalProperties: false,
+        properties: {
+          refresh: { type: 'boolean', description: '跳过缓存强制拉取' },
+        },
+      },
+      response: { 200: listEnvelope(catalogItem), ...errorStatuses },
+    },
+  }, async (request) => {
+    const { refresh } = request.query as { refresh?: boolean };
+    const result = await getCatalog(Boolean(refresh));
+    return list(result.items, {
+      fetchedAt: result.fetchedAt,
+      source: result.source,
+      stale: result.stale,
+      error: result.error,
+    });
+  });
+
+  app.post(`${prefix}/templates/import`, {
+    schema: {
+      tags: ['templates'],
+      summary: '导入 .motion 模板包（multipart 字段 file）',
+      consumes: ['multipart/form-data'],
+      response: { 200: envelope(importResult), ...errorStatuses },
+    },
+  }, async (request) => {
+    let part;
+    try {
+      part = await request.file();
+    } catch (err) {
+      const message = err instanceof Error ? err.message : '';
+      if (/too large/i.test(message)) throw badRequest('文件超过单包体积上限');
+      throw badRequest(`读取上传文件失败：${message || '未知原因'}`);
+    }
+    if (!part) throw badRequest('缺少上传文件字段 file');
+
+    const filename = part.filename || 'upload.motion';
+    const tmp = path.join(
+      os.tmpdir(),
+      `motion-import-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`,
+    );
+    try {
+      await pipeline(part.file, fs.createWriteStream(tmp));
+      const result = await importMotionPackage(tmp, filename);
+      return ok(result);
+    } catch (err) {
+      const message = err instanceof Error ? err.message : '';
+      if (/too large/i.test(message) || (err as { code?: string })?.code === 'FST_REQ_FILE_TOO_LARGE') {
+        throw badRequest('文件超过单包体积上限');
+      }
+      throw err;
+    } finally {
+      fs.rmSync(tmp, { force: true });
+    }
+  });
 
   app.get(`${prefix}/templates/:id`, {
     schema: {

@@ -1,0 +1,52 @@
+{
+  "id": "像素闯关首条链路-202611221635",
+  "name": "像素闯关首条链路",
+  "templateId": "motiongit-promo-pixel@2.6.7",
+  "templateName": "像素闯关 · 产品宣传",
+  "archiveRel": "studio/templates/motiongit-promo-pixel@2.6.7/.package.motion",
+  "scriptRel": "studio/projects/像素闯关首条链路-202611221635/input/script.txt",
+  "status": "failed",
+  "createdAt": "2026-11-22T16:35:41.854Z",
+  "duration": 30,
+  "keywords": [
+    "AI剪辑",
+    "像素"
+  ],
+  "quote": {
+    "profile": "motiongit.expert-quote/1",
+    "template": "motiongit-promo-pixel@2.6.7",
+    "tts": {
+      "model": "volc-tts-2.0",
+      "credits": 1,
+      "status": "quoted",
+      "expires_at": 1795366001
+    },
+    "compose": {
+      "model": "aripu-1",
+      "credits": 1,
+      "status": "price-list",
+      "note": "编排报价要等配音完成后才有实测时间；此处按官网实时价目，提交前会重新报价并再核对上限"
+    },
+    "total": 2,
+    "maxCredits": 2,
+    "withinBudget": true,
+    "uploads": [
+      "口播文案（33 字）：用于配音和编排",
+      "配音实测时间（逐句、逐字）：用于编排",
+      "素材信息 0 个：只有文件名、类型、宽高",
+      "开场：不要"
+    ],
+    "notUploaded": [
+      "素材文件",
+      "本地路径",
+      "账号 Key"
+    ],
+    "skippedAssets": [],
+    "instanceDirectory": "/Volumes/Disk/AI_motion/studio/projects/像素闯关首条链路-202611221635/instance",
+    "quoteOnly": true,
+    "submitted": false
+  },
+  "artifactRel": null,
+  "videoUrl": null,
+  "logRel": "studio/projects/像素闯关首条链路-202611221635/run.log"
+}

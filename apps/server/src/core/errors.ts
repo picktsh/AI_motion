@@ -25,6 +25,8 @@ export const forbidden = (message?: string, details?: unknown) =>
   new AppError(403, ErrorCode.PATH_OUT_OF_SCOPE, message, details);
 export const notFound = (message?: string, details?: unknown) =>
   new AppError(404, ErrorCode.RESOURCE_NOT_FOUND, message, details);
+export const conflict = (message?: string, details?: unknown) =>
+  new AppError(409, ErrorCode.INVALID_PARAMETER, message, details);
 export const unauthorized = (message?: string, details?: unknown) =>
   new AppError(401, ErrorCode.UNAUTHORIZED, message, details);
 

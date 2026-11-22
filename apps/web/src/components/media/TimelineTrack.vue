@@ -78,6 +78,7 @@ function onSeek(item: TimelineItem) {
   background: var(--color-brand-soft, rgba(0, 0, 0, 0.12));
   cursor: pointer;
   padding: 0 6px;
+  margin-right: 2px;
   overflow: hidden;
   text-align: left;
 }

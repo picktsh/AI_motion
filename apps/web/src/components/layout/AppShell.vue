@@ -128,7 +128,7 @@ onUnmounted(() => window.clearInterval(healthTimer));
           :key="opt.key"
           type="button"
           class="flex items-center w-full px-2 py-2 gap-2 leading-none rounded-lg border-0 bg-transparent text-[var(--color-text-secondary)] cursor-pointer transition-colors hover:bg-[var(--color-neutral-soft)] hover:text-[var(--color-text-primary)]"
-          :class="isActive(opt.key) ? 'bg-[var(--color-brand-soft)] text-[var(--color-brand)]' : ''"
+          :class="{ 'nav-item--active': isActive(opt.key) }"
           @click="onSelect(opt.key)"
         >
           <span class="w-[18px] flex-none flex items-center justify-center">
@@ -225,7 +225,13 @@ onUnmounted(() => window.clearInterval(healthTimer));
 </template>
 
 <style scoped>
-/* 唯一保留的手写样式：页面切换过渡动画 */
+/* 菜单选中态：不依赖 UnoCSS 任意值解析，直接吃主题变量 */
+.nav-item--active {
+  background: var(--color-brand-soft);
+  color: var(--color-brand);
+}
+
+/* 页面切换过渡动画 */
 .page-enter-active,
 .page-leave-active {
   transition: opacity var(--transition);

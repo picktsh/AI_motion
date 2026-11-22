@@ -1,0 +1,32 @@
+{
+  "mode": "user-media",
+  "language": "zh",
+  "layout": "landscape",
+  "duration": 8,
+  "title": "内置路径测试",
+  "presenterLabel": "",
+  "scenes": [
+    {
+      "id": "B1",
+      "title": "一个想法"
+    }
+  ],
+  "content": {},
+  "basic": {
+    "keyword": "内置路径测试",
+    "explanation": "这次用内置路径创建，确认不再缺少包"
+  },
+  "media": {
+    "presenter": {
+      "mode": "none"
+    },
+    "voice": {
+      "mode": "none"
+    },
+    "music": {
+      "mode": "none"
+    }
+  },
+  "soundEffects": "native",
+  "captions": []
+}

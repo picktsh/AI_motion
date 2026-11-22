@@ -1,78 +1,21 @@
 <script setup lang="ts">
-import { computed, onMounted, onUnmounted, reactive, ref, nextTick, watch } from 'vue';
-import { NSelect, NInput, NButton, useMessage } from 'naive-ui';
-import { listJobs, getJob, getJobLogs, submitJob, cancelJob } from '../api/jobs';
+import { computed, onMounted, onUnmounted, ref, nextTick, watch } from 'vue';
+import { NButton, useMessage } from 'naive-ui';
+import { listJobs, getJob, getJobLogs, cancelJob } from '../api/jobs';
 import SectionCard from '../components/data/SectionCard.vue';
 import StatusTag, { type StatusTone } from '../components/data/StatusTag.vue';
 import SkeletonBlock from '../components/data/SkeletonBlock.vue';
 import EmptyState from '../components/data/EmptyState.vue';
 import type { CommandName, JobStatus, JobSnapshot, JobLogLine } from '../shared/types';
 
-type FieldKey = 'input' | 'instance' | 'out' | 'time';
-
-interface ParamField {
-  key: FieldKey;
-  label: string;
-  placeholder: string;
-}
-
-interface CommandMeta {
-  value: CommandName;
-  label: string;
-  description: string;
-  fields: ParamField[];
-}
-
-const COMMANDS: CommandMeta[] = [
-  {
-    value: 'plan',
-    label: '计划校验',
-    description: '校验输入并输出渲染计划，不写实例目录',
-    fields: [{ key: 'input', label: '输入文件', placeholder: 'studio/videos/input/user.json' }],
-  },
-  {
-    value: 'prepare',
-    label: '准备实例',
-    description: '复制核心、绑定素材并生成实例配置',
-    fields: [
-      { key: 'input', label: '输入文件', placeholder: 'studio/videos/input/user.json' },
-      { key: 'instance', label: '实例目录', placeholder: 'studio/videos/instance' },
-    ],
-  },
-  {
-    value: 'preview',
-    label: '预览单帧',
-    description: '渲染指定时刻的单帧预览图',
-    fields: [
-      { key: 'instance', label: '实例目录', placeholder: 'studio/videos/instance' },
-      { key: 'out', label: '产物路径', placeholder: 'studio/videos/preview.png' },
-      { key: 'time', label: '时间（秒）', placeholder: '1' },
-    ],
-  },
-  {
-    value: 'render',
-    label: '渲染成片',
-    description: '逐帧编码并混流音频，输出无声/成片视频',
-    fields: [
-      { key: 'instance', label: '实例目录', placeholder: 'studio/videos/instance' },
-      { key: 'out', label: '产物路径', placeholder: 'studio/videos/output.mp4' },
-    ],
-  },
-  {
-    value: 'tts:voice',
-    label: '生成配音分段',
-    description: 'edge-tts 合成配音，生成分段与词边界',
-    fields: [],
-  },
-  {
-    value: 'tts:samples',
-    label: '生成试音样例',
-    description: '合成多音色试音片段与样例清单',
-    fields: [],
-  },
-];
-
-const commandOptions = COMMANDS.map((c) => ({ label: c.label, value: c.value }));
+const COMMAND_LABEL: Record<CommandName, string> = {
+  plan: '计划校验',
+  prepare: '准备实例',
+  preview: '预览单帧',
+  render: '渲染成片',
+  'tts:voice': '生成配音分段',
+  'tts:samples': '生成试音样例',
+};
 
 const STATUS_TONE: Record<JobStatus, StatusTone> = {
   queued: 'warning',
@@ -89,15 +32,6 @@ const STATUS_TEXT: Record<JobStatus, string> = {
   failed: '失败',
   cancelled: '已取消',
 };
-
-/* 表单 */
-const selected = ref<CommandName>('plan');
-const form = reactive<Record<FieldKey, string>>({ input: '', instance: '', out: '', time: '' });
-const submitting = ref(false);
-
-const currentMeta = computed<CommandMeta>(
-  () => COMMANDS.find((c) => c.value === selected.value) ?? COMMANDS[0],
-);
 
 /* 列表 */
 const jobs = ref<JobSnapshot[]>([]);
@@ -145,51 +79,10 @@ async function select(id: string): Promise<void> {
   }
 }
 
-function validate(): string | null {
-  for (const f of currentMeta.value.fields) {
-    const v = form[f.key].trim();
-    if (f.key === 'time') continue;
-    if (!v) return `请填写「${f.label}」`;
-  }
-  const timeRaw = form.time.trim();
-  if (timeRaw) {
-    const n = Number(timeRaw);
-    if (!Number.isInteger(n) || n <= 0) return '时间（秒）须为正整数';
-  }
-  return null;
-}
-
 function describeError(e: unknown): string {
   const msg = e instanceof Error ? e.message : String(e);
-  const details = (e as { details?: { missingBins?: string[] } }).details;
-  const bins = details?.missingBins;
-  if (Array.isArray(bins) && bins.length) return `${msg}：${bins.join('、')}`;
-  return msg;
-}
-
-async function submit(): Promise<void> {
-  const bad = validate();
-  if (bad) {
-    message.warning(bad);
-    return;
-  }
-  const params: Record<string, unknown> = {};
-  for (const f of currentMeta.value.fields) {
-    const v = form[f.key].trim();
-    if (!v) continue;
-    params[f.key] = f.key === 'time' ? Number(v) : v;
-  }
-  submitting.value = true;
-  try {
-    const job = await submitJob(selected.value, params);
-    message.success(`任务 ${job.id} 已提交`);
-    await refreshList();
-    await select(job.id);
-  } catch (e) {
-    message.error(describeError(e));
-  } finally {
-    submitting.value = false;
-  }
+  const bins = (e as { details?: { missingBins?: string[] } }).details?.missingBins;
+  return Array.isArray(bins) && bins.length ? `${msg}：${bins.join('、')}` : msg;
 }
 
 async function onCancel(): Promise<void> {
@@ -265,23 +158,6 @@ function fmtDuration(start: number | null, end: number | null): string {
 
 <template>
   <div class="jobs">
-    <SectionCard title="提交任务">
-      <div class="jobs__form">
-        <div class="jobs__field jobs__field--select">
-          <label class="jobs__label">命令</label>
-          <NSelect v-model:value="selected" :options="commandOptions" size="small" />
-        </div>
-        <div v-for="f in currentMeta.fields" :key="f.key" class="jobs__field">
-          <label class="jobs__label">{{ f.label }}</label>
-          <NInput v-model:value="form[f.key]" :placeholder="f.placeholder" size="small" />
-        </div>
-        <div class="jobs__action">
-          <p class="jobs__desc">{{ currentMeta.description }}</p>
-          <NButton type="primary" :loading="submitting" @click="submit">提交任务</NButton>
-        </div>
-      </div>
-    </SectionCard>
-
     <div class="jobs__body">
       <aside class="jobs__list">
         <SectionCard title="任务列表">
@@ -291,7 +167,7 @@ function fmtDuration(start: number | null, end: number | null): string {
             </template>
           </EmptyState>
           <SkeletonBlock v-else-if="loading" :rows="4" />
-          <EmptyState v-else-if="!jobs.length" description="暂无任务，提交一条命令开始" />
+          <EmptyState v-else-if="!jobs.length" description="暂无任务，可在视频条目或配音页触发生成动作" />
           <ul v-else class="job-list">
             <li
               v-for="job in jobs"
@@ -301,7 +177,7 @@ function fmtDuration(start: number | null, end: number | null): string {
               @click="select(job.id)"
             >
               <div class="job-list__head">
-                <span class="job-list__command">{{ job.command }}</span>
+                <span class="job-list__command">{{ COMMAND_LABEL[job.command] ?? job.command }}</span>
                 <StatusTag :status="STATUS_TONE[job.status]" :text="STATUS_TEXT[job.status]" />
               </div>
               <div class="job-list__meta">
@@ -329,6 +205,10 @@ function fmtDuration(start: number | null, end: number | null): string {
               >
                 取消任务
               </NButton>
+            </div>
+            <div class="detail__row">
+              <span class="detail__label">命令</span>
+              <span class="mono">{{ COMMAND_LABEL[detail.command] ?? detail.command }}</span>
             </div>
             <div class="detail__row">
               <span class="detail__label">任务 ID</span>
@@ -384,45 +264,6 @@ function fmtDuration(start: number | null, end: number | null): string {
   gap: 24px;
 }
 
-.jobs__form {
-  display: flex;
-  flex-wrap: wrap;
-  align-items: flex-end;
-  gap: 16px;
-}
-
-.jobs__field {
-  display: flex;
-  flex-direction: column;
-  gap: 6px;
-  min-width: 220px;
-}
-
-.jobs__field--select {
-  width: 180px;
-}
-
-.jobs__label {
-  font-size: 12px;
-  color: var(--color-text-tertiary);
-}
-
-.jobs__action {
-  margin-left: auto;
-  display: flex;
-  flex-direction: column;
-  align-items: flex-end;
-  gap: 8px;
-}
-
-.jobs__desc {
-  margin: 0;
-  font-size: 12px;
-  color: var(--color-text-tertiary);
-  max-width: 320px;
-  text-align: right;
-}
-
 .jobs__body {
   display: grid;
   grid-template-columns: minmax(280px, 360px) 1fr;
@@ -470,7 +311,6 @@ function fmtDuration(start: number | null, end: number | null): string {
   font-size: 13px;
   font-weight: 600;
   color: var(--color-text-primary);
-  font-family: var(--font-mono, monospace);
 }
 
 .job-list__meta {

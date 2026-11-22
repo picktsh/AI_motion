@@ -1,0 +1,14 @@
+{
+  "title": "第一次刷到",
+  "body": "第一次刷到第一次刷到第一次刷到",
+  "hashtags": [
+    "AI剪辑"
+  ],
+  "covers": {
+    "horizontal": "cover-4x3.jpg",
+    "vertical": "cover-3x4.jpg"
+  },
+  "visibility": "public",
+  "allowSave": true,
+  "publishAt": "now"
+}

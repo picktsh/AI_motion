@@ -1,0 +1,11 @@
+{
+  "inputSHA256": "a6964d250f0940daaedb5255c9bef66570067451ffabde3a7f090025fa6a43bc",
+  "candidateContentDigest": "a34d0e9f940bf0468100389e344d2da8ac1495b9157c3a7990eacb515433e80b",
+  "boundFiles": {
+    "settings.json": "e11cff3b3adb750313bb78bb3561c3ab6fcaa3c7db8ad1535ceb2c0f2c5aa5b8",
+    "user-input.js": "233d80e4a080a35317374b015022a764dddfb2af2a7b395f2a72cfa427f46692",
+    "config.js": "d4f356f5b09a22cb369ea81fc7c5d79fab4af4e9b0c991d912681886dd818532"
+  },
+  "media": [],
+  "credentialsIncluded": false
+}

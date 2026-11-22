@@ -3,6 +3,7 @@ import path from 'node:path';
 import { ROOT } from '../infra/paths.js';
 import { probeMedia, mediaType, type MediaType } from '../infra/probe.js';
 import { config } from '../config.js';
+import { badRequest } from '../core/errors.js';
 import type { ProbeResult } from '@ai-motion/shared/types';
 
 interface VideoMeta {
@@ -154,6 +155,28 @@ export async function listVideos(): Promise<VideoSummary[]> {
   });
 }
 
+export interface EntryRuntime {
+  input: string;
+  instance: string;
+  previewOut: string;
+  renderOut: string;
+}
+
+// 按条目解析命令台动作所需的标准相对路径，供命令提交时自动带入，避免前端手填路径。
+export function resolveEntryRuntime(entryId: string, instanceName?: string): EntryRuntime | null {
+  const item = discover().find((i) => i.id === entryId);
+  if (!item) return null;
+  const safeName = (instanceName ?? '').trim();
+  const instance = safeName && /^[A-Za-z0-9._-]+$/.test(safeName) ? safeName : 'instance';
+  const rel = (abs: string) => path.relative(ROOT, abs).split(path.sep).join('/');
+  return {
+    input: rel(item.inputFile),
+    instance: rel(path.join(item.rootDir, instance)),
+    previewOut: rel(path.join(item.rootDir, 'preview.jpg')),
+    renderOut: rel(path.join(item.rootDir, 'output.mp4')),
+  };
+}
+
 export async function getVideo(id: string): Promise<VideoDetail | null> {
   const item = discover().find((i) => i.id === id);
   if (!item) return null;
@@ -194,4 +217,42 @@ export async function getVideo(id: string): Promise<VideoDetail | null> {
     artifacts,
     instanceDirs,
   };
+}
+
+
+export interface SavedAsset {
+  name: string;
+  type: MediaType;
+  rel: string;
+  url: string;
+}
+
+const IMAGE_EXTS = new Set(['.png', '.jpg', '.jpeg', '.webp', '.gif']);
+const MAX_ASSET_BYTES = 20 * 1024 * 1024;
+
+/** 把上传图片落到条目 input 目录，重名自动加序号，返回可直接回显的素材引用。 */
+export async function saveVideoAsset(id: string, filename: string, data: Buffer): Promise<SavedAsset | null> {
+  const item = discover().find((i) => i.id === id);
+  if (!item) return null;
+  if (data.length > MAX_ASSET_BYTES) throw badRequest('图片超过 20MB 上限');
+
+  const raw = path.basename(filename || 'upload').trim();
+  const ext = path.extname(raw).toLowerCase();
+  if (!IMAGE_EXTS.has(ext)) throw badRequest('只接收 png / jpg / jpeg / webp / gif 图片');
+  const base = raw.slice(0, raw.length - ext.length).replace(/[^\w\u4e00-\u9fa5.-]+/g, '-').replace(/-+/g, '-').replace(/^-|-$/g, '');
+  if (!base) throw badRequest('文件名不合法');
+
+  let name = `${base}${ext}`;
+  let n = 1;
+  while (fs.existsSync(path.join(item.inputDir, name))) {
+    name = `${base}-${n}${ext}`;
+    n += 1;
+    if (n > 99) throw badRequest('同名素材过多，请先清理目录');
+  }
+
+  const abs = path.join(item.inputDir, name);
+  const rel = path.relative(ROOT, abs).split(path.sep).join('/');
+  fs.mkdirSync(item.inputDir, { recursive: true });
+  fs.writeFileSync(abs, data);
+  return { name, type: 'image', rel, url: assetUrl(abs) };
 }

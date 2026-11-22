@@ -1,6 +1,7 @@
 import fastify, { type FastifyInstance } from 'fastify';
 import { JsonSchemaToTsProvider } from '@fastify/type-provider-json-schema-to-ts';
 import swagger from '@fastify/swagger';
+import multipart from '@fastify/multipart';
 import scalarApiReference from '@scalar/fastify-api-reference';
 import { config } from './config.js';
 import { registerErrorHandlers } from './core/errors.js';
@@ -13,6 +14,7 @@ import { registerPublish } from './routes/publish.js';
 import { registerTts } from './routes/tts.js';
 import { registerJobs } from './routes/jobs.js';
 import { registerAssets } from './routes/assets.js';
+import { registerProjects } from './routes/projects.js';
 
 // 装配 Fastify 实例：插件、错误收口、文档与路由挂载。启停逻辑在 index.ts。
 export async function buildApp(): Promise<FastifyInstance> {
@@ -23,6 +25,11 @@ export async function buildApp(): Promise<FastifyInstance> {
 
   await registerCors(app);
   registerAuthGuard(app);
+
+  // .motion 模板包上传：单文件、上限 500MB；只接收 multipart，不影响其它 JSON 路由。
+  await app.register(multipart, {
+    limits: { files: 1, fileSize: 500 * 1024 * 1024, fields: 8 },
+  });
 
   // OpenAPI 文档：路由 schema 生成规范；Scalar 在 /docs 渲染。
   // 9.x 不再内置文档 HTTP 端点，这里手动暴露稳定 JSON 数据源，便于 codegen 与外部导入。
@@ -58,6 +65,7 @@ export async function buildApp(): Promise<FastifyInstance> {
   registerEnvironment(app, config.apiPrefix);
   registerTemplates(app, config.apiPrefix);
   registerVideos(app, config.apiPrefix);
+  registerProjects(app, config.apiPrefix);
   registerPublish(app, config.apiPrefix);
   registerTts(app, config.apiPrefix);
   registerJobs(app, config.apiPrefix);

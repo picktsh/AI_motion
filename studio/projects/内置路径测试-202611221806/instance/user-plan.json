@@ -1,0 +1,41 @@
+{
+  "profile": "kinetic-user-plan/1",
+  "inputSHA256": "53a9adfca624d2f5f18227345899ae812596459f73ab4f996abe19a51503127c",
+  "candidateContentDigest": "a34d0e9f940bf0468100389e344d2da8ac1495b9157c3a7990eacb515433e80b",
+  "platformManifestDigest": "not yet established by official packer",
+  "layout": "landscape",
+  "language": "zh",
+  "duration_s": 8.0,
+  "frames": 480,
+  "width": 1920,
+  "height": 1080,
+  "fps": 60,
+  "spans": [
+    {
+      "id": "B1",
+      "title": "一个想法",
+      "activeUnits": [
+        "B1"
+      ],
+      "sourceStart": 250.0,
+      "sourceEnd": 258.0,
+      "sourceWindow": [
+        250,
+        258
+      ],
+      "sourceFrames": [
+        15000,
+        15480
+      ],
+      "outputStart": 0,
+      "outputEnd": 8.0
+    }
+  ],
+  "activeUnits": [
+    "B1"
+  ],
+  "requiredFields": [],
+  "mediaRoles": [],
+  "inputs": [],
+  "coverageComplete": false
+}

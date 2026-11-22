@@ -7,6 +7,8 @@ export const endpoints = {
 
   templates: {
     list: '/templates',
+    catalog: '/templates/catalog',
+    import: '/templates/import',
     detail: (id: string): string => `/templates/${encodeURIComponent(id)}`,
     redirect: (id: string): string => `/templates/${encodeURIComponent(id)}/redirect`,
   },
@@ -15,6 +17,7 @@ export const endpoints = {
     list: '/videos',
     detail: (id: string): string => `/videos/${encodeURIComponent(id)}`,
     publish: (id: string): string => `/videos/${encodeURIComponent(id)}/publish`,
+    assets: (id: string): string => `/videos/${encodeURIComponent(id)}/assets`,
   },
 
   tts: {
@@ -27,6 +30,18 @@ export const endpoints = {
     detail: (id: string): string => `/jobs/${encodeURIComponent(id)}`,
     logs: (id: string): string => `/jobs/${encodeURIComponent(id)}/logs`,
     cancel: (id: string): string => `/jobs/${encodeURIComponent(id)}/cancel`,
+  },
+
+  projects: {
+    list: '/projects',
+    create: '/projects',
+    detail: (id: string): string => `/projects/${encodeURIComponent(id)}`,
+    quote: (id: string): string => `/projects/${encodeURIComponent(id)}/quote`,
+    run: (id: string): string => `/projects/${encodeURIComponent(id)}/run`,
+    preparePublish: (id: string): string => `/projects/${encodeURIComponent(id)}/prepare-publish`,
+    files: (id: string): string => `/projects/${encodeURIComponent(id)}/files`,
+    credits: (id: string): string => `/projects/${encodeURIComponent(id)}/credits`,
+    log: (id: string, offset = 0): string => `/projects/${encodeURIComponent(id)}/log?offset=${offset}`,
   },
 
   assets: {

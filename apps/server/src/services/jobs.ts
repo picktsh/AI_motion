@@ -2,6 +2,7 @@ import { randomUUID } from 'node:crypto';
 import path from 'node:path';
 import { runProcess, type ExecHandle, type ExecResult } from '../infra/exec.js';
 import { resolveCommand, scriptAbs, type CommandParams, type ResolvedCommand } from './commands.js';
+import { resolveEntryRuntime } from './videos.js';
 import { findBin, ROOT, BIN_DIR } from '../infra/paths.js';
 import { config } from '../config.js';
 import { badRequest, forbidden, notFound } from '../core/errors.js';
@@ -83,7 +84,30 @@ export function submitJob(command: string, params: CommandParams): JobSnapshot {
   if (!command || typeof command !== 'string') throw badRequest('缺少命令名');
   const name = command as CommandName;
 
-  const resolved = resolveCommand(name, params ?? {});
+  let merged: CommandParams = { ...(params ?? {}) };
+  const entryId = typeof merged.entryId === 'string' ? merged.entryId : null;
+  if (entryId) {
+    const instanceName = typeof merged.instanceName === 'string' ? merged.instanceName : undefined;
+    const rt = resolveEntryRuntime(entryId, instanceName);
+    if (!rt) throw badRequest('视频条目不存在');
+    if (name === 'plan') merged.input = rt.input;
+    if (name === 'prepare') {
+      merged.input = rt.input;
+      merged.instance = rt.instance;
+    }
+    if (name === 'preview') {
+      merged.instance = rt.instance;
+      merged.out = rt.previewOut;
+    }
+    if (name === 'render') {
+      merged.instance = rt.instance;
+      merged.out = rt.renderOut;
+    }
+    delete merged.entryId;
+    delete merged.instanceName;
+  }
+
+  const resolved = resolveCommand(name, merged);
   if (typeof resolved === 'string') {
     if (resolved.includes('白名单')) throw forbidden(resolved);
     throw badRequest(resolved);
@@ -95,7 +119,7 @@ export function submitJob(command: string, params: CommandParams): JobSnapshot {
   const record: JobRecord = {
     id: `job_${randomUUID().replace(/-/g, '').slice(0, 10)}`,
     command: name,
-    params: params ?? {},
+    params: merged,
     status: 'queued',
     createdAt: Date.now(),
     startedAt: null,

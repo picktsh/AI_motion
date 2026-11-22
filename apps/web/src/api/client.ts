@@ -72,6 +72,26 @@ export async function postJson<T>(path: string, body: unknown): Promise<T> {
   }
 }
 
+/** 提交 multipart 表单（文件上传）；timeout 放开，可回报上传百分比。 */
+export async function postForm<T>(
+  path: string,
+  form: FormData,
+  onProgress?: (percent: number) => void,
+): Promise<T> {
+  try {
+    const res = await http.post<Envelope<T>>(path, form, {
+      timeout: 0,
+      onUploadProgress: (e) => {
+        if (!onProgress || !e.total) return;
+        onProgress(Math.min(100, Math.round((e.loaded / e.total) * 100)));
+      },
+    });
+    return unwrap(res.data);
+  } catch (err) {
+    throw normalizeError(err);
+  }
+}
+
 /** 提交 PUT 请求并解包 data；错误归一与 GET 一致。 */
 export async function putJson<T>(path: string, body: unknown): Promise<T> {
   try {

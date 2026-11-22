@@ -1,0 +1,49 @@
+{
+  "id": "像素闯关-多屏拼贴-卡片上黄标-需官方积分-202611221756",
+  "name": "像素闯关、多屏拼贴：卡片上黄标 “需官方积分”",
+  "templateId": "motiongit-promo-main@2.6.5-alpha.2",
+  "templateName": "多屏拼贴 · 品牌宣传",
+  "archiveRel": "studio/templates/motiongit-promo-main@2.6.5-alpha.2/.package.motion",
+  "scriptRel": "studio/projects/像素闯关-多屏拼贴-卡片上黄标-需官方积分-202611221756/input/script.txt",
+  "status": "quoted",
+  "createdAt": "2026-11-22T17:56:09.494Z",
+  "duration": 30,
+  "keywords": [],
+  "quote": {
+    "profile": "motiongit.expert-quote/1",
+    "template": "motiongit-promo-main@2.6.5-alpha.2",
+    "tts": {
+      "model": "volc-tts-2.0",
+      "credits": 1,
+      "status": "quoted",
+      "expires_at": 1795370777
+    },
+    "compose": {
+      "model": "aripu-1",
+      "credits": 1,
+      "status": "price-list",
+      "note": "编排报价要等配音完成后才有实测时间；此处按官网实时价目，提交前会重新报价并再核对上限"
+    },
+    "total": 2,
+    "maxCredits": 0,
+    "withinBudget": false,
+    "uploads": [
+      "口播文案（69 字）：用于配音和编排",
+      "配音实测时间（逐句、逐字）：用于编排",
+      "素材信息 0 个：只有文件名、类型、宽高",
+      "开场：不要"
+    ],
+    "notUploaded": [
+      "素材文件",
+      "本地路径",
+      "账号 Key"
+    ],
+    "skippedAssets": [],
+    "instanceDirectory": "/Volumes/Disk/AI_motion/studio/projects/像素闯关-多屏拼贴-卡片上黄标-需官方积分-202611221756/instance",
+    "quoteOnly": true,
+    "submitted": false
+  },
+  "artifactRel": null,
+  "videoUrl": null,
+  "logRel": null
+}

@@ -1,0 +1,23 @@
+{
+  "id": "第一次刷到-202611221804",
+  "kind": "builtin",
+  "name": "第一次刷到",
+  "templateId": "kinetic-tech@0.2.7-open-beta",
+  "templateName": "酷炫科技风",
+  "archiveRel": "",
+  "scriptRel": "studio/projects/第一次刷到-202611221804/input/script.txt",
+  "status": "failed",
+  "createdAt": "2026-11-22T18:04:46.033Z",
+  "duration": 8,
+  "keywords": [
+    "AI剪辑"
+  ],
+  "quote": {
+    "route": "builtin-adapter",
+    "total": 0,
+    "note": "本机适配器渲染，不调用官方云端"
+  },
+  "artifactRel": "studio/projects/第一次刷到-202611221804/output/video-with-audio.mp4",
+  "videoUrl": null,
+  "logRel": "studio/projects/第一次刷到-202611221804/run.log"
+}

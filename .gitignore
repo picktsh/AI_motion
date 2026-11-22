@@ -35,3 +35,7 @@ studio/templates-cache/
 # ---- 构建产物 ----
 apps/web/dist/
 apps/server/dist/
+
+# ---- 模板包（含个人调用标识，禁止入库）----
+studio/templates/
+studio/templates-cache/

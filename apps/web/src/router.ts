@@ -1,6 +1,8 @@
 import type { Component } from 'vue';
 import { createRouter, createWebHashHistory } from 'vue-router';
 import {
+  CreateOutline,
+  FolderOpenOutline,
   HomeOutline,
   CubeOutline,
   AlbumsOutline,
@@ -28,13 +30,13 @@ const router = createRouter({
   routes: [
     {
       path: '/',
-      name: 'dashboard',
-      component: () => import('./pages/Dashboard.vue'),
+      name: 'create',
+      component: () => import('./pages/CreateProject.vue'),
       meta: {
-        title: '仪表盘',
-        description: '本地 AI 视频制作工作台概览',
-        menu: '仪表盘',
-        icon: HomeOutline,
+        title: '创作',
+        description: '选模板、写文稿、报价、生成，一条链路走到底',
+        menu: '创作',
+        icon: CreateOutline,
       },
     },
     {
@@ -49,13 +51,30 @@ const router = createRouter({
       },
     },
     {
+      path: '/projects',
+      name: 'projects',
+      component: () => import('./pages/Projects.vue'),
+      meta: {
+        title: '项目',
+        description: '每条片子的文稿、报价、生成状态与发布配置',
+        menu: '项目',
+        icon: FolderOpenOutline,
+      },
+    },
+    {
+      path: '/projects/:id',
+      name: 'project-detail',
+      component: () => import('./pages/ProjectDetail.vue'),
+      meta: { title: '项目详情', description: '文稿、报价、生成与发布' },
+    },
+    {
       path: '/works',
       name: 'works',
       component: () => import('./pages/Works.vue'),
       meta: {
-        title: '作品',
-        description: '发布清单：发布配置、封面与成片交付物（清单接口待落地）',
-        menu: '作品',
+        title: '发布',
+        description: '发布清单：发布配置、封面与成片交付物在这里维护',
+        menu: '发布',
         icon: AlbumsOutline,
       },
     },
@@ -66,7 +85,6 @@ const router = createRouter({
       meta: {
         title: '视频条目',
         description: '制作工程：输入参数、引用素材、字幕与产物回显',
-        menu: '视频条目',
         icon: FilmOutline,
       },
     },
@@ -86,9 +104,9 @@ const router = createRouter({
       name: 'jobs',
       component: () => import('./pages/Jobs.vue'),
       meta: {
-        title: '命令台',
+        title: '任务',
         description: '本地任务执行：提交命令、查看状态与日志、取消任务',
-        menu: '命令台',
+        menu: '任务',
         icon: TerminalOutline,
       },
     },
@@ -97,9 +115,9 @@ const router = createRouter({
       name: 'environment',
       component: () => import('./pages/Environment.vue'),
       meta: {
-        title: '环境检查',
+        title: '设置',
         description: '本地依赖、媒体工具与工程目录就位情况',
-        menu: '环境检查',
+        menu: '设置',
         icon: ConstructOutline,
       },
     },

@@ -1,0 +1,21 @@
+{
+  "id": "内置路径测试-202611221806",
+  "kind": "builtin",
+  "name": "内置路径测试",
+  "templateId": "kinetic-tech",
+  "templateName": "酷炫科技风",
+  "archiveRel": "",
+  "scriptRel": "studio/projects/内置路径测试-202611221806/input/script.txt",
+  "status": "failed",
+  "createdAt": "2026-11-22T18:06:18.413Z",
+  "duration": 8,
+  "keywords": [],
+  "quote": {
+    "route": "builtin-adapter",
+    "total": 0,
+    "note": "本机适配器渲染，不调用官方云端"
+  },
+  "artifactRel": "studio/projects/内置路径测试-202611221806/output/video-with-audio.mp4",
+  "videoUrl": null,
+  "logRel": "studio/projects/内置路径测试-202611221806/run.log"
+}

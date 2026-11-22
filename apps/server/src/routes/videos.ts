@@ -1,6 +1,6 @@
 import type { FastifyInstance } from 'fastify';
-import { listVideos, getVideo } from '../services/videos.js';
-import { notFound } from '../core/errors.js';
+import { listVideos, getVideo, saveVideoAsset } from '../services/videos.js';
+import { badRequest, notFound } from '../core/errors.js';
 import { ok, list } from '../core/response.js';
 import { envelope, listEnvelope, errorStatuses, idParam, type JsonSchema } from '../core/schemas.js';
 
@@ -102,5 +102,49 @@ export function registerVideos(app: FastifyInstance, prefix: string): void {
     const video = await getVideo(id);
     if (!video) throw notFound('条目不存在');
     return ok(video);
+  });
+
+  const savedAsset: JsonSchema = {
+    type: 'object',
+    additionalProperties: true,
+    properties: {
+      name: { type: 'string' },
+      type: { type: 'string' },
+      rel: { type: 'string' },
+      url: { type: 'string' },
+    },
+  };
+
+  app.post(`${prefix}/videos/:id/assets`, {
+    schema: {
+      tags: ['videos'],
+      summary: '上传作品封面/图片素材（multipart 字段 file，落条目 input 目录）',
+      consumes: ['multipart/form-data'],
+      params: idParam,
+      response: { 200: envelope(savedAsset), ...errorStatuses },
+    },
+  }, async (request) => {
+    const { id } = request.params as IdParams;
+    let part;
+    try {
+      part = await request.file();
+    } catch (err) {
+      const message = err instanceof Error ? err.message : '';
+      throw badRequest(`读取上传文件失败：${message || '未知原因'}`);
+    }
+    if (!part) throw badRequest('缺少上传文件字段 file');
+
+    let data: Buffer;
+    try {
+      data = await part.toBuffer();
+    } catch (err) {
+      const message = err instanceof Error ? err.message : '';
+      if (/too large/i.test(message)) throw badRequest('图片超过 20MB 上限');
+      throw badRequest(`读取图片失败：${message || '未知原因'}`);
+    }
+
+    const saved = await saveVideoAsset(id, part.filename || 'cover', data);
+    if (!saved) throw notFound('条目不存在');
+    return ok(saved);
   });
 }
