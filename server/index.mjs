@@ -1,83 +1,86 @@
-import http from 'node:http';
-import { URL } from 'node:url';
-import { collectEnvironment } from './env.mjs';
-import { listTemplates, getTemplate } from './templates.mjs';
-import { listVideos, getVideo } from './videos.mjs';
-import { listSamples, listSegments } from './tts.mjs';
-import { serveAsset } from './assets.mjs';
+import fastify from 'fastify';
+import swagger from '@fastify/swagger';
+import scalarApiReference from '@scalar/fastify-api-reference';
+import { config } from './config.mjs';
+import { registerErrorHandlers } from './errors.mjs';
+import { registerHealth } from './routes/health.mjs';
+import { registerEnvironment } from './routes/environment.mjs';
+import { registerTemplates } from './routes/templates.mjs';
+import { registerVideos } from './routes/videos.mjs';
+import { registerTts } from './routes/tts.mjs';
+import { registerAssets } from './routes/assets.mjs';
 
-const PORT = Number(process.env.PORT || 5199);
-const HOST = '127.0.0.1';
+const app = fastify({ logger: false });
 
-function sendJson(res, status, data) {
-  const body = JSON.stringify(data);
-  res.writeHead(status, {
-    'Content-Type': 'application/json; charset=utf-8',
-    'Access-Control-Allow-Origin': '*',
-    'Cache-Control': 'no-store',
-  });
-  res.end(body);
-}
+// CORS：本轮先保持全开放；来源白名单收紧为独立条目。
+app.addHook('onRequest', (request, reply, done) => {
+  reply.header('Access-Control-Allow-Origin', '*');
+  if (request.method === 'OPTIONS') {
+    reply.header('Access-Control-Allow-Methods', 'GET,POST,PUT,DELETE,OPTIONS');
+    reply.header('Access-Control-Allow-Headers', 'Content-Type, Authorization');
+    return reply.status(204).send();
+  }
+  done();
+});
 
-async function handleApi(req, res, pathname, query) {
-  const seg = pathname.split('/').filter(Boolean); // ['api', ...]
+registerErrorHandlers(app);
 
-  if (req.method !== 'GET') return sendJson(res, 405, { error: '仅支持 GET（一期只读）' });
+// OpenAPI 文档：路由 schema 生成规范；Scalar 在 /docs 渲染。
+// 9.x 不再内置文档 HTTP 端点，这里手动暴露稳定的 JSON 数据源，便于 codegen 与外部导入。
+await app.register(swagger, {
+  openapi: {
+    openapi: '3.1.0',
+    info: {
+      title: 'AI Motion Studio API',
+      version: '0.1.0',
+      description: '本地 AI 视频制作工作台后端接口；一期为只读回显。',
+    },
+    servers: [{ url: `http://${config.host}:${config.port}${config.apiPrefix}` }],
+    tags: [
+      { name: 'health', description: '服务状态' },
+      { name: 'environment', description: '运行环境就位检查' },
+      { name: 'templates', description: 'MotionGit 模板' },
+      { name: 'videos', description: '视频条目' },
+      { name: 'tts', description: '配音样例与分段' },
+      { name: 'assets', description: '静态资产回显' },
+    ],
+  },
+});
 
-  switch (seg[1]) {
-    case 'health':
-      return sendJson(res, 200, { ok: true, service: 'ai-motion-studio', time: Date.now() });
+app.get('/documentation/json', { schema: { hide: true } }, () => app.swagger());
 
-    case 'environment':
-      return sendJson(res, 200, await collectEnvironment());
+await app.register(scalarApiReference, {
+  routePrefix: '/docs',
+  configuration: { title: 'AI Motion Studio API' },
+});
 
-    case 'templates': {
-      if (seg[2] && seg[3] === 'redirect') {
-        const tpl = getTemplate(seg[2]);
-        if (!tpl) return sendJson(res, 404, { error: '模板不存在' });
-        const source = tpl.extensions?.['motiongit.com:open-source']?.repository || null;
-        return sendJson(res, 200, { id: tpl.id, redirectUrl: source });
-      }
-      if (seg[2]) {
-        const tpl = getTemplate(seg[2]);
-        return tpl ? sendJson(res, 200, tpl) : sendJson(res, 404, { error: '模板不存在' });
-      }
-      return sendJson(res, 200, { items: listTemplates() });
-    }
+registerHealth(app, config.apiPrefix);
+registerEnvironment(app, config.apiPrefix);
+registerTemplates(app, config.apiPrefix);
+registerVideos(app, config.apiPrefix);
+registerTts(app, config.apiPrefix);
+registerAssets(app, config.apiPrefix);
 
-    case 'videos': {
-      if (seg[2]) {
-        const video = await getVideo(seg[2]);
-        return video ? sendJson(res, 200, video) : sendJson(res, 404, { error: '条目不存在' });
-      }
-      return sendJson(res, 200, { items: await listVideos() });
-    }
-
-    case 'tts': {
-      if (seg[2] === 'samples') return sendJson(res, 200, { items: listSamples() });
-      if (seg[2] === 'segments') return sendJson(res, 200, { items: listSegments() });
-      return sendJson(res, 404, { error: '未知 TTS 接口' });
-    }
-
-    case 'assets':
-      return serveAsset(res, query.get('path') || '');
-
-    default:
-      return sendJson(res, 404, { error: '未知接口' });
+async function start() {
+  try {
+    await app.listen({ host: config.host, port: config.port });
+    console.log(`[${config.service}] 后端已启动: http://${config.host}:${config.port}${config.apiPrefix}`);
+  } catch (err) {
+    app.log.error(err);
+    process.exit(1);
   }
 }
 
-const server = http.createServer((req, res) => {
-  const url = new URL(req.url, `http://${HOST}:${PORT}`);
-  if (url.pathname.startsWith('/api/')) {
-    handleApi(req, res, url.pathname, url.searchParams).catch((e) => {
-      sendJson(res, 500, { error: e.message || '服务内部错误' });
-    });
-  } else {
-    sendJson(res, 404, { error: '前端请通过 Vite 开发服务器访问' });
+async function shutdown(signal) {
+  console.log(`[${config.service}] 收到 ${signal}，正在关闭`);
+  try {
+    await app.close();
+  } finally {
+    process.exit(0);
   }
-});
+}
 
-server.listen(PORT, HOST, () => {
-  console.log(`[ai-motion-studio] 后端已启动: http://${HOST}:${PORT}`);
-});
+process.on('SIGINT', () => shutdown('SIGINT'));
+process.on('SIGTERM', () => shutdown('SIGTERM'));
+
+start();

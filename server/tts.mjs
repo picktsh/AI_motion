@@ -1,13 +1,14 @@
 import fs from 'node:fs';
 import path from 'node:path';
 import { ROOT } from './paths.mjs';
+import { config } from './config.mjs';
 
 function readJson(abs) {
   try { return JSON.parse(fs.readFileSync(abs, 'utf8')); } catch { return null; }
 }
 
 function assetUrl(rel) {
-  return `/api/assets?path=${encodeURIComponent(rel)}`;
+  return `${config.apiPrefix}/assets?path=${encodeURIComponent(rel)}`;
 }
 
 export function listSamples() {

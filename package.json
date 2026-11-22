@@ -11,5 +11,10 @@
     "dev:web": "pnpm --dir ./web dev",
     "build": "pnpm --dir ./web build",
     "preview": "pnpm --dir ./web preview"
+  },
+  "dependencies": {
+    "@fastify/swagger": "^9.9.5",
+    "@scalar/fastify-api-reference": "^1.82.1",
+    "fastify": "^5.12.8"
   }
 }
