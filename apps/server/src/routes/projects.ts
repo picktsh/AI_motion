@@ -5,6 +5,8 @@ import {
   listProjects,
   preparePublish,
   projectCredits,
+  readPublish,
+  writePublish,
   projectFiles,
   quoteProject,
   readLog,
@@ -44,8 +46,7 @@ export function registerProjects(app: FastifyInstance, prefix: string): void {
     `${prefix}/projects/:id/run`,
     async (request) => {
       const maxCredits = Number(request.body?.maxCredits ?? 0);
-      if (!Number.isFinite(maxCredits) || maxCredits < 0) throw badRequest('授权额度不合法');
-      return ok(await runProject(request.params.id, maxCredits));
+      return ok(runProject(request.params.id, maxCredits));
     },
   );
 
@@ -55,6 +56,15 @@ export function registerProjects(app: FastifyInstance, prefix: string): void {
 
   app.get<{ Params: { id: string } }>(`${prefix}/projects/:id/credits`, async (request) =>
     ok(await projectCredits(request.params.id)),
+  );
+
+  app.get<{ Params: { id: string } }>(`${prefix}/projects/:id/publish`, async (request) =>
+    ok(readPublish(request.params.id)),
+  );
+
+  app.put<{ Params: { id: string }; Body: Record<string, unknown> }>(
+    `${prefix}/projects/:id/publish`,
+    async (request) => ok(writePublish(request.params.id, request.body ?? {})),
   );
 
   app.get<{ Params: { id: string } }>(`${prefix}/projects/:id/files`, async (request) =>

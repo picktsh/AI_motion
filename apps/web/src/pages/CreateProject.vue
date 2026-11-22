@@ -21,16 +21,17 @@ const duration = ref(30);
 const keywords = ref('');
 const templateId = ref(String(route.query.template ?? ''));
 
+/** 只列有运行入口的模板；缺入口的在模板页标灰引导重新下载。 */
+const usable = computed(() => templates.value.filter((t) => Boolean(t.runtime?.entry)));
+
 const options = computed(() =>
-  templates.value
-    .filter((t) => t.runtime?.entry === 'adapter.py' || t.packageProfile === 'personal-download-v1')
-    .map((t) => ({
-      label: `${t.name}${t.version ? ` · v${t.version}` : ''}${t.packageProfile === 'personal-download-v1' ? '（个人包）' : ''}`,
-      value: t.id,
-    })),
+  usable.value.map((t) => ({
+    label: `${t.name}${t.version ? ` · v${t.version}` : ''}`,
+    value: t.id,
+  })),
 );
 
-const selected = computed(() => templates.value.find((t) => t.id === templateId.value) ?? null);
+const selected = computed(() => usable.value.find((t) => t.id === templateId.value) ?? null);
 
 onMounted(async () => {
   try {
@@ -68,44 +69,47 @@ async function submit() {
 </script>
 
 <template>
-  <div class="create-page">
-    <SectionCard title="从模板开始一条片子" subtitle="模板 → 文稿 → 报价 → 生成 → 发布，一条链路走到底">
+  <div class="max-w-220">
+    <SectionCard title="从模板开始一条片子" subtitle="模板 → 文稿 → 报价 → 生成 → 作品页发布">
       <NSpin :show="loading">
-        <div class="form">
-          <label class="field">
-            <span class="label">用哪个模板</span>
-            <NSelect v-model:value="templateId" :options="options" placeholder="先导入一个模板" filterable />
-            <span v-if="selected" class="hint">
-              {{ selected.packageProfile === 'personal-download-v1' ? '个人包：走包内 assistant/motion.mjs，官方 TTS/编排按次计费。' : '内置模板：本地适配器渲染，不消耗官方额度。' }}
+        <div class="flex flex-col gap-4">
+          <label class="flex flex-col gap-1">
+            <span class="text-xs text-ink-2">用哪个模板</span>
+            <NSelect v-model:value="templateId" :options="options" placeholder="先去模板页导入一个官网模板" filterable />
+            <span v-if="selected" class="text-xs text-ink-3 leading-5">
+              {{ selected.paidCloud ? '官方云端：包内助手真实配音与编排，按官方积分计费。' : '本机渲染：模板自带渲染入口，不消耗官方积分。' }}
             </span>
           </label>
 
-          <label class="field">
-            <span class="label">作品标题（发布时当标题，30 字内）</span>
+          <label class="flex flex-col gap-1">
+            <span class="text-xs text-ink-2">作品标题（发布时当标题，30 字内）</span>
             <NInput v-model:value="title" maxlength="30" show-count placeholder="例如：我用 AI 把一周的活干完了" />
           </label>
 
-          <label class="field">
-            <span class="label">口播文稿（旁白/台词，生成时按它配音）</span>
+          <label class="flex flex-col gap-1">
+            <span class="text-xs text-ink-2">口播文稿（旁白/台词，生成时按它配音）</span>
             <NInput v-model:value="script" type="textarea" :rows="7" placeholder="把要说的话整段贴进来；也可以先在外部 AI 写好再贴回来。" />
-            <span class="hint">当前 {{ script.trim().length }} 字。个人包会按字数报价配音。</span>
+            <span class="text-xs text-ink-3 leading-5">当前 {{ script.trim().length }} 字。云端模板会按字数报价配音。</span>
           </label>
 
-          <div class="row">
-            <label class="field small">
-              <span class="label">目标时长（秒）</span>
-              <NInputNumber v-model:value="duration" :min="5" :step="1" />
+          <div class="flex gap-4 items-end flex-wrap">
+            <label v-if="selected?.paidCloud" class="flex flex-col gap-1 w-44">
+              <span class="text-xs text-ink-2">目标时长（秒）</span>
+              <NInputNumber v-model:value="duration" :min="4" :step="2" />
             </label>
-            <label class="field">
-              <span class="label">话题标签（逗号分隔，不带 #）</span>
+            <label class="flex flex-col gap-1 flex-1 min-w-60">
+              <span class="text-xs text-ink-2">话题标签（逗号分隔，不带 #）</span>
               <NInput v-model:value="keywords" placeholder="AI剪辑, 像素风, 工作流" />
             </label>
           </div>
+          <p v-if="selected && !selected.paidCloud" class="m-0 text-xs text-ink-3">
+            本机渲染的时长由模板原生窗口决定，创建后自动读取，不需要在这里填。
+          </p>
 
           <NAlert v-if="error" type="error" :show-icon="false">{{ error }}</NAlert>
 
-          <div class="actions">
-            <NButton type="primary" size="large" :loading="submitting" @click="submit">创建项目，去报价</NButton>
+          <div class="flex items-center gap-3 pt-1">
+            <NButton type="primary" size="large" :loading="submitting" @click="submit">创建项目</NButton>
             <NTag v-if="selected" size="small" :bordered="false">{{ selected.name }}</NTag>
           </div>
         </div>
@@ -113,14 +117,3 @@ async function submit() {
     </SectionCard>
   </div>
 </template>
-
-<style scoped>
-.create-page { max-width: 880px; }
-.form { display: flex; flex-direction: column; gap: 18px; }
-.field { display: flex; flex-direction: column; gap: 6px; }
-.field.small { max-width: 180px; }
-.label { font-size: 13px; color: var(--color-text-secondary); }
-.hint { font-size: 12px; color: var(--color-text-tertiary); line-height: 1.5; }
-.row { display: flex; gap: 16px; align-items: flex-end; }
-.actions { display: flex; align-items: center; gap: 12px; padding-top: 4px; }
-</style>

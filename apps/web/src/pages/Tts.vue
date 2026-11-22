@@ -41,14 +41,14 @@ async function runTtsAction(command: CommandName): Promise<void> {
 </script>
 
 <template>
-  <div class="tts">
+  <div class="flex flex-col gap-6">
     <EmptyState v-if="error" tone="danger" :description="error" tip="音色样例加载失败">
       <template #action>
         <n-button type="primary" @click="run">重试</n-button>
       </template>
     </EmptyState>
 
-    <div v-else-if="loading" class="tts__loading">
+    <div v-else-if="loading" class="flex flex-col gap-4">
       <SectionCard title="音色试音">
         <SkeletonBlock :rows="3" />
       </SectionCard>
@@ -56,29 +56,29 @@ async function runTtsAction(command: CommandName): Promise<void> {
 
     <template v-else-if="data">
       <SectionCard title="配音生成">
-        <div class="tts__actions">
+        <div class="flex flex-wrap gap-2">
           <NButton size="small" :loading="busyAction === 'tts:voice'" @click="runTtsAction('tts:voice')">生成配音分段</NButton>
           <NButton size="small" :loading="busyAction === 'tts:samples'" @click="runTtsAction('tts:samples')">生成试音样例</NButton>
         </div>
       </SectionCard>
 
       <SectionCard title="音色试音">
-        <div v-if="samples.length" class="sample-grid">
-          <div v-for="s in samples" :key="s.id" class="sample">
-            <div class="sample__head">
-              <span class="sample__label">{{ s.label }}</span>
+        <div v-if="samples.length" class="grid grid-cols-[repeat(auto-fill,minmax(260px,320px))] gap-4">
+          <div v-for="s in samples" :key="s.id" class="flex flex-col gap-2 p-4 border border-border rounded-control">
+            <div class="row-between">
+              <span class="text-sm font-semibold text-ink">{{ s.label }}</span>
               <StatusTag status="neutral" :text="s.style" />
             </div>
-            <div class="sample__voice mono">{{ s.voice }}</div>
-            <p class="sample__text">{{ s.text }}</p>
-            <div class="sample__tags">
+            <div class="font-mono text-xs text-ink-3">{{ s.voice }}</div>
+            <p class="m-0 text-sm text-ink-2 line-clamp-2 min-h-10">{{ s.text }}</p>
+            <div class="flex gap-2 flex-wrap">
               <StatusTag status="info" :text="`语速 ${s.rate}`" />
               <StatusTag status="info" :text="`音调 ${s.pitch}`" />
             </div>
-            <div class="sample__player">
+            <div class="mt-auto">
               <SamplePlayer :url="s.exists ? s.url : null" :duration-s="s.duration_s" />
             </div>
-            <div class="sample__source">来源：edge-tts 在线合成 · 本地样例回显</div>
+            <div class="text-xs text-ink-3">来源：edge-tts 在线合成 · 本地样例回显</div>
           </div>
         </div>
         <EmptyState v-else description="暂无试音样例" />
@@ -87,81 +87,3 @@ async function runTtsAction(command: CommandName): Promise<void> {
   </div>
 </template>
 
-<style scoped>
-.tts {
-  display: flex;
-  flex-direction: column;
-  gap: 24px;
-}
-
-.tts__loading {
-  display: flex;
-  flex-direction: column;
-  gap: 16px;
-}
-
-.tts__actions {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 8px;
-}
-
-.sample-grid {
-  display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(260px, 320px));
-  gap: 16px;
-}
-
-.sample {
-  display: flex;
-  flex-direction: column;
-  gap: 10px;
-  padding: 16px;
-  border: 1px solid var(--color-border);
-  border-radius: var(--radius-control);
-}
-
-.sample__head {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 8px;
-}
-
-.sample__label {
-  font-size: 14px;
-  font-weight: 600;
-  color: var(--color-text-primary);
-}
-
-.sample__voice {
-  font-size: 12px;
-  color: var(--color-text-tertiary);
-}
-
-.sample__text {
-  margin: 0;
-  font-size: 13px;
-  color: var(--color-text-secondary);
-  display: -webkit-box;
-  -webkit-line-clamp: 2;
-  -webkit-box-orient: vertical;
-  overflow: hidden;
-  min-height: 2.5em;
-}
-
-.sample__tags {
-  display: flex;
-  gap: 8px;
-  flex-wrap: wrap;
-}
-
-.sample__player {
-  margin-top: auto;
-}
-
-.sample__source {
-  font-size: 12px;
-  color: var(--color-text-tertiary);
-}
-</style>

@@ -109,24 +109,6 @@ onBeforeUnmount(() => {
 </script>
 
 <template>
-  <div ref="container" class="interactive-wave" :style="{ height: `${height}px` }" />
+  <div ref="container" class="w-full min-w-0 block [&>div]:w-full [&>div]:h-full [&_canvas]:cursor-pointer" :style="{ height: `${height}px` }" />
 </template>
 
-<style scoped>
-.interactive-wave {
-  width: 100%;
-  min-width: 0;
-  display: block;
-}
-
-/* wavesurfer 宿主 div 默认按内容收缩，在 flex/块布局里会塌到 min-width:1px，
-   这里强制填满外层容器，避免 scroll 宽度 1px、canvas 不绘制 */
-.interactive-wave :deep(> div) {
-  width: 100%;
-  height: 100%;
-}
-
-.interactive-wave :deep(canvas) {
-  cursor: pointer;
-}
-</style>

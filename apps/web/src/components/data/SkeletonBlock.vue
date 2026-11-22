@@ -8,7 +8,7 @@ const props = withDefaults(
     width?: string | string[];
     height?: number;
   }>(),
-  { rows: 3, width: '100%', height: 14 },
+  { rows: 3, width: '100%', height: 16 },
 );
 
 const widths = computed<string[]>(() => {
@@ -18,43 +18,12 @@ const widths = computed<string[]>(() => {
 </script>
 
 <template>
-  <div class="skeleton" :style="{ gap: `${Math.round(props.height / 2 + 6)}px` }">
+  <div class="flex flex-col gap-3">
     <div
       v-for="(w, i) in widths"
       :key="i"
-      class="skeleton__row"
-      :style="{ width: w, height: `${height}px` }"
+      class="rounded-control bg-divider animate-pulse"
+      :style="{ width: w, height: `${height}px`, animationDelay: `${i * 150}ms` }"
     />
   </div>
 </template>
-
-<style scoped>
-.skeleton {
-  display: flex;
-  flex-direction: column;
-}
-
-.skeleton__row {
-  border-radius: var(--radius-control);
-  background: var(--color-divider);
-  animation: skeleton-pulse 1.2s ease-in-out infinite;
-}
-
-.skeleton__row:nth-child(2) {
-  animation-delay: 0.15s;
-}
-
-.skeleton__row:nth-child(3) {
-  animation-delay: 0.3s;
-}
-
-@keyframes skeleton-pulse {
-  0%,
-  100% {
-    opacity: 1;
-  }
-  50% {
-    opacity: 0.45;
-  }
-}
-</style>

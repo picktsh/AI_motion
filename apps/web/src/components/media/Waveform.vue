@@ -111,35 +111,10 @@ onBeforeUnmount(() => {
 </script>
 
 <template>
-  <div ref="container" class="waveform" :style="{ height: `${height}px` }">
-    <canvas ref="canvas" class="waveform__canvas" />
-    <div v-if="state === 'loading'" class="waveform__hint">解码中…</div>
-    <div v-if="state === 'error'" class="waveform__hint">波形不可用</div>
+  <div ref="container" class="relative w-full flex items-center" :style="{ height: `${height}px` }">
+    <canvas ref="canvas" class="w-full h-full block" />
+    <div v-if="state === 'loading'" class="absolute inset-0 flex items-center justify-center text-xs text-ink-3 pointer-events-none">解码中…</div>
+    <div v-if="state === 'error'" class="absolute inset-0 flex items-center justify-center text-xs text-ink-3 pointer-events-none">波形不可用</div>
   </div>
 </template>
 
-<style scoped>
-.waveform {
-  position: relative;
-  width: 100%;
-  display: flex;
-  align-items: center;
-}
-
-.waveform__canvas {
-  width: 100%;
-  height: 100%;
-  display: block;
-}
-
-.waveform__hint {
-  position: absolute;
-  inset: 0;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  font-size: 12px;
-  color: var(--color-text-tertiary);
-  pointer-events: none;
-}
-</style>

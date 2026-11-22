@@ -36,87 +36,21 @@ const barColor = computed(() => `var(--color-${props.tone === 'neutral' ? 'text-
 
 <template>
   <div
-    class="stat-card"
-    :class="{ 'stat-card--link': to }"
+    class="card flex flex-col gap-2 px-5 py-4 min-h-28"
+    :class="to ? 'cursor-pointer transition duration-150 hover:border-brand hover:-translate-y-px' : ''"
     :role="to ? 'button' : undefined"
     :tabindex="to ? 0 : undefined"
     @click="onClick"
     @keydown.enter="onClick"
   >
-    <div class="stat-card__label">{{ label }}</div>
-    <div class="stat-card__value-row">
-      <span class="stat-card__value tnum">{{ value }}</span>
-      <span v-if="suffix" class="stat-card__suffix">{{ suffix }}</span>
+    <div class="text-xs text-ink-2">{{ label }}</div>
+    <div class="flex items-baseline gap-1">
+      <span class="text-4xl font-semibold leading-8 text-ink num">{{ value }}</span>
+      <span v-if="suffix" class="text-sm text-ink-2">{{ suffix }}</span>
     </div>
-    <div v-if="progress !== undefined" class="stat-card__bar">
-      <div class="stat-card__bar-fill" :style="{ width: progressStyle.width, background: barColor }" />
+    <div v-if="progress !== undefined" class="h-1 rounded-full bg-divider overflow-hidden">
+      <div class="h-full rounded-full transition-[width] duration-150" :style="{ width: progressStyle.width, background: barColor }" />
     </div>
-    <div v-if="hint" class="stat-card__hint">{{ hint }}</div>
+    <div v-if="hint" class="text-xs text-ink-3">{{ hint }}</div>
   </div>
 </template>
-
-<style scoped>
-.stat-card {
-  display: flex;
-  flex-direction: column;
-  gap: 8px;
-  padding: 16px 20px;
-  background: var(--color-panel);
-  border: 1px solid var(--color-border);
-  border-radius: var(--radius-card);
-  box-shadow: var(--shadow-card);
-  min-height: 112px;
-}
-
-.stat-card--link {
-  cursor: pointer;
-  transition: border-color var(--transition), transform var(--transition),
-    box-shadow var(--transition);
-}
-
-.stat-card--link:hover {
-  border-color: var(--color-brand);
-  transform: translateY(-1px);
-}
-
-.stat-card__label {
-  font-size: 12px;
-  color: var(--color-text-secondary);
-}
-
-.stat-card__value-row {
-  display: flex;
-  align-items: baseline;
-  gap: 6px;
-}
-
-.stat-card__value {
-  font-size: 28px;
-  font-weight: 600;
-  line-height: 32px;
-  color: var(--color-text-primary);
-}
-
-.stat-card__suffix {
-  font-size: 13px;
-  color: var(--color-text-secondary);
-}
-
-.stat-card__bar {
-  height: 4px;
-  border-radius: 999px;
-  background: var(--color-divider);
-  overflow: hidden;
-}
-
-.stat-card__bar-fill {
-  height: 100%;
-  border-radius: 999px;
-  transition: width var(--transition);
-}
-
-.stat-card__hint {
-  font-size: 12px;
-  color: var(--color-text-tertiary);
-}
-</style>

@@ -45,7 +45,8 @@ export type CommandName =
   | 'preview'
   | 'render'
   | 'tts:voice'
-  | 'tts:samples';
+  | 'tts:samples'
+  | 'project:run';
 
 /** 任务日志行。 */
 export interface JobLogLine {

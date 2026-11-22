@@ -24,62 +24,23 @@ async function copy() {
 </script>
 
 <template>
-  <div class="path-copy">
+  <div class="flex items-center gap-1 min-w-0 w-full">
     <n-tooltip placement="top" :delay="300">
       <template #trigger>
-        <span class="path-copy__text mono">{{ path || '—' }}</span>
+        <span class="flex-1 min-w-0 truncate font-mono text-xs text-ink-2">{{ path || '—' }}</span>
       </template>
       {{ path }}
     </n-tooltip>
     <button
-      class="path-copy__btn"
+      class="flex items-center justify-center w-6 h-6 flex-none border-0 rounded-control bg-transparent text-ink-3 cursor-pointer transition-colors duration-150 hover:text-ink hover:bg-neutral-soft"
       type="button"
       :title="copied ? '已复制' : '复制路径'"
       @click="copy"
     >
-      <n-icon :size="13">
+      <n-icon :size="14">
         <CheckmarkOutline v-if="copied" />
         <CopyOutline v-else />
       </n-icon>
     </button>
   </div>
 </template>
-
-<style scoped>
-.path-copy {
-  display: flex;
-  align-items: center;
-  gap: 6px;
-  min-width: 0;
-}
-
-.path-copy__text {
-  flex: 1;
-  min-width: 0;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-  font-size: 12px;
-  color: var(--color-text-secondary);
-}
-
-.path-copy__btn {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  width: 22px;
-  height: 22px;
-  flex: none;
-  border: none;
-  border-radius: var(--radius-tag);
-  background: transparent;
-  color: var(--color-text-tertiary);
-  cursor: pointer;
-  transition: color var(--transition), background var(--transition);
-}
-
-.path-copy__btn:hover {
-  color: var(--color-text-primary);
-  background: var(--color-neutral-soft);
-}
-</style>

@@ -32,81 +32,26 @@ function onSeek(item: TimelineItem) {
 
 <template>
   <div
-    class="track"
+    class="relative w-full overflow-hidden rounded-control bg-divider"
     :style="{ height: `${height}px` }"
     role="timeline"
     aria-label="时间线轨道"
   >
-    <div class="track__items">
+    <div class="absolute inset-0">
       <button
         v-for="item in items"
         :key="item.id"
         type="button"
-        class="track__item"
-        :class="{ 'track__item--active': item.id === activeId }"
+        class="absolute top-1 bottom-1 border-0 rounded bg-brand-soft cursor-pointer px-1 overflow-hidden text-left"
+        :class="item.id === activeId ? 'bg-brand' : ''"
         :style="blockStyle(item)"
         :title="item.label ?? `${item.start.toFixed(2)}–${item.end.toFixed(2)}s`"
         @click="onSeek(item)"
       >
-        <span v-if="item.label" class="track__label">{{ item.label }}</span>
+        <span v-if="item.label" class="block text-xs leading-none whitespace-nowrap overflow-hidden text-ellipsis" :class="item.id === activeId ? 'text-white' : 'text-ink-2'">{{ item.label }}</span>
       </button>
     </div>
-    <div class="track__head" :style="{ left: `${playhead}%` }" />
+    <div class="absolute top-0 bottom-0 w-0.5 bg-brand pointer-events-none" :style="{ left: `${playhead}%` }" />
   </div>
 </template>
 
-<style scoped>
-.track {
-  position: relative;
-  width: 100%;
-  overflow: hidden;
-  border-radius: 6px;
-  background: var(--color-divider, rgba(0, 0, 0, 0.06));
-}
-
-.track__items {
-  position: absolute;
-  inset: 0;
-}
-
-.track__item {
-  position: absolute;
-  top: 4px;
-  bottom: 4px;
-  border: none;
-  border-radius: 4px;
-  background: var(--color-brand-soft, rgba(0, 0, 0, 0.12));
-  cursor: pointer;
-  padding: 0 6px;
-  margin-right: 2px;
-  overflow: hidden;
-  text-align: left;
-}
-
-.track__item--active {
-  background: var(--color-brand, #3b82f6);
-}
-
-.track__label {
-  display: block;
-  font-size: 11px;
-  line-height: 1;
-  color: var(--color-text-secondary, #555);
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
-}
-
-.track__item--active .track__label {
-  color: #fff;
-}
-
-.track__head {
-  position: absolute;
-  top: 0;
-  bottom: 0;
-  width: 2px;
-  background: var(--color-brand, #3b82f6);
-  pointer-events: none;
-}
-</style>

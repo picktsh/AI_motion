@@ -1,7 +1,7 @@
 import { randomUUID } from 'node:crypto';
 import path from 'node:path';
 import { runProcess, type ExecHandle, type ExecResult } from '../infra/exec.js';
-import { resolveCommand, scriptAbs, type CommandParams, type ResolvedCommand } from './commands.js';
+import { resolveCommand, type CommandParams, type ResolvedCommand } from './commands.js';
 import { resolveEntryRuntime } from './videos.js';
 import { findBin, ROOT, BIN_DIR } from '../infra/paths.js';
 import { config } from '../config.js';
@@ -164,7 +164,7 @@ async function start(record: JobRecord): Promise<void> {
   record.startedAt = Date.now();
   runningByGroup[resolved.group] += 1;
 
-  const script = scriptAbs(resolved.script);
+  const script = resolved.scriptPath;
   const args = ['run', script, ...resolved.scriptArgs];
   const timeoutMs =
     resolved.timeoutKind === 'render' ? config.job.renderTimeoutMs : config.job.defaultTimeoutMs;

@@ -30,7 +30,6 @@ export const BIN_DIR = path.join(ROOT, 'studio', 'bin');
 // studio/public、studio/templates 为规划预留目录，落地后自然生效；
 // templates-cache 是第三方模板解压缓存，不通过资产回显路由对外暴露。
 export const WHITELIST_DIRS: string[] = [
-  'studio/template',
   'studio/tts/samples',
   'studio/tts/segments',
   'studio/videos',

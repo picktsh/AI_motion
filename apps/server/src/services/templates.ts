@@ -232,20 +232,6 @@ function readImportMeta(tplDir: string): ImportMeta | null {
 
 function discover(): Discovered[] {
   const found: Discovered[] = [];
-  // 旧路径 studio/template/ 本身就是一个模板目录，不再向下扫子目录
-  const legacy = path.join(ROOT, 'studio', 'template');
-  const legacyMotion = readJson(path.join(legacy, 'motion.json'));
-  if (legacyMotion) {
-    found.push({
-      dir: 'studio/template',
-      origin: 'builtin',
-      slug: legacyMotion.template?.id || 'template',
-      tplDir: legacy,
-      motion: legacyMotion,
-      importMeta: null,
-      legacy: true,
-    });
-  }
   // 规划结构：studio/templates/ 与 studio/templates-cache/ 下每个子目录是一个模板
   for (const dir of ['studio/templates', 'studio/templates-cache']) {
     const base = path.join(ROOT, dir);

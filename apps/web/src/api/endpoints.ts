@@ -41,6 +41,7 @@ export const endpoints = {
     preparePublish: (id: string): string => `/projects/${encodeURIComponent(id)}/prepare-publish`,
     files: (id: string): string => `/projects/${encodeURIComponent(id)}/files`,
     credits: (id: string): string => `/projects/${encodeURIComponent(id)}/credits`,
+    publish: (id: string): string => `/projects/${encodeURIComponent(id)}/publish`,
     log: (id: string, offset = 0): string => `/projects/${encodeURIComponent(id)}/log?offset=${offset}`,
   },
 

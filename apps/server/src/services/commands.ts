@@ -1,3 +1,4 @@
+import fs from 'node:fs';
 import path from 'node:path';
 import { ROOT, resolveSafe, findBin } from '../infra/paths.js';
 import { config } from '../config.js';
@@ -14,7 +15,7 @@ export interface CommandParams {
   [key: string]: unknown;
 }
 
-type ScriptKind = 'adapter' | 'voice' | 'samples';
+type ScriptKind = 'adapter' | 'voice' | 'samples' | 'project';
 
 interface ResolvedPath {
   abs: string;
@@ -26,6 +27,7 @@ export interface ResolvedCommand {
   group: 'render' | 'default';
   timeoutKind: 'default' | 'render';
   script: ScriptKind;
+  scriptPath: string;
   scriptArgs: string[];
   artifact: JobArtifact | null;
   missingBins: string[];
@@ -40,11 +42,29 @@ interface CommandDef {
   resolve: (params: CommandParams) => { scriptArgs: string[]; artifact: JobArtifact | null } | string;
 }
 
-const SCRIPT_ABS: Record<ScriptKind, string> = {
-  adapter: path.join(ROOT, 'studio', 'template', 'adapter.py'),
+const SCRIPT_ABS: Record<Exclude<ScriptKind, 'adapter'>, string> = {
   voice: path.join(ROOT, 'studio', 'tts', 'make_voice.py'),
   samples: path.join(ROOT, 'studio', 'tts', 'gen_samples.py'),
+  project: path.join(ROOT, 'studio', 'tools', 'project_run.py'),
 };
+
+/** 渲染适配器跟随模板自身：优先 params.template，否则取第一个带 adapter.py 的已导入模板。 */
+function resolveAdapter(params: CommandParams): string | null {
+  const base = path.join(ROOT, 'studio', 'templates');
+  const wanted = typeof params.template === 'string' ? params.template.trim() : '';
+  if (wanted) {
+    const rel = wanted.replace(/^studio\/templates\//, '');
+    const dir = path.join(base, rel);
+    if (!dir.startsWith(base + path.sep)) return null;
+    return fs.existsSync(path.join(dir, 'adapter.py')) ? path.join(dir, 'adapter.py') : null;
+  }
+  if (!fs.existsSync(base)) return null;
+  for (const name of fs.readdirSync(base)) {
+    const abs = path.join(base, name, 'adapter.py');
+    if (fs.existsSync(abs)) return abs;
+  }
+  return null;
+}
 
 function assetUrl(rel: string): string {
   return `${config.apiPrefix}/assets?path=${encodeURIComponent(rel)}`;
@@ -131,6 +151,18 @@ const COMMANDS: Record<CommandName, CommandDef> = {
       };
     },
   },
+  'project:run': {
+    name: 'project:run',
+    group: 'render',
+    timeoutKind: 'render',
+    script: 'project',
+    bins: ['uv', 'node', 'ffmpeg'],
+    resolve: (p) => {
+      const id = typeof p.projectId === 'string' ? p.projectId.trim() : '';
+      if (!id || !/^[\w\u4e00-\u9fa5.@-]+$/.test(id)) return '缺少合法的 projectId';
+      return { scriptArgs: ['--project', id], artifact: null };
+    },
+  },
   'tts:voice': {
     name: 'tts:voice',
     group: 'default',
@@ -162,18 +194,28 @@ export function resolveCommand(
   const resolved = def.resolve(params);
   if (typeof resolved === 'string') return resolved;
 
+  let scriptPath: string;
+  if (def.script === 'adapter') {
+    const adapter = resolveAdapter(params);
+    if (!adapter) return '没有可渲染模板：先从官网下载并导入带 adapter.py 的 .motion 包';
+    scriptPath = adapter;
+  } else {
+    scriptPath = SCRIPT_ABS[def.script];
+  }
+
   const missingBins = def.bins.filter((bin) => !findBin(bin));
   return {
     name: def.name,
     group: def.group,
     timeoutKind: def.timeoutKind,
     script: def.script,
+    scriptPath,
     scriptArgs: resolved.scriptArgs,
     artifact: resolved.artifact,
     missingBins,
   };
 }
 
-export function scriptAbs(kind: ScriptKind): string {
+export function scriptAbs(kind: Exclude<ScriptKind, 'adapter'>): string {
   return SCRIPT_ABS[kind];
 }

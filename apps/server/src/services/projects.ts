@@ -4,16 +4,18 @@ import { spawn } from 'node:child_process';
 import { ROOT, findBin } from '../infra/paths.js';
 import { config } from '../config.js';
 import { badRequest, notFound } from '../core/errors.js';
+import { submitJob, getJob } from './jobs.js';
 
-// 创作项目：模板 + 文稿 + 素材 → 报价 → 生成 → 发布草稿。
-// 个人 .motion 包由包内 assistant/motion.mjs 驱动，项目目录固定 studio/projects/<id>。
+// 创作项目：模板 + 文稿 → 报价 → 异步生成（任务服务）→ 作品页发布配置。
+// 模板一律来自官网导入，落在 studio/templates/<id>；运行入口跟随模板自身：
+// 带 assistant/motion.mjs 的走官方云端（积分），带 adapter.py 的走本机渲染。
 
 export interface Project {
   id: string;
-  kind: 'personal' | 'builtin';
   name: string;
   templateId: string;
   templateName: string;
+  runner: 'adapter' | 'cloud';
   archiveRel: string;
   scriptRel: string;
   status: 'draft' | 'quoted' | 'running' | 'failed' | 'done';
@@ -24,6 +26,9 @@ export interface Project {
   artifactRel: string | null;
   videoUrl: string | null;
   logRel: string | null;
+  jobId: string | null;
+  error: string | null;
+  runMaxCredits: number;
 }
 
 interface TemplateRef {
@@ -31,7 +36,7 @@ interface TemplateRef {
   name: string;
   archiveRel: string | null;
   dir: string;
-  kind: 'personal' | 'builtin';
+  runner: 'adapter' | 'cloud';
 }
 
 function assetUrl(rel: string): string {
@@ -47,55 +52,61 @@ function writeProject(p: Project): void {
 }
 
 function readProject(id: string): Project | null {
-  if (!/^[\w\u4e00-\u9fa5.@-]+$/.test(id)) return null;
+  if (!/^[\w一-龥.@-]+$/.test(id)) return null;
   const file = path.join(projectDir(id), 'project.json');
   if (!fs.existsSync(file)) return null;
   try {
-    return JSON.parse(fs.readFileSync(file, 'utf8')) as Project;
+    const raw = JSON.parse(fs.readFileSync(file, 'utf8')) as Project & { kind?: string };
+    // 旧版项目字段兼容：kind → runner，补齐任务字段。
+    if (!raw.runner) raw.runner = raw.kind === 'personal' ? 'cloud' : 'adapter';
+    delete raw.kind;
+    raw.jobId ??= null;
+    raw.error ??= null;
+    raw.runMaxCredits ??= 0;
+    return raw;
   } catch {
     return null;
   }
 }
 
 function hydrate(p: Project): Project {
-  const video = p.artifactRel;
+  // 服务重启后 running 状态可能悬空：任务不在内存里就按失败回落，允许重跑。
+  if (p.status === 'running' && (!p.jobId || !getJob(p.jobId))) {
+    p.status = 'failed';
+    p.error = p.error ?? '服务重启导致任务中断，请重新生成';
+    writeProject(p);
+  }
   return {
     ...p,
-    videoUrl: video && fs.existsSync(path.join(ROOT, video)) ? assetUrl(video) : null,
+    videoUrl: p.artifactRel && fs.existsSync(path.join(ROOT, p.artifactRel)) ? assetUrl(p.artifactRel) : null,
   };
 }
 
 function findTemplateRef(templateId: string): TemplateRef | null {
-  const legacyDir = path.join(ROOT, 'studio', 'template');
-  if (fs.existsSync(path.join(legacyDir, 'motion.json'))) {
-    const motion = JSON.parse(fs.readFileSync(path.join(legacyDir, 'motion.json'), 'utf8')) as Record<string, unknown>;
-    const tmeta = (motion.template ?? {}) as Record<string, unknown>;
-    if (String(tmeta.id ?? '') === templateId) {
-      return { id: templateId, name: String(tmeta.name ?? templateId), archiveRel: null, dir: legacyDir, kind: 'builtin' };
-    }
-  }
   const root = path.join(ROOT, 'studio', 'templates');
   if (!fs.existsSync(root)) return null;
   for (const name of fs.readdirSync(root)) {
     if (name.startsWith('.')) continue;
     const dir = path.join(root, name);
-    const metaPath = path.join(dir, '.import-meta.json');
     const motionPath = path.join(dir, 'motion.json');
     if (!fs.existsSync(motionPath)) continue;
+    const motion = JSON.parse(fs.readFileSync(motionPath, 'utf8')) as Record<string, unknown>;
+    const tmeta = (motion.template ?? {}) as Record<string, unknown>;
+    const metaPath = path.join(dir, '.import-meta.json');
     const meta = fs.existsSync(metaPath)
       ? (JSON.parse(fs.readFileSync(metaPath, 'utf8')) as Record<string, unknown>)
       : ({} as Record<string, unknown>);
-    const motion = JSON.parse(fs.readFileSync(motionPath, 'utf8')) as Record<string, unknown>;
-    const runtime = (motion.runtime ?? {}) as Record<string, unknown>;
-    const builtin = runtime.entry === 'adapter.py' || !fs.existsSync(path.join(dir, 'assistant', 'motion.mjs'));
-    const slug = String(meta.slug ?? ((motion.template as Record<string, unknown> | undefined)?.id ?? name));
-    const tmeta = (motion.template ?? {}) as Record<string, unknown>;
+    const slug = String(meta.slug ?? tmeta.id ?? name);
     const canonical = slug.includes('@') ? slug : `${slug}@${String(meta.version ?? tmeta.version ?? '')}`;
-    if (canonical !== templateId && name !== templateId) continue;
-    if (builtin) return { id: templateId, name: String(tmeta.name ?? name), archiveRel: null, dir, kind: 'builtin' };
-    const archiveRel = String(meta.archiveRel ?? '');
-    if (!archiveRel || !fs.existsSync(path.join(ROOT, archiveRel))) return null;
-    return { id: templateId, name: String(meta.name ?? slug), archiveRel, dir, kind: 'personal' };
+    if (canonical !== templateId && name !== templateId && String(tmeta.id ?? '') !== templateId) continue;
+    const cloud = fs.existsSync(path.join(dir, 'assistant', 'motion.mjs'));
+    if (cloud) {
+      const archiveRel = String(meta.archiveRel ?? '');
+      if (!archiveRel || !fs.existsSync(path.join(ROOT, archiveRel))) return null;
+      return { id: templateId, name: String(meta.name ?? tmeta.name ?? slug), archiveRel, dir, runner: 'cloud' };
+    }
+    if (!fs.existsSync(path.join(dir, 'adapter.py'))) return null;
+    return { id: templateId, name: String(tmeta.name ?? meta.name ?? name), archiveRel: null, dir, runner: 'adapter' };
   }
   return null;
 }
@@ -121,12 +132,33 @@ function safeId(title: string): string {
   const base = title
     .trim()
     .toLowerCase()
-    .replace(/[^a-z0-9\u4e00-\u9fa5-]+/g, '-')
+    .replace(/[^a-z0-9一-龥-]+/g, '-')
     .replace(/-+/g, '-')
     .replace(/^-|-$/g, '')
     .slice(0, 24);
   const stamp = new Date().toISOString().replace(/[-:T]/g, '').slice(0, 12);
   return `${base || 'project'}-${stamp}`;
+}
+
+/** 本机渲染模板的本期输入：以包内 text-only 示例为底，替换标题与文案。 */
+function writeAdapterInput(tplDir: string, outFile: string, title: string, script: string): number {
+  const example = path.join(tplDir, 'examples', 'text-only.json');
+  const base: Record<string, unknown> = fs.existsSync(example)
+    ? (JSON.parse(fs.readFileSync(example, 'utf8')) as Record<string, unknown>)
+    : {
+        mode: 'user-media', language: 'zh', layout: 'landscape', duration: 8,
+        scenes: [{ id: 'B1', title: '开场' }],
+        media: { presenter: { mode: 'none' }, voice: { mode: 'none' }, music: { mode: 'none' } },
+        captions: [],
+      };
+  const lines = script.split(/[。！？!?\n]/).map((t) => t.trim()).filter(Boolean).slice(0, 2);
+  base.title = title.slice(0, 30);
+  base.basic = {
+    keyword: title.slice(0, 12),
+    explanation: (lines.length ? lines : [title.slice(0, 12)]).join('\n'),
+  };
+  fs.writeFileSync(outFile, `${JSON.stringify(base, null, 2)}\n`, 'utf8');
+  return Number(base.duration) || 8;
 }
 
 export function createProject(input: Record<string, unknown>): Project {
@@ -137,7 +169,7 @@ export function createProject(input: Record<string, unknown>): Project {
   if (!title) throw badRequest('先填一个作品标题');
   if (!script) throw badRequest('先填口播文稿');
   const tpl = findTemplateRef(templateId);
-  if (!tpl) throw notFound('模板不存在，或缺少原始 .motion 包（无法运行）');
+  if (!tpl) throw notFound('模板不可用：缺少运行入口或原始包，请重新下载导入');
 
   const id = safeId(title);
   const dir = projectDir(id);
@@ -147,30 +179,33 @@ export function createProject(input: Record<string, unknown>): Project {
   fs.writeFileSync(path.join(dir, 'input', 'script.txt'), `${script}\n`, 'utf8');
 
   let nativeDuration: number | null = null;
-  if (tpl.kind === 'builtin') {
-    nativeDuration = writeBuiltinInput(tpl.dir, path.join(dir, 'input', 'user.json'), title, script);
+  if (tpl.runner === 'adapter') {
+    nativeDuration = writeAdapterInput(tpl.dir, path.join(dir, 'input', 'user.json'), title, script);
   }
-
   const requested = Number(input.duration);
+
   const project: Project = {
     id,
-    kind: tpl.kind,
     name: title,
     templateId,
     templateName: tpl.name,
+    runner: tpl.runner,
     archiveRel: tpl.archiveRel ?? '',
     scriptRel,
-    status: 'draft',
+    status: tpl.runner === 'adapter' ? 'quoted' : 'draft',
     createdAt: new Date().toISOString(),
     duration: nativeDuration ?? (Number.isFinite(requested) && requested > 0 ? requested : 30),
     keywords: String(input.keywords ?? '')
       .split(/[,，\s]+/)
       .map((s) => s.trim())
       .filter(Boolean),
-    quote: tpl.kind === 'builtin' ? { route: 'builtin-adapter', total: 0, note: '本机适配器渲染，不调用官方云端' } : null,
+    quote: tpl.runner === 'adapter' ? { route: 'local-adapter', total: 0, note: '本机渲染，不调用官方云端' } : null,
     artifactRel: null,
     videoUrl: null,
     logRel: null,
+    jobId: null,
+    error: null,
+    runMaxCredits: 0,
   };
   writeProject(project);
   return hydrate(project);
@@ -180,7 +215,6 @@ function runNode(
   args: string[],
   cwd: string,
   timeoutMs: number,
-  logFile?: string,
 ): Promise<{ code: number; stdout: string; stderr: string }> {
   return new Promise((resolve, reject) => {
     const node = findBin('node') || 'node';
@@ -191,59 +225,10 @@ function runNode(
       proc.kill('SIGTERM');
       stderr += '\n[超时] 命令超过时限已终止';
     }, timeoutMs);
-    proc.stdout.on('data', (chunk: Buffer) => {
-      const text = chunk.toString();
-      stdout += text;
-      if (logFile) fs.appendFileSync(logFile, text);
-    });
-    proc.stderr.on('data', (chunk: Buffer) => {
-      const text = chunk.toString();
-      stderr += text;
-      if (logFile) fs.appendFileSync(logFile, text);
-    });
-    proc.on('error', (err) => {
-      clearTimeout(timer);
-      reject(err);
-    });
-    proc.on('close', (code) => {
-      clearTimeout(timer);
-      resolve({ code: code ?? 1, stdout, stderr });
-    });
-  });
-}
-
-function spawnLogged(
-  bin: string,
-  args: string[],
-  envPath: string,
-  timeoutMs: number,
-  logFile: string,
-): Promise<{ code: number; stderr: string }> {
-  return new Promise((resolve) => {
-    const proc = spawn(bin, args, {
-      cwd: ROOT,
-      env: { ...process.env, PATH: envPath },
-      stdio: ['ignore', 'pipe', 'pipe'],
-    });
-    let stderr = '';
-    const timer = setTimeout(() => {
-      proc.kill('SIGTERM');
-      stderr += '\n[超时] 命令超过时限已终止';
-    }, timeoutMs);
-    proc.stdout.on('data', (b: Buffer) => fs.appendFileSync(logFile, b.toString()));
-    proc.stderr.on('data', (b: Buffer) => {
-      const text = b.toString();
-      stderr += text;
-      fs.appendFileSync(logFile, text);
-    });
-    proc.on('error', (err) => {
-      clearTimeout(timer);
-      resolve({ code: 1, stderr: err.message });
-    });
-    proc.on('close', (code) => {
-      clearTimeout(timer);
-      resolve({ code: code ?? 1, stderr });
-    });
+    proc.stdout.on('data', (chunk: Buffer) => { stdout += chunk.toString(); });
+    proc.stderr.on('data', (chunk: Buffer) => { stderr += chunk.toString(); });
+    proc.on('error', (err) => { clearTimeout(timer); reject(err); });
+    proc.on('close', (code) => { clearTimeout(timer); resolve({ code: code ?? 1, stdout, stderr }); });
   });
 }
 
@@ -258,23 +243,22 @@ function parseJson(stdout: string): Record<string, unknown> | null {
   }
 }
 
-/** 免费报价：不提交付费生成，只拿到路线、消耗与上传内容。 */
+/** 报价：本机模板直接 0 积分；云端包取免费 quote-only，不提交生成。 */
 export async function quoteProject(id: string, maxCredits = 0): Promise<Project> {
   const project = readProject(id);
   if (!project) throw notFound('项目不存在');
   const tpl = findTemplateRef(project.templateId);
-  if (!tpl) throw notFound('模板不可用');
-  if (tpl.kind === 'builtin') {
-    project.quote = { route: 'builtin-adapter', total: 0, note: '本机适配器渲染，不调用官方云端，不消耗积分' };
+  if (!tpl) throw notFound('模板不可用，请重新下载导入');
+  if (tpl.runner === 'adapter') {
+    project.quote = { route: 'local-adapter', total: 0, note: '本机渲染，不调用官方云端，不消耗积分' };
     project.status = 'quoted';
     writeProject(project);
     return hydrate(project);
   }
 
   const dir = projectDir(project.id);
-  const instance = path.join(dir, 'instance');
+  const instance = path.join(dir, 'instance-quote');
   const assets = path.join(dir, 'input', 'assets');
-  fs.mkdirSync(instance, { recursive: true });
   fs.mkdirSync(assets, { recursive: true });
   if (!fs.existsSync(path.join(instance, 'motiongit-source.json'))) {
     fs.rmSync(instance, { recursive: true, force: true });
@@ -288,19 +272,10 @@ export async function quoteProject(id: string, maxCredits = 0): Promise<Project>
 
   const { code, stdout, stderr } = await runNode(
     [
-      path.join(tpl.dir, 'assistant', 'motion.mjs'),
-      'api',
-      path.join(ROOT, tpl.archiveRel ?? ''),
-      'expert',
-      '--script',
-      path.join(ROOT, project.scriptRel),
-      '--max-credits',
-      String(maxCredits),
-      '--assets',
-      assets,
-      '--instance',
-      instance,
-      '--quote-only',
+      path.join(tpl.dir, 'assistant', 'motion.mjs'), 'api', path.join(ROOT, tpl.archiveRel ?? ''), 'expert',
+      '--script', path.join(ROOT, project.scriptRel),
+      '--max-credits', String(maxCredits),
+      '--assets', assets, '--instance', instance, '--quote-only',
     ],
     tpl.dir,
     120_000,
@@ -315,162 +290,35 @@ export async function quoteProject(id: string, maxCredits = 0): Promise<Project>
   return hydrate(project);
 }
 
-/** 正式生成：按报价授权额度执行；日志落 runs/run.log，产物回填。 */
-export async function runProject(id: string, maxCredits: number): Promise<Project> {
+/** 正式生成：提交异步任务，立即返回；进度由任务服务与 project.json 回写。 */
+export function runProject(id: string, maxCredits: number): Project {
   const project = readProject(id);
   if (!project) throw notFound('项目不存在');
   const tpl = findTemplateRef(project.templateId);
-  if (!tpl) throw notFound('模板缺少原始包，无法生成');
+  if (!tpl) throw notFound('模板不可用，请重新下载导入');
+  if (project.status === 'running' && project.jobId && getJob(project.jobId)) {
+    throw badRequest('这个项目正在生成中，请等当前任务结束');
+  }
   if (!Number.isFinite(maxCredits) || maxCredits < 0) throw badRequest('授权额度不合法');
 
-  const dir = projectDir(project.id);
-  const instance = path.join(dir, 'instance');
-  const assets = path.join(dir, 'input', 'assets');
-  const logRel = `studio/projects/${project.id}/run.log`;
-  fs.writeFileSync(path.join(ROOT, logRel), `# ${new Date().toISOString()}\n`, 'utf8');
   project.status = 'running';
-  project.logRel = logRel;
-  writeProject(project);
-
-  if (tpl.kind === 'builtin') {
-    const input = path.join(dir, 'input', 'user.json');
-    if (!fs.existsSync(input)) throw badRequest('内置模板缺少输入 user.json');
-    const uv = findBin('uv') || 'uv';
-    const adapter = path.join(ROOT, 'studio', 'template', 'adapter.py');
-    const envPath = `${path.join(ROOT, 'studio', 'bin')}:${process.env.PATH ?? ''}`;
-    const prep = await spawnLogged(uv, ['run', adapter, 'prepare', '--input', input, '--out', instance], envPath, 10 * 60_000, path.join(ROOT, logRel));
-    if (prep.code !== 0) {
-      project.status = 'failed';
-      writeProject(project);
-      throw badRequest(`准备失败：${prep.stderr.trim().slice(-260)}`);
-    }
-    const userAssets = path.join(instance, 'user-assets');
-    fs.mkdirSync(userAssets, { recursive: true });
-    const cover = path.join(ROOT, 'studio', 'videos', 'input', 'cover.png');
-    if (fs.existsSync(cover)) fs.copyFileSync(cover, path.join(userAssets, 'cover.png'));
-    const out = path.join(dir, 'output', 'video.mp4');
-    const render = await spawnLogged(uv, ['run', adapter, 'render', '--instance', instance, '--out', out], envPath, 30 * 60_000, path.join(ROOT, logRel));
-    if (render.code !== 0) {
-      project.status = 'failed';
-      writeProject(project);
-      throw badRequest(`渲染失败：${render.stderr.trim().slice(-260)}`);
-    }
-    project.artifactRel = fs.existsSync(`${out.slice(0, -4)}-with-audio.mp4`)
-      ? `studio/projects/${project.id}/output/video-with-audio.mp4`
-      : `studio/projects/${project.id}/output/video.mp4`;
-    project.status = 'done';
-    writeProject(project);
-    return hydrate(project);
-  }
-
-  const { code, stderr } = await runNode(
-    [
-      path.join(tpl.dir, 'assistant', 'motion.mjs'),
-      'api',
-      path.join(ROOT, tpl.archiveRel ?? ''),
-      'expert',
-      '--script',
-      path.join(ROOT, project.scriptRel),
-      '--max-credits',
-      String(maxCredits),
-      '--assets',
-      assets,
-      '--instance',
-      instance,
-      '--run',
-    ],
-    tpl.dir,
-    30 * 60_000,
-    path.join(ROOT, logRel),
-  );
-
-  if (code !== 0) {
-    project.status = 'failed';
-    writeProject(project);
-    throw badRequest(`生成失败：${stderr.trim().slice(-300) || '见 run.log'}`);
-  }
-
-  const video = findVideo(instance);
-  project.artifactRel = video ? path.relative(ROOT, video).split(path.sep).join('/') : null;
-  project.status = video ? 'done' : 'failed';
+  project.error = null;
+  project.runMaxCredits = tpl.runner === 'cloud' ? maxCredits : 0;
+  project.logRel = `studio/projects/${project.id}/run.log`;
+  const job = submitJob('project:run', { projectId: project.id });
+  project.jobId = job.id;
   writeProject(project);
   return hydrate(project);
 }
 
-function findVideo(dir: string): string | null {
-  if (!fs.existsSync(dir)) return null;
-  const walk = (d: string): string[] =>
-    fs.readdirSync(d, { withFileTypes: true }).flatMap((e) => {
-      const abs = path.join(d, e.name);
-      if (e.isDirectory()) return walk(abs);
-      return /\.(mp4|mov|webm)$/i.test(e.name) ? [abs] : [];
-    });
-  const files = walk(dir).sort((a, b) => fs.statSync(b).mtimeMs - fs.statSync(a).mtimeMs);
-  return files[0] ?? null;
-}
-
-/** 成片 → 发布草稿：4:3 与 3:4 封面、publish.txt、publish.json。 */
-export async function preparePublish(id: string): Promise<Project> {
-  const project = readProject(id);
-  if (!project) throw notFound('项目不存在');
-  if (!project.artifactRel) throw badRequest('还没有成片，先生成');
-  const video = path.join(ROOT, project.artifactRel);
-  const outDir = path.join(projectDir(id), 'output');
-  fs.mkdirSync(outDir, { recursive: true });
-  const ffmpeg = findBin('ffmpeg') || 'ffmpeg';
-
-  const covers: Array<[string, string]> = [
-    ['cover-4x3.jpg', '4:3'],
-    ['cover-3x4.jpg', '3:4'],
-  ];
-  for (const [name, ratio] of covers) {
-    const w = ratio === '4:3' ? 1440 : 1080;
-    const h = ratio === '4:3' ? 1080 : 1440;
-    await new Promise<void>((resolve) => {
-      const proc = spawn(ffmpeg, [
-        '-y',
-        '-ss',
-        '2',
-        '-i',
-        video,
-        '-frames:v',
-        '1',
-        '-vf',
-        `scale=${w}:${h}:force_original_aspect_ratio=increase,crop=${w}:${h}`,
-        path.join(outDir, name),
-      ]);
-      proc.on('close', () => resolve());
-    });
-  }
-
-  const publish = {
-    title: project.name,
-    body: fs.existsSync(path.join(ROOT, project.scriptRel))
-      ? fs.readFileSync(path.join(ROOT, project.scriptRel), 'utf8').trim()
-      : '',
-    hashtags: project.keywords,
-    covers: { horizontal: 'cover-4x3.jpg', vertical: 'cover-3x4.jpg' },
-    visibility: 'public',
-    allowSave: true,
-    publishAt: 'now',
-  };
-  const publishJson = path.join(outDir, 'publish.json');
-  fs.writeFileSync(publishJson, `${JSON.stringify(publish, null, 2)}\n`, 'utf8');
-  const txt = `${publish.title}\n\n${publish.body}\n\n${publish.hashtags.map((t) => `#${t}`).join(' ')}\n`;
-  fs.writeFileSync(path.join(outDir, 'publish.txt'), txt, 'utf8');
-  project.status = 'done';
-  writeProject(project);
-  return hydrate(project);
-}
-
-/** 查询模板包自带官方 Key 的额度余额（只读，不扣费）。 */
+/** 官方 Key 余额（只读）；本机模板不查。 */
 export async function projectCredits(id: string): Promise<Record<string, unknown>> {
   const project = readProject(id);
   if (!project) throw notFound('项目不存在');
   const tpl = findTemplateRef(project.templateId);
   if (!tpl) throw notFound('模板不可用');
-  if (tpl.kind === 'builtin') {
-    return { credits_remaining: null, paid_cloud: false, note: '内置模板由本机适配器渲染，不查官方额度' };
+  if (tpl.runner === 'adapter') {
+    return { credits_remaining: null, paid_cloud: false, note: '本机渲染，不查官方额度' };
   }
   const { code, stdout, stderr } = await runNode(
     [path.join(tpl.dir, 'assistant', 'motion.mjs'), 'api', path.join(ROOT, tpl.archiveRel ?? ''), 'usage'],
@@ -482,20 +330,100 @@ export async function projectCredits(id: string): Promise<Record<string, unknown
   return json;
 }
 
-/** 用模板自带 text-only 示例生成内置模板输入；时长由模板原生窗口决定。 */
-function writeBuiltinInput(tplDir: string, outFile: string, title: string, script: string): number {
-  const example = path.join(tplDir, 'examples', 'text-only.json');
-  const base: Record<string, unknown> = fs.existsSync(example)
-    ? (JSON.parse(fs.readFileSync(example, 'utf8')) as Record<string, unknown>)
-    : { mode: 'user-media', language: 'zh', layout: 'landscape', duration: 8, scenes: [{ id: 'B1', title: '开场' }], media: { presenter: { mode: 'none' }, voice: { mode: 'none' }, music: { mode: 'none' } }, captions: [] };
-  const lines = script.split(/[。！？!?\n]/).map((t) => t.trim()).filter(Boolean).slice(0, 2);
-  base.title = title.slice(0, 30);
-  base.basic = {
-    keyword: title.slice(0, 12),
-    explanation: (lines.length ? lines : [title.slice(0, 12)]).join('\n'),
+export interface ProjectPublish {
+  title: string;
+  body: string;
+  hashtags: string[];
+  covers: { horizontal: string | null; vertical: string | null };
+  visibility: string;
+  allowSave: boolean;
+  publishAt: string;
+}
+
+function writePublishText(outDir: string, p: ProjectPublish): void {
+  const txt = `${p.title}\n\n${p.body}\n\n${p.hashtags.map((t) => `#${t}`).join(' ')}\n`;
+  fs.writeFileSync(path.join(outDir, 'publish.txt'), txt, 'utf8');
+}
+
+export function readPublish(id: string): ProjectPublish | null {
+  const file = path.join(projectDir(id), 'output', 'publish.json');
+  if (!fs.existsSync(file)) return null;
+  try {
+    return JSON.parse(fs.readFileSync(file, 'utf8')) as ProjectPublish;
+  } catch {
+    return null;
+  }
+}
+
+export function writePublish(id: string, input: Partial<ProjectPublish>): ProjectPublish {
+  const project = readProject(id);
+  if (!project) throw notFound('项目不存在');
+  const current = readPublish(id) ?? {
+    title: project.name, body: '', hashtags: project.keywords,
+    covers: { horizontal: null, vertical: null },
+    visibility: 'public', allowSave: true, publishAt: 'now',
   };
-  fs.writeFileSync(outFile, `${JSON.stringify(base, null, 2)}\n`, 'utf8');
-  return Number(base.duration) || 8;
+  const next: ProjectPublish = {
+    title: String(input.title ?? current.title).slice(0, 30),
+    body: String(input.body ?? current.body).slice(0, 1000),
+    hashtags: Array.isArray(input.hashtags) ? input.hashtags.map(String).slice(0, 10) : current.hashtags,
+    covers: {
+      horizontal: input.covers?.horizontal ?? current.covers.horizontal,
+      vertical: input.covers?.vertical ?? current.covers.vertical,
+    },
+    visibility: String(input.visibility ?? current.visibility),
+    allowSave: Boolean(input.allowSave ?? current.allowSave),
+    publishAt: String(input.publishAt ?? current.publishAt),
+  };
+  const outDir = path.join(projectDir(id), 'output');
+  fs.mkdirSync(outDir, { recursive: true });
+  fs.writeFileSync(path.join(outDir, 'publish.json'), `${JSON.stringify(next, null, 2)}\n`, 'utf8');
+  writePublishText(outDir, next);
+  return next;
+}
+
+/** 成片 → 发布草稿：4:3 / 3:4 封面、publish.txt、publish.json（作品页编辑）。 */
+export async function preparePublish(id: string): Promise<Project> {
+  const project = readProject(id);
+  if (!project) throw notFound('项目不存在');
+  if (!project.artifactRel) throw badRequest('还没有成片，先生成');
+  const video = path.join(ROOT, project.artifactRel);
+  const outDir = path.join(projectDir(id), 'output');
+  fs.mkdirSync(outDir, { recursive: true });
+  const ffmpeg = findBin('ffmpeg') || 'ffmpeg';
+
+  const covers: Array<[string, number, number]> = [
+    ['cover-4x3.jpg', 1440, 1080],
+    ['cover-3x4.jpg', 1080, 1440],
+  ];
+  for (const [name, w, h] of covers) {
+    await new Promise<void>((resolve) => {
+      const proc = spawn(ffmpeg, [
+        '-y', '-ss', '2', '-i', video, '-frames:v', '1',
+        '-vf', `scale=${w}:${h}:force_original_aspect_ratio=increase,crop=${w}:${h}`,
+        path.join(outDir, name),
+      ]);
+      proc.on('close', () => resolve());
+    });
+  }
+
+  const existing = readPublish(id);
+  const publish: ProjectPublish = existing ?? {
+    title: project.name,
+    body: fs.existsSync(path.join(ROOT, project.scriptRel))
+      ? fs.readFileSync(path.join(ROOT, project.scriptRel), 'utf8').trim()
+      : '',
+    hashtags: project.keywords,
+    covers: { horizontal: 'cover-4x3.jpg', vertical: 'cover-3x4.jpg' },
+    visibility: 'public',
+    allowSave: true,
+    publishAt: 'now',
+  };
+  fs.writeFileSync(path.join(outDir, 'publish.json'), `${JSON.stringify(publish, null, 2)}\n`, 'utf8');
+  writePublishText(outDir, publish);
+  project.status = 'done';
+  writeProject(project);
+  return hydrate(project);
 }
 
 export function projectFiles(id: string): Record<string, string | null> {

@@ -35,7 +35,7 @@ const groups = computed(() =>
 </script>
 
 <template>
-  <div class="environment">
+  <div class="flex flex-col gap-6">
     <EmptyState v-if="error" tone="danger" :description="error" tip="环境信息加载失败">
       <template #action>
         <n-button type="primary" @click="run">重试</n-button>
@@ -48,15 +48,15 @@ const groups = computed(() =>
 
     <template v-else-if="data">
       <SectionCard>
-        <div class="overview">
-          <div class="overview__head">
-            <span class="overview__title">依赖就位</span>
-            <span class="overview__value tnum">{{ summary.ok }} / {{ summary.total }}</span>
+        <div class="flex flex-col gap-3">
+          <div class="flex items-baseline justify-between">
+            <span class="text-sm text-ink-2">依赖就位</span>
+            <span class="text-xl font-semibold text-ink num">{{ summary.ok }} / {{ summary.total }}</span>
           </div>
-          <div class="overview__bar">
+          <div class="h-1.5 rounded-full bg-divider overflow-hidden">
             <div
-              class="overview__fill"
-              :class="summary.ok === summary.total ? 'overview__fill--ok' : 'overview__fill--warn'"
+              class="h-full rounded-full transition-[width] duration-150"
+              :class="summary.ok === summary.total ? 'bg-success' : 'bg-warning'"
               :style="{ width: `${Math.round(progress * 100)}%` }"
             />
           </div>
@@ -67,25 +67,30 @@ const groups = computed(() =>
         </div>
       </SectionCard>
 
-      <div v-for="g in groups" :key="g.title" class="group">
+      <div v-for="g in groups" :key="g.title" class="flex flex-col gap-4">
         <SectionCard :title="g.title">
-          <div class="rows">
-            <div v-for="item in g.items" :key="item.key" class="row" :class="{ 'row--missing': !item.ok }">
-              <div class="row__main">
-                <span class="row__dot" :class="item.ok ? 'row__dot--ok' : 'row__dot--danger'" />
-                <span class="row__name">{{ item.label }}</span>
-                <span class="row__version tnum">{{ item.version || '—' }}</span>
+          <div class="flex flex-col">
+            <div
+              v-for="item in g.items"
+              :key="item.key"
+              class="flex flex-col gap-2 py-2 border-b border-divider last:border-b-0"
+              :class="!item.ok ? 'p-3 border border-danger rounded-control bg-danger-soft' : ''"
+            >
+              <div class="flex items-center gap-2">
+                <span class="w-2 h-2 rounded-full flex-none" :class="item.ok ? 'bg-success' : 'bg-danger'" />
+                <span class="text-sm font-medium text-ink">{{ item.label }}</span>
+                <span class="text-xs text-ink-2 num">{{ item.version || '—' }}</span>
                 <StatusTag
-                  class="row__status"
+                  class="ml-auto"
                   :status="item.ok ? 'success' : 'danger'"
                   :text="item.ok ? '就位' : '缺失'"
                 />
               </div>
-              <div class="row__path">
+              <div class="pl-4">
                 <PathCopy :path="item.path || '—'" />
               </div>
-              <div v-if="!item.ok && item.hint" class="row__hint">
-                <span class="row__hint-label">提示</span>
+              <div v-if="!item.ok && item.hint" class="flex items-center gap-2 pl-4 text-xs text-danger">
+                <span class="flex-none text-ink-3">提示</span>
                 <PathCopy :path="item.hint" />
               </div>
             </div>
@@ -98,138 +103,3 @@ const groups = computed(() =>
   </div>
 </template>
 
-<style scoped>
-.environment {
-  display: flex;
-  flex-direction: column;
-  gap: 24px;
-}
-
-.group {
-  display: flex;
-  flex-direction: column;
-  gap: 16px;
-}
-
-.overview {
-  display: flex;
-  flex-direction: column;
-  gap: 12px;
-}
-
-.overview__head {
-  display: flex;
-  align-items: baseline;
-  justify-content: space-between;
-}
-
-.overview__title {
-  font-size: 13px;
-  color: var(--color-text-secondary);
-}
-
-.overview__value {
-  font-size: 18px;
-  font-weight: 600;
-  color: var(--color-text-primary);
-}
-
-.overview__bar {
-  height: 6px;
-  border-radius: 999px;
-  background: var(--color-divider);
-  overflow: hidden;
-}
-
-.overview__fill {
-  height: 100%;
-  border-radius: 999px;
-  transition: width var(--transition);
-}
-
-.overview__fill--ok {
-  background: var(--color-success);
-}
-
-.overview__fill--warn {
-  background: var(--color-warning);
-}
-
-.rows {
-  display: flex;
-  flex-direction: column;
-}
-
-.row {
-  display: flex;
-  flex-direction: column;
-  gap: 8px;
-  padding: 10px 0;
-  border-bottom: 1px solid var(--color-divider);
-}
-
-.row:last-child {
-  border-bottom: none;
-}
-
-.row--missing {
-  padding: 12px;
-  border: 1px solid color-mix(in srgb, var(--color-danger) 24%, transparent);
-  border-radius: var(--radius-control);
-  background: var(--color-danger-soft);
-}
-
-.row__main {
-  display: flex;
-  align-items: center;
-  gap: 10px;
-}
-
-.row__dot {
-  width: 8px;
-  height: 8px;
-  border-radius: 50%;
-  flex: none;
-}
-
-.row__dot--ok {
-  background: var(--color-success);
-}
-
-.row__dot--danger {
-  background: var(--color-danger);
-}
-
-.row__name {
-  font-size: 13px;
-  font-weight: 500;
-  color: var(--color-text-primary);
-}
-
-.row__version {
-  font-size: 12px;
-  color: var(--color-text-secondary);
-}
-
-.row__status {
-  margin-left: auto;
-}
-
-.row__path {
-  padding-left: 18px;
-}
-
-.row__hint {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  padding-left: 18px;
-  font-size: 12px;
-  color: var(--color-danger);
-}
-
-.row__hint-label {
-  flex: none;
-  color: var(--color-text-tertiary);
-}
-</style>

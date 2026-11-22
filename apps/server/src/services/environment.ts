@@ -110,6 +110,24 @@ async function checkDir(key: string, label: string, rel: string, hint: string): 
   return { key, label, ok: exists, version: null, path: abs, hint: exists ? null : hint };
 }
 
+function firstAdapterTemplate(): string | null {
+  const base = path.join(ROOT, 'studio', 'templates');
+  if (!fs.existsSync(base)) return null;
+  for (const name of fs.readdirSync(base)) {
+    const dir = path.join(base, name);
+    if (fs.existsSync(path.join(dir, 'adapter.py'))) return `studio/templates/${name}`;
+  }
+  return null;
+}
+
+async function checkNodeDeps(): Promise<EnvItem> {
+  const tpl = firstAdapterTemplate();
+  if (!tpl) {
+    return { key: 'nodeDeps', label: 'Node 依赖目录', ok: false, version: null, path: null, hint: '还没有可渲染模板，先从官网下载并导入 .motion 包' };
+  }
+  return checkDir('nodeDeps', 'Node 依赖目录', `${tpl}/node_modules`, `在 ${tpl}/ 下执行 npm ci 安装模板 Node 依赖`);
+}
+
 export async function collectEnvironment(): Promise<EnvReport> {
   const items = await Promise.all<EnvItem>([
     checkNode(),
@@ -118,7 +136,7 @@ export async function collectEnvironment(): Promise<EnvReport> {
     checkFfmpeg('ffmpeg', 'ffmpeg', /ffmpeg version ([\d.]+)/),
     checkFfmpeg('ffprobe', 'ffprobe', /ffprobe version ([\d.]+)/),
     checkChrome(),
-    checkDir('nodeDeps', 'Node 依赖目录', 'studio/template/node_modules', '在 studio/template/ 下执行 pnpm install 安装模板 Node 依赖'),
+    checkNodeDeps(),
     checkDir('pythonVenv', 'TTS Python 环境', 'studio/tts/.venv', '由 uv 根据脚本头 PEP723 自动创建'),
     checkDir('binTools', '本地二进制 studio/bin/', 'studio/bin', 'ffmpeg、ffprobe、uv 等外部二进制放在 studio/bin/'),
   ]);

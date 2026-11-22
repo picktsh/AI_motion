@@ -1,201 +1,121 @@
 import type { GlobalThemeOverrides } from 'naive-ui';
+import { lightPalette, darkPalette, rgba, fontFamily, type Palette } from './palette';
 
 /**
- * Naive UI 主题覆盖。
- * 这里是唯一允许集中写死 hex 的地方：自绘组件一律走 tokens.css 的 CSS 变量。
- * 色值与设计规范保持一致。
+ * Naive UI 主题覆盖：色值全部来自 palette.ts（颜色唯一来源）。
+ * Naive 内部会对颜色做 rgba 混合，这里必须给字面色值，不能给 var()。
+ * 字号统一偶数：正文 14，标题 16/20。
  */
 
-const brand = '#bc8cff';
-const brandHover = '#cca6ff';
-const brandPressed = '#a66ef0';
-const success = '#34d399';
-const warning = '#f5a524';
-const danger = '#f26d6d';
+function build(p: Palette): GlobalThemeOverrides {
+  const neutralSoft = rgba(p.textSecondary, 0.1);
+  const brandSoft = rgba(p.brand, 0.12);
+  return {
+    common: {
+      primaryColor: p.brand,
+      primaryColorHover: p.brandHover,
+      primaryColorPressed: p.brandPressed,
+      primaryColorSuppl: p.brand,
+      successColor: p.success,
+      successColorHover: p.success,
+      successColorPressed: p.success,
+      warningColor: p.warning,
+      warningColorHover: p.warning,
+      warningColorPressed: p.warning,
+      errorColor: p.danger,
+      errorColorHover: p.danger,
+      errorColorPressed: p.danger,
+      infoColor: p.brand,
+      infoColorHover: p.brandHover,
+      infoColorPressed: p.brandPressed,
+      borderRadius: '8px',
+      borderRadiusSmall: '8px',
+      fontSize: '14px',
+      fontSizeMedium: '14px',
+      fontSizeLarge: '16px',
+      fontFamily,
+      bodyColor: p.bg,
+      cardColor: p.panel,
+      modalColor: p.overlay,
+      popoverColor: p.overlay,
+      tableColor: p.panel,
+      textColorBase: p.textPrimary,
+      textColor1: p.textPrimary,
+      textColor2: p.textSecondary,
+      textColor3: p.textTertiary,
+      borderColor: p.border,
+      dividerColor: p.divider,
+    },
+    /** 默认按钮给一层可见底 + 描边，避免"看不出是按钮"。 */
+    Button: {
+      borderRadius: '8px',
+      borderRadiusSmall: '8px',
+      fontSizeMedium: '14px',
+      color: neutralSoft,
+      colorHover: p.border,
+      colorPressed: p.border,
+      colorFocus: p.border,
+      border: `1px solid ${p.border}`,
+      borderHover: `1px solid ${p.brand}`,
+      borderPressed: `1px solid ${p.brandPressed}`,
+      borderFocus: `1px solid ${p.brand}`,
+      textColor: p.textPrimary,
+      textColorHover: p.brand,
+      textColorPressed: p.brandPressed,
+      textColorFocus: p.brand,
+      rippleColor: p.brand,
+    },
+    Card: {
+      color: p.panel,
+      borderColor: p.border,
+      borderRadius: '12px',
+      titleFontSize: '16px',
+      fontSize: '14px',
+    },
+    Layout: { color: p.bg, colorBase: p.bg },
+    Menu: {
+      itemColor: 'transparent',
+      itemColorHover: brandSoft,
+      itemColorActive: brandSoft,
+      itemColorActiveHover: brandSoft,
+      itemTextColor: p.textSecondary,
+      itemTextColorHover: p.textPrimary,
+      itemTextColorActive: p.brand,
+      itemIconColor: p.textSecondary,
+      itemIconColorActive: p.brand,
+      borderRadius: '8px',
+      fontSize: '14px',
+    },
+    Input: {
+      borderRadius: '8px',
+      color: p.overlay,
+      borderColor: p.border,
+      borderColorHover: p.brand,
+      borderColorFocus: p.brand,
+      placeholderColor: p.textTertiary,
+      fontSizeMedium: '14px',
+    },
+    Tag: { borderRadius: '8px', fontSizeMedium: '12px' },
+    DataTable: {
+      thColor: p.bg,
+      tdColor: p.panel,
+      tdColorHover: brandSoft,
+      borderColor: p.divider,
+      thTextColor: p.textSecondary,
+      fontSizeMedium: '14px',
+    },
+    Drawer: { color: p.overlay },
+    Tooltip: { color: p.overlay, textColor: p.textPrimary },
+    Progress: { railColor: p.divider },
+    Skeleton: { color: p.divider, colorEnd: p.border },
+    Empty: { textColor: p.textTertiary, fontSizeMedium: '14px' },
+    Alert: { borderRadius: '8px', fontSize: '14px', titleFontSize: '14px' },
+    Tabs: { tabFontSizeMedium: '14px' },
+    Radio: { fontSizeMedium: '14px', buttonBorderColor: p.border },
+    Switch: { railColor: p.border },
+    Select: { fontSizeMedium: '14px' },
+  };
+}
 
-const fontFamily =
-  '-apple-system, "SF Pro Text", "PingFang SC", Inter, "Segoe UI", "Microsoft YaHei", sans-serif';
-
-const semanticCommon = {
-  primaryColor: brand,
-  primaryColorHover: brandHover,
-  primaryColorPressed: brandPressed,
-  primaryColorSuppl: brand,
-  successColor: success,
-  successColorHover: success,
-  successColorPressed: success,
-  warningColor: warning,
-  warningColorHover: warning,
-  warningColorPressed: warning,
-  errorColor: danger,
-  errorColorHover: danger,
-  errorColorPressed: danger,
-  infoColor: brand,
-  infoColorHover: brandHover,
-  infoColorPressed: brandPressed,
-  borderRadius: '8px',
-  borderRadiusSmall: '6px',
-  fontFamily,
-};
-
-export const lightThemeOverrides: GlobalThemeOverrides = {
-  common: {
-    ...semanticCommon,
-    bodyColor: '#f6f7f9',
-    cardColor: '#ffffff',
-    modalColor: '#ffffff',
-    popoverColor: '#ffffff',
-    tableColor: '#ffffff',
-    textColorBase: '#111827',
-    textColor1: '#111827',
-    textColor2: '#6b7280',
-    textColor3: '#9ca3af',
-    borderColor: '#e6e8ec',
-    dividerColor: '#edf0f3',
-  },
-  Card: {
-    color: '#ffffff',
-    borderColor: '#e6e8ec',
-    borderRadius: '12px',
-    titleFontSize: '15px',
-  },
-  Layout: {
-    color: '#f6f7f9',
-    colorBase: '#f6f7f9',
-  },
-  Menu: {
-    itemColor: 'transparent',
-    itemColorHover: 'rgba(188, 140, 255, 0.08)',
-    itemColorActive: 'rgba(188, 140, 255, 0.12)',
-    itemColorActiveHover: 'rgba(188, 140, 255, 0.16)',
-    itemTextColor: '#6b7280',
-    itemTextColorHover: '#111827',
-    itemTextColorActive: brand,
-    itemIconColor: '#6b7280',
-    itemIconColorActive: brand,
-    borderRadius: '8px',
-  },
-  Button: {
-    borderRadius: '8px',
-    borderRadiusSmall: '6px',
-  },
-  Input: {
-    borderRadius: '8px',
-    color: '#ffffff',
-    borderColor: '#e6e8ec',
-    borderColorHover: brand,
-    borderColorFocus: brand,
-    placeholderColor: '#9ca3af',
-  },
-  Tag: {
-    borderRadius: '6px',
-  },
-  DataTable: {
-    thColor: '#f6f7f9',
-    tdColor: '#ffffff',
-    tdColorHover: 'rgba(188, 140, 255, 0.04)',
-    borderColor: '#edf0f3',
-    thTextColor: '#6b7280',
-  },
-  Drawer: {
-    color: '#ffffff',
-  },
-  Tooltip: {
-    color: '#1c1f27',
-    textColor: '#e8eaf0',
-  },
-  Progress: {
-    railColor: '#edf0f3',
-  },
-  Skeleton: {
-    color: '#edf0f3',
-    colorEnd: '#e6e8ec',
-  },
-  Empty: {
-    textColor: '#9ca3af',
-  },
-  Alert: {
-    borderRadius: '8px',
-  },
-};
-
-export const darkThemeOverrides: GlobalThemeOverrides = {
-  common: {
-    ...semanticCommon,
-    bodyColor: '#0e1014',
-    cardColor: '#16181f',
-    modalColor: '#1c1f27',
-    popoverColor: '#1c1f27',
-    tableColor: '#16181f',
-    textColorBase: '#e8eaf0',
-    textColor1: '#e8eaf0',
-    textColor2: '#9aa2b1',
-    textColor3: '#5c6470',
-    borderColor: '#262a33',
-    dividerColor: '#1f232b',
-  },
-  Card: {
-    color: '#16181f',
-    borderColor: '#262a33',
-    borderRadius: '12px',
-    titleFontSize: '15px',
-  },
-  Layout: {
-    color: '#0e1014',
-    colorBase: '#0e1014',
-  },
-  Menu: {
-    itemColor: 'transparent',
-    itemColorHover: 'rgba(188, 140, 255, 0.12)',
-    itemColorActive: 'rgba(188, 140, 255, 0.18)',
-    itemColorActiveHover: 'rgba(188, 140, 255, 0.22)',
-    itemTextColor: '#9aa2b1',
-    itemTextColorHover: '#e8eaf0',
-    itemTextColorActive: brand,
-    itemIconColor: '#9aa2b1',
-    itemIconColorActive: brand,
-    borderRadius: '8px',
-  },
-  Button: {
-    borderRadius: '8px',
-    borderRadiusSmall: '6px',
-  },
-  Input: {
-    borderRadius: '8px',
-    color: '#1c1f27',
-    borderColor: '#262a33',
-    borderColorHover: brand,
-    borderColorFocus: brand,
-    placeholderColor: '#5c6470',
-  },
-  Tag: {
-    borderRadius: '6px',
-  },
-  DataTable: {
-    thColor: '#16181f',
-    tdColor: '#16181f',
-    tdColorHover: 'rgba(188, 140, 255, 0.08)',
-    borderColor: '#1f232b',
-    thTextColor: '#9aa2b1',
-  },
-  Drawer: {
-    color: '#1c1f27',
-  },
-  Tooltip: {
-    color: '#1c1f27',
-    textColor: '#e8eaf0',
-  },
-  Progress: {
-    railColor: '#1f232b',
-  },
-  Skeleton: {
-    color: '#1f232b',
-    colorEnd: '#262a33',
-  },
-  Empty: {
-    textColor: '#5c6470',
-  },
-  Alert: {
-    borderRadius: '8px',
-  },
-};
+export const lightThemeOverrides: GlobalThemeOverrides = build(lightPalette);
+export const darkThemeOverrides: GlobalThemeOverrides = build(darkPalette);

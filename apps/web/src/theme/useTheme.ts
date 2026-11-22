@@ -1,4 +1,5 @@
 import { computed, ref, watch } from 'vue';
+import { applyPaletteVars, lightPalette, darkPalette } from './palette';
 
 export type ThemeMode = 'light' | 'dark';
 
@@ -14,6 +15,7 @@ const mode = ref<ThemeMode>(initialMode());
 
 function apply(next: ThemeMode) {
   document.documentElement.dataset.theme = next;
+  applyPaletteVars(next === 'dark' ? darkPalette : lightPalette);
 }
 
 watch(

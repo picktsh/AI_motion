@@ -8,6 +8,7 @@ import {
   SunnyOutline,
   MoonOutline,
   ApertureOutline,
+  ArrowBackOutline,
 } from '@vicons/ionicons5';
 import type { Component } from 'vue';
 import { getEnvironment } from '../../api/environment';
@@ -25,6 +26,7 @@ watch(collapsed, (v) => localStorage.setItem(SHELL_COLLAPSED_KEY, v ? '1' : '0')
 const current = computed(() => ({
   title: (route.meta.title as string) ?? 'AI Motion Studio',
   description: (route.meta.description as string) ?? '',
+  back: (route.meta.back as string) ?? '',
 }));
 
 const menuOptions = computed(() =>
@@ -41,12 +43,24 @@ function isActive(key: string): boolean {
   return key === '/' ? route.path === '/' : route.path.startsWith(key);
 }
 
+/** 选中/未选中各给完整类，避免 bg-transparent 与条件底色叠加的 cascade 坑。 */
+function navClass(key: string): string {
+  return isActive(key)
+    ? 'bg-brand-soft text-brand'
+    : 'text-ink-2 hover:bg-neutral-soft hover:text-ink';
+}
+
 function onSelect(key: string) {
   router.push(key);
 }
 
 function goHome() {
   router.push('/');
+}
+
+function goBack() {
+  if (current.value.back) router.push(current.value.back);
+  else router.back();
 }
 
 /* 顶栏环境健康灯 */
@@ -71,10 +85,10 @@ const health = computed(() => {
   return { tone: 'danger' as const, text: `缺 ${summary.value.total - summary.value.ok} 项` };
 });
 
-const dotColor = computed(() => {
-  if (health.value.tone === 'success') return 'var(--color-success)';
-  if (health.value.tone === 'danger') return 'var(--color-danger)';
-  return 'var(--color-text-tertiary)';
+const dotClass = computed(() => {
+  if (health.value.tone === 'success') return 'bg-success';
+  if (health.value.tone === 'danger') return 'bg-danger';
+  return 'bg-ink-3';
 });
 
 /* 刷新：卸载再挂载当前页，页面按 onMounted 重新初始化拉取，与页面解耦 */
@@ -87,7 +101,6 @@ function refresh() {
   });
 }
 
-/* 健康灯定时轮询：后端重启或恢复后，无需手动刷新即回到已连接态 */
 let healthTimer: number | undefined;
 
 onMounted(() => {
@@ -101,8 +114,8 @@ onUnmounted(() => window.clearInterval(healthTimer));
 <template>
   <div class="flex h-screen overflow-hidden">
     <aside
-      class="flex flex-col flex-none min-w-0 bg-[var(--color-panel)] border-r border-[var(--color-border)] transition-[width] duration-150"
-      :class="collapsed ? 'w-[50px]' : 'w-60'"
+      class="flex flex-col flex-none min-w-0 bg-panel border-r border-border transition-[width] duration-150"
+      :class="collapsed ? 'w-12' : 'w-60'"
     >
       <div class="px-2 pt-2 flex-none">
         <div
@@ -110,13 +123,10 @@ onUnmounted(() => window.clearInterval(healthTimer));
           title="返回主页"
           @click="goHome"
         >
-          <n-icon :size="18" class="flex-none text-[var(--color-brand)]">
+          <n-icon :size="20" class="flex-none text-brand">
             <ApertureOutline />
           </n-icon>
-          <span
-            v-show="!collapsed"
-            class="truncate whitespace-nowrap text-base font-semibold text-[var(--color-text-primary)]"
-          >
+          <span v-show="!collapsed" class="truncate whitespace-nowrap text-lg font-semibold text-ink">
             AI Motion Studio
           </span>
         </div>
@@ -127,11 +137,11 @@ onUnmounted(() => window.clearInterval(healthTimer));
           v-for="opt in menuOptions"
           :key="opt.key"
           type="button"
-          class="flex items-center w-full px-2 py-2 gap-2 leading-none rounded-lg border-0 bg-transparent text-[var(--color-text-secondary)] cursor-pointer transition-colors hover:bg-[var(--color-neutral-soft)] hover:text-[var(--color-text-primary)]"
-          :class="{ 'nav-item--active': isActive(opt.key) }"
+          class="flex items-center w-full px-2 py-2 gap-2 leading-none rounded-control border-0 cursor-pointer transition-colors duration-150"
+          :class="navClass(opt.key)"
           @click="onSelect(opt.key)"
         >
-          <span class="w-[18px] flex-none flex items-center justify-center">
+          <span class="w-5 flex-none flex items-center justify-center">
             <n-icon :size="18">
               <component :is="opt.icon" />
             </n-icon>
@@ -145,13 +155,13 @@ onUnmounted(() => window.clearInterval(healthTimer));
 
     <div class="flex-1 min-w-0 min-h-0 flex flex-col">
       <header
-        class="flex-none h-16 flex items-center justify-between gap-3 px-6 bg-[var(--color-panel)] border-b border-[var(--color-border)] overflow-hidden"
+        class="flex-none h-16 flex items-center justify-between gap-4 px-6 bg-panel border-b border-border overflow-hidden"
       >
         <div class="flex-1 min-w-0 flex items-center gap-3">
           <n-button
             quaternary
             circle
-            class="p-2 flex-none"
+            class="flex-none"
             :title="collapsed ? '展开侧边栏' : '收起侧边栏'"
             @click="collapsed = !collapsed"
           >
@@ -161,14 +171,19 @@ onUnmounted(() => window.clearInterval(healthTimer));
               </n-icon>
             </template>
           </n-button>
-          <div class="flex flex-col gap-0.5 min-w-0">
-            <div class="truncate whitespace-nowrap text-[15px] font-semibold text-[var(--color-text-primary)]">
+          <n-button v-if="current.back" size="small" class="flex-none" @click="goBack">
+            <template #icon>
+              <n-icon :size="16">
+                <ArrowBackOutline />
+              </n-icon>
+            </template>
+            返回
+          </n-button>
+          <div class="flex flex-col gap-1 min-w-0">
+            <div class="truncate whitespace-nowrap text-lg font-semibold text-ink">
               {{ current.title }}
             </div>
-            <div
-              v-if="current.description"
-              class="truncate whitespace-nowrap text-xs text-[var(--color-text-secondary)]"
-            >
+            <div v-if="current.description" class="truncate whitespace-nowrap text-xs text-ink-2">
               {{ current.description }}
             </div>
           </div>
@@ -177,29 +192,23 @@ onUnmounted(() => window.clearInterval(healthTimer));
         <div class="flex-none flex items-center gap-2">
           <button
             type="button"
-            class="p-2 inline-flex items-center justify-center bg-transparent border-0 rounded-lg cursor-pointer transition-colors hover:bg-[var(--color-neutral-soft)]"
+            class="p-2 inline-flex items-center justify-center bg-transparent border-0 rounded-control cursor-pointer transition-colors duration-150 hover:bg-neutral-soft"
             :title="health.text"
             aria-label="环境状态，点击查看环境检查"
             @click="router.push('/environment')"
           >
-            <span class="w-[18px] h-[18px] inline-flex items-center justify-center">
-              <span class="w-2 h-2 rounded-full" :style="{ backgroundColor: dotColor }" />
+            <span class="w-5 h-5 inline-flex items-center justify-center">
+              <span class="w-2 h-2 rounded-full" :class="dotClass" />
             </span>
           </button>
-          <n-button quaternary circle class="p-2" title="刷新当前页" @click="refresh">
+          <n-button quaternary circle title="刷新当前页" @click="refresh">
             <template #icon>
               <n-icon :size="18">
                 <RefreshOutline />
               </n-icon>
             </template>
           </n-button>
-          <n-button
-            quaternary
-            circle
-            class="p-2"
-            :title="isDark ? '切换到亮色' : '切换到暗色'"
-            @click="toggle"
-          >
+          <n-button quaternary circle :title="isDark ? '切换到亮色' : '切换到暗色'" @click="toggle">
             <template #icon>
               <n-icon :size="18">
                 <component :is="isDark ? SunnyOutline : MoonOutline" />
@@ -210,9 +219,15 @@ onUnmounted(() => window.clearInterval(healthTimer));
       </header>
 
       <main class="flex-1 min-h-0 overflow-y-auto overflow-x-hidden px-6 py-6">
-        <div v-if="pageAlive" class="max-w-[1440px] mx-auto">
+        <div v-if="pageAlive" class="max-w-screen-2xl mx-auto">
           <router-view v-slot="{ Component }">
-            <Transition name="page" mode="out-in">
+            <Transition
+              mode="out-in"
+              enter-active-class="transition-opacity duration-150"
+              enter-from-class="opacity-0"
+              leave-active-class="transition-opacity duration-150"
+              leave-to-class="opacity-0"
+            >
               <component :is="Component" :key="route.path" />
             </Transition>
           </router-view>
@@ -223,22 +238,3 @@ onUnmounted(() => window.clearInterval(healthTimer));
     </div>
   </div>
 </template>
-
-<style scoped>
-/* 菜单选中态：不依赖 UnoCSS 任意值解析，直接吃主题变量 */
-.nav-item--active {
-  background: var(--color-brand-soft);
-  color: var(--color-brand);
-}
-
-/* 页面切换过渡动画 */
-.page-enter-active,
-.page-leave-active {
-  transition: opacity var(--transition);
-}
-
-.page-enter-from,
-.page-leave-to {
-  opacity: 0;
-}
-</style>

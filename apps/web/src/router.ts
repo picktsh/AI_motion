@@ -22,6 +22,8 @@ declare module 'vue-router' {
     menu?: string;
     /** 菜单图标 */
     icon?: Component;
+    /** 子页面：顶栏显示返回按钮，值为返回路径 */
+    back?: string;
   }
 }
 
@@ -65,16 +67,16 @@ const router = createRouter({
       path: '/projects/:id',
       name: 'project-detail',
       component: () => import('./pages/ProjectDetail.vue'),
-      meta: { title: '项目详情', description: '文稿、报价、生成与发布' },
+      meta: { title: '项目详情', description: '文稿、报价与生成进度', back: '/projects' },
     },
     {
       path: '/works',
       name: 'works',
       component: () => import('./pages/Works.vue'),
       meta: {
-        title: '发布',
-        description: '发布清单：发布配置、封面与成片交付物在这里维护',
-        menu: '发布',
+        title: '作品',
+        description: '已生成的成片在这里维护发布配置、封面与交付物',
+        menu: '作品',
         icon: AlbumsOutline,
       },
     },
@@ -86,6 +88,7 @@ const router = createRouter({
         title: '视频条目',
         description: '制作工程：输入参数、引用素材、字幕与产物回显',
         icon: FilmOutline,
+        back: '/works',
       },
     },
     {
@@ -125,13 +128,13 @@ const router = createRouter({
       path: '/changelog',
       name: 'changelog',
       component: () => import('./pages/Changelog.vue'),
-      meta: { title: '更新日志', description: '控制台版本变更记录' },
+      meta: { title: '更新日志', description: '控制台版本变更记录', back: '/' },
     },
     {
       path: '/about',
       name: 'about',
       component: () => import('./pages/About.vue'),
-      meta: { title: '关于我们', description: '产品定位、技术栈与安全边界' },
+      meta: { title: '关于我们', description: '产品定位、技术栈与安全边界', back: '/' },
     },
   ],
 });

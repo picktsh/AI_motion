@@ -33,8 +33,8 @@ function fmt(t: number): string {
 </script>
 
 <template>
-  <div v-if="url" class="sample-player">
-    <button type="button" class="sample-player__btn" @click="toggle">
+  <div v-if="url" class="flex items-center gap-2">
+    <button type="button" class="flex items-center justify-center w-8 h-8 flex-none border-0 rounded-full bg-brand-soft text-brand cursor-pointer transition-colors duration-150 hover:bg-brand hover:text-white" @click="toggle">
       <n-icon :size="15">
         <component :is="playing ? PauseOutline : PlayOutline" />
       </n-icon>
@@ -43,55 +43,12 @@ function fmt(t: number): string {
       ref="waveRef"
       :url="url"
       :height="28"
-      class="sample-player__wave"
+      class="flex-1 min-w-0"
       @time="onTime"
       @play="onPlay"
     />
-    <span class="sample-player__time tnum">{{ fmt(current) }} / {{ fmt(duration) }}</span>
+    <span class="flex-none text-xs text-ink-2 num">{{ fmt(current) }} / {{ fmt(duration) }}</span>
   </div>
-  <div v-else class="sample-player__missing">音频缺失</div>
+  <div v-else class="text-xs text-ink-3">音频缺失</div>
 </template>
 
-<style scoped>
-.sample-player {
-  display: flex;
-  align-items: center;
-  gap: 10px;
-}
-
-.sample-player__btn {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  width: 30px;
-  height: 30px;
-  flex: none;
-  border: none;
-  border-radius: 50%;
-  background: var(--color-brand-soft);
-  color: var(--color-brand);
-  cursor: pointer;
-  transition: background var(--transition);
-}
-
-.sample-player__btn:hover {
-  background: var(--color-brand);
-  color: #fff;
-}
-
-.sample-player__wave {
-  flex: 1;
-  min-width: 0;
-}
-
-.sample-player__time {
-  flex: none;
-  font-size: 12px;
-  color: var(--color-text-secondary);
-}
-
-.sample-player__missing {
-  font-size: 12px;
-  color: var(--color-text-tertiary);
-}
-</style>
