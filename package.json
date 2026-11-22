@@ -7,14 +7,11 @@
     "node": ">=22"
   },
   "scripts": {
-    "dev:server": "node server/index.mjs",
-    "dev:web": "pnpm --dir ./web dev",
-    "build": "pnpm --dir ./web build",
-    "preview": "pnpm --dir ./web preview"
-  },
-  "dependencies": {
-    "@fastify/swagger": "^9.9.5",
-    "@scalar/fastify-api-reference": "^1.82.1",
-    "fastify": "^5.12.8"
+    "dev:server": "pnpm --dir ./apps/server dev",
+    "dev:web": "pnpm --dir ./apps/web dev",
+    "build:server": "pnpm --dir ./apps/server build",
+    "build": "pnpm --dir ./apps/server build && pnpm --dir ./apps/web build",
+    "preview": "pnpm --dir ./apps/web preview",
+    "typecheck": "pnpm --dir ./apps/server typecheck && pnpm --dir ./apps/web typecheck"
   }
 }

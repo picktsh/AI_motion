@@ -1,0 +1,17 @@
+{
+  "name": "@ai-motion/shared",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "exports": {
+    "./constants": {
+      "types": "./src/constants.d.ts",
+      "default": "./src/constants.mjs"
+    },
+    "./errors": {
+      "types": "./src/errors.d.ts",
+      "default": "./src/errors.mjs"
+    },
+    "./types": "./src/types.d.ts"
+  }
+}

@@ -32,5 +32,6 @@ Thumbs.db
 # ---- 第三方模板下载缓存（锁清单 templates.lock.json 入库）----
 studio/templates-cache/
 
-# ---- 前端构建产物 ----
-web/dist/
+# ---- 构建产物 ----
+apps/web/dist/
+apps/server/dist/
