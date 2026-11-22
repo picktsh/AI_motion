@@ -21,6 +21,13 @@ export const endpoints = {
     segments: '/tts/segments',
   },
 
+  jobs: {
+    list: '/jobs',
+    detail: (id: string): string => `/jobs/${encodeURIComponent(id)}`,
+    logs: (id: string): string => `/jobs/${encodeURIComponent(id)}/logs`,
+    cancel: (id: string): string => `/jobs/${encodeURIComponent(id)}/cancel`,
+  },
+
   assets: {
     byPath: (rel: string): string => `/assets?path=${encodeURIComponent(rel)}`,
   },

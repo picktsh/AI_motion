@@ -37,14 +37,27 @@ function normalizeError(err: unknown): Error {
   return new Error(`请求失败 ${status}${axErr.response.statusText ? ` ${axErr.response.statusText}` : ''}`);
 }
 
+function unwrap<T>(body: Envelope<T> | undefined): T {
+  if (!body || body.ok === false || body.data === undefined) {
+    throw new Error('响应格式不符合规范');
+  }
+  return body.data;
+}
+
 async function request<T>(path: string): Promise<T> {
   try {
     const res = await http.get<Envelope<T>>(path);
-    const body = res.data;
-    if (!body || body.ok === false || body.data === undefined) {
-      throw new Error('响应格式不符合规范');
-    }
-    return body.data;
+    return unwrap(res.data);
+  } catch (err) {
+    throw normalizeError(err);
+  }
+}
+
+/** 提交 POST 请求并解包 data；错误归一与 GET 一致。 */
+export async function postJson<T>(path: string, body: unknown): Promise<T> {
+  try {
+    const res = await http.post<Envelope<T>>(path, body);
+    return unwrap(res.data);
   } catch (err) {
     throw normalizeError(err);
   }

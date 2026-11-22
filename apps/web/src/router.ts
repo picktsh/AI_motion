@@ -5,6 +5,7 @@ import {
   CubeOutline,
   FilmOutline,
   MicOutline,
+  TerminalOutline,
   ConstructOutline,
 } from '@vicons/ionicons5';
 
@@ -66,6 +67,17 @@ const router = createRouter({
         description: 'edge-tts 音色试听',
         menu: '配音 TTS',
         icon: MicOutline,
+      },
+    },
+    {
+      path: '/jobs',
+      name: 'jobs',
+      component: () => import('./pages/Jobs.vue'),
+      meta: {
+        title: '命令台',
+        description: '本地任务执行：提交命令、查看状态与日志、取消任务',
+        menu: '命令台',
+        icon: TerminalOutline,
       },
     },
     {

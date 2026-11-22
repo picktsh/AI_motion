@@ -7,6 +7,9 @@
 
 ## 0.1.0 · 2026-11-22
 
+- 调整 · 健康灯定时轮询：顶栏环境状态每 10s 拉取一次，后端重启或恢复后自动回到已连接态，无需手动刷新
+- 调整 · 侧栏折叠状态持久化到 localStorage，刷新后保持展开/收起
+- 新增 · #114 命令台前端面板：命令选择与参数表单、任务列表、详情与增量日志、取消任务；未结束任务定时轮询刷新；对接后端 `/jobs` 接口
 - 新增 · #109 后端命令台任务接口：白名单命令注册（plan/prepare/preview/render/tts:voice/tts:samples），提供任务提交、列表、快照、增量日志与取消；内存任务表按渲染/默认分组并发，子进程独立进程组终止，超时、缺依赖与路径越界收口为统一错误体；本地 bin 目录注入子进程 PATH
 - 文档 · README 补后端与前端配置项对照表：`HOST`/`PORT`/`API_PREFIX`/`SERVICE_NAME`/`LOG_LEVEL` 与 `VITE_SERVER_ORIGIN`/`VITE_SERVER_API` 的来源、作用与缺省值；访问密钥与 CORS 来源白名单仍留待二期
 - 调整 · #102 #104 monorepo 包化：前端、后端、共享层拆为 `apps/web`、`apps/server`、`packages/shared`，pnpm workspace 纳入三包；后端依赖下沉到独立包，错误码、接口前缀与契约类型收口到 shared 单一来源

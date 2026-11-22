@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { computed, nextTick, onMounted, ref } from 'vue';
+import { computed, nextTick, onMounted, onUnmounted, ref, watch } from 'vue';
 import { useRoute, useRouter } from 'vue-router';
 import { NIcon, NButton } from 'naive-ui';
 import {
@@ -18,7 +18,9 @@ const route = useRoute();
 const router = useRouter();
 const { isDark, toggle } = useTheme();
 
-const collapsed = ref(false);
+const SHELL_COLLAPSED_KEY = 'ams-shell-collapsed';
+const collapsed = ref(localStorage.getItem(SHELL_COLLAPSED_KEY) === '1');
+watch(collapsed, (v) => localStorage.setItem(SHELL_COLLAPSED_KEY, v ? '1' : '0'));
 
 const current = computed(() => ({
   title: (route.meta.title as string) ?? 'AI Motion Studio',
@@ -85,7 +87,15 @@ function refresh() {
   });
 }
 
-onMounted(loadSummary);
+/* 健康灯定时轮询：后端重启或恢复后，无需手动刷新即回到已连接态 */
+let healthTimer: number | undefined;
+
+onMounted(() => {
+  void loadSummary();
+  healthTimer = window.setInterval(loadSummary, 10_000);
+});
+
+onUnmounted(() => window.clearInterval(healthTimer));
 </script>
 
 <template>
