@@ -17,8 +17,9 @@ import sys
 import time
 from pathlib import Path
 
-ROOT = Path(__file__).resolve().parents[2]
-BIN = ROOT / "studio" / "bin"
+# 仓库根由服务端注入 PROJECT_ROOT；回退按新层级回溯（python→server→apps→root）。
+ROOT = Path(os.environ.get("PROJECT_ROOT") or Path(__file__).resolve().parents[3])
+BIN = ROOT / "apps" / "server" / "vendor"
 ENV = {**os.environ, "PATH": f"{BIN}{os.pathsep}{os.environ.get('PATH', '')}"}
 
 

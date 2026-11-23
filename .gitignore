@@ -9,8 +9,8 @@
 .vscode/
 Thumbs.db
 __pycache__/
+apps/server/vendor/
 node_modules/
-studio/bin/
 
 # ---- 构建产物 ----
 apps/server/dist/

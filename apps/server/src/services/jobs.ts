@@ -169,7 +169,11 @@ async function start(record: JobRecord): Promise<void> {
   const timeoutMs =
     resolved.timeoutKind === 'render' ? config.job.renderTimeoutMs : config.job.defaultTimeoutMs;
   // 前置本地 bin 目录：子进程内 Python/渲染脚本按名字调用 ffmpeg/ffprobe 时可解析。
-  const env = { PATH: `${BIN_DIR}${path.delimiter}${process.env.PATH ?? ''}` };
+  // PROJECT_ROOT 注入仓库根：Python 脚本据此定位 studio/ 素材与 apps/server/vendor，不再用 __file__ 深度反推。
+  const env = {
+    PATH: `${BIN_DIR}${path.delimiter}${process.env.PATH ?? ''}`,
+    PROJECT_ROOT: ROOT,
+  };
 
   const run = runProcess({
     cmd: uv,

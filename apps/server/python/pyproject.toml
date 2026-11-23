@@ -1,0 +1,12 @@
+# TTS Python 依赖容器：仅用于 `uv sync` 生成 apps/server/python/.venv，
+# 供离线预热与环境页检测。脚本自身运行仍以顶部 PEP 723 头为权威依赖源
+# （`uv run <script>.py` 无需本文件即可拉取 edge-tts）。两处版本需保持一致。
+[project]
+name = "ai-motion-tts"
+version = "0.0.0"
+description = "TTS 脚本的 Python 依赖容器（edge-tts）"
+requires-python = ">=3.10"
+dependencies = ["edge-tts==7.3.1"]
+
+[tool.uv]
+package = false

@@ -13,6 +13,7 @@
 import argparse
 import datetime
 import json
+import os
 import shutil
 import subprocess
 import sys
@@ -20,8 +21,9 @@ from pathlib import Path
 
 import edge_tts
 
-STUDIO = Path(__file__).resolve().parent.parent
-ROOT = STUDIO.parent
+# 仓库根由服务端注入 PROJECT_ROOT；回退按新层级回溯。
+ROOT = Path(os.environ.get("PROJECT_ROOT") or Path(__file__).resolve().parents[3])
+STUDIO = ROOT / "studio"
 DEFAULT_VOICE = "zh-CN-YunxiNeural"
 
 
@@ -29,10 +31,10 @@ def find_ffprobe() -> Path:
     found = shutil.which("ffprobe")
     if found:
         return Path(found)
-    local = ROOT / "studio" / "bin" / "ffprobe"
+    local = ROOT / "apps" / "server" / "vendor" / "ffprobe"
     if local.exists():
         return local
-    raise FileNotFoundError("ffprobe not found on PATH or in studio/bin")
+    raise FileNotFoundError("ffprobe not found on PATH or in apps/server/vendor")
 
 
 def duration_of(path: Path, ffprobe: Path) -> float:

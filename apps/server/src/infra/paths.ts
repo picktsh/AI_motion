@@ -22,9 +22,9 @@ function resolveRoot(): string {
 
 export const ROOT = resolveRoot();
 
-// 本地可执行目录（ffmpeg/ffprobe/uv 等）；子进程 PATH 需前置该目录，
-// 否则 Python/渲染脚本内部按名字调用时解析不到。
-export const BIN_DIR = path.join(ROOT, 'studio', 'bin');
+// 本地可执行目录（ffmpeg/ffprobe/uv 等稳定大二进制）；归 server 私有 apps/server/vendor/，不入库。
+// 子进程 PATH 需前置该目录，否则 Python/渲染脚本内部按名字调用时解析不到。
+export const BIN_DIR = path.join(ROOT, 'apps', 'server', 'vendor');
 
 // 允许通过 /api/v1/assets 回显的白名单目录（相对工程根）。
 // studio/public、studio/templates 为规划预留目录，落地后自然生效；
@@ -50,7 +50,7 @@ export function resolveSafe(rel: string): string | null {
   return inScope ? abs : null;
 }
 
-// 在 studio/bin/ 或 PATH 中查找可执行文件
+// 在 apps/server/vendor/ 或 PATH 中查找可执行文件
 export function findBin(name: string): string | null {
   const local = path.join(BIN_DIR, name);
   if (fs.existsSync(local)) return local;

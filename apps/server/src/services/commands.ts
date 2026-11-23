@@ -42,11 +42,13 @@ interface CommandDef {
   resolve: (params: CommandParams) => { scriptArgs: string[]; artifact: JobArtifact | null } | string;
 }
 
+// Python 工具脚本随服务端一起入库，集中放 apps/server/python（与 Node 源码区分开，故用 python 命名而非 scripts）。
+const PY_DIR = path.join(ROOT, 'apps', 'server', 'python');
 const SCRIPT_ABS: Record<Exclude<ScriptKind, 'adapter'>, string> = {
-  voice: path.join(ROOT, 'studio', 'tts', 'make_voice.py'),
-  samples: path.join(ROOT, 'studio', 'tts', 'gen_samples.py'),
-  project: path.join(ROOT, 'studio', 'tools', 'project_run.py'),
-  'voice-project': path.join(ROOT, 'studio', 'tts', 'synthesize_project.py'),
+  voice: path.join(PY_DIR, 'make_voice.py'),
+  samples: path.join(PY_DIR, 'gen_samples.py'),
+  project: path.join(PY_DIR, 'project_run.py'),
+  'voice-project': path.join(PY_DIR, 'synthesize_project.py'),
 };
 
 /** 渲染适配器跟随模板自身：优先 params.template，否则取第一个带 adapter.py 的已导入模板。 */

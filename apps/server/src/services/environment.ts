@@ -132,7 +132,7 @@ async function checkUv(): Promise<EnvItem> {
   return {
     key: 'uv', label: 'uv（Python 包管理）', desc: '按脚本头声明创建并管理 TTS 的 Python 环境', ok: res.ok,
     version: res.ok ? versionOf(res.raw, /uv\s+([\d.]+)/) : null, path: bin,
-    hint: res.ok ? null : '从 bin/ 或 PATH 提供 uv，版本见 DEPENDENCIES.md',
+    hint: res.ok ? null : '从 apps/server/vendor/ 或 PATH 提供 uv，版本见 DEPENDENCIES.md',
   };
 }
 
@@ -142,7 +142,7 @@ async function checkFfmpeg(name: string, label: string, desc: string, regex: Reg
   return {
     key: name, label, desc, ok: res.ok,
     version: res.ok ? versionOf(res.raw, regex) : null, path: bin,
-    hint: res.ok ? null : '放到 bin/ 或加入 PATH；版本要求见 DEPENDENCIES.md',
+    hint: res.ok ? null : '放到 apps/server/vendor/ 或加入 PATH（也可 brew / winget 装到系统）；版本要求见 DEPENDENCIES.md',
   };
 }
 
@@ -200,8 +200,8 @@ export async function collectEnvironment(): Promise<EnvReport> {
     checkFfmpeg('ffprobe', 'ffprobe', '读取音视频时长、编码与流信息', /ffprobe version ([\d.]+)/),
     checkChrome(),
     checkNodeDeps(),
-    checkDir('pythonVenv', 'TTS Python 环境', 'TTS 脚本使用的 Python 虚拟环境', 'studio/tts/.venv', '由 uv 根据脚本头 PEP723 自动创建'),
-    checkDir('binTools', '本地二进制 studio/bin/', '本地二进制目录，ffmpeg / ffprobe / uv 等可放这里', 'studio/bin', 'ffmpeg、ffprobe、uv 等外部二进制放在 studio/bin/'),
+    checkDir('pythonVenv', 'TTS Python 环境', 'TTS 脚本的 Python 虚拟环境（离线/预热用）', 'apps/server/python/.venv', '工程根执行 pnpm setup:python（即 uv sync）生成'),
+    checkDir('binTools', '本地二进制 apps/server/vendor/', '稳定大二进制目录，ffmpeg / ffprobe / uv 等可放这里（不入库）', 'apps/server/vendor', '将 ffmpeg、ffprobe、uv 放入 apps/server/vendor/，或用 brew / winget 装到系统'),
   ]);
   const okCount = items.filter((i) => i.ok).length;
   return { items, summary: { ok: okCount, total: items.length } };

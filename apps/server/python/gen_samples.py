@@ -6,15 +6,16 @@ Each sample uses a short line matched to the voice's temperament.
 Rate and pitch are kept at neutral (+0% / +0Hz) so the base timbre is comparable.
 """
 import json
+import os
 import shutil
 import subprocess
 from pathlib import Path
 
 import edge_tts
 
-HERE = Path(__file__).resolve().parent
-ROOT = HERE.parent
-OUT = HERE / "samples"
+# 仓库根由服务端注入 PROJECT_ROOT；回退按新层级回溯。
+ROOT = Path(os.environ.get("PROJECT_ROOT") or Path(__file__).resolve().parents[3])
+OUT = ROOT / "studio" / "tts" / "samples"
 OUT.mkdir(parents=True, exist_ok=True)
 
 
@@ -22,10 +23,10 @@ def _find_ffprobe() -> Path:
     found = shutil.which("ffprobe")
     if found:
         return Path(found)
-    local = ROOT / "bin" / "ffprobe"
+    local = ROOT / "apps" / "server" / "vendor" / "ffprobe"
     if local.exists():
         return local
-    raise FileNotFoundError("ffprobe not found on PATH or in studio/bin")
+    raise FileNotFoundError("ffprobe not found on PATH or in apps/server/vendor")
 
 
 FFPROBE = _find_ffprobe()

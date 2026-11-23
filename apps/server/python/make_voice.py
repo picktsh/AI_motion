@@ -3,7 +3,7 @@
 # dependencies = ["edge-tts==7.3.1"]
 # ///
 """分段合成旁白，输出每段 mp3 与词边界 JSON。"""
-import asyncio, json, sys
+import asyncio, json, os, sys
 from pathlib import Path
 import edge_tts
 
@@ -24,9 +24,10 @@ SEGMENTS = [
      "text": "关注我，后面会持续更新。"},
 ]
 
-STUDIO = Path(__file__).resolve().parent.parent
-ROOT = STUDIO.parent  # 仓库工程根，写出的音频路径相对此根
-OUT = Path(__file__).resolve().parent / "segments"
+# 仓库根由服务端注入 PROJECT_ROOT；回退按新层级回溯（python→server→apps→root）。
+ROOT = Path(os.environ.get("PROJECT_ROOT") or Path(__file__).resolve().parents[3])
+STUDIO = ROOT / "studio"
+OUT = STUDIO / "tts" / "segments"
 OUT.mkdir(parents=True, exist_ok=True)
 TICKS = 10_000_000
 
