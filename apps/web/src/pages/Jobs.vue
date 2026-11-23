@@ -1,11 +1,8 @@
 <script setup lang="ts">
 import { computed, onMounted, onUnmounted, ref, nextTick, watch } from 'vue';
-import { NButton, useMessage } from 'naive-ui';
+import { NButton, NCard, NEmpty, NIcon, NSkeleton, NTag, useMessage } from 'naive-ui';
+import { FolderOpenOutline } from '@vicons/ionicons5';
 import { listJobs, getJob, getJobLogs, cancelJob } from '../api/jobs';
-import SectionCard from '../components/data/SectionCard.vue';
-import StatusTag, { type StatusTone } from '../components/data/StatusTag.vue';
-import SkeletonBlock from '../components/data/SkeletonBlock.vue';
-import EmptyState from '../components/data/EmptyState.vue';
 import type { CommandName, JobStatus, JobSnapshot, JobLogLine } from '../shared/types';
 
 const COMMAND_LABEL: Record<CommandName, string> = {
@@ -19,12 +16,14 @@ const COMMAND_LABEL: Record<CommandName, string> = {
   'project:voice': '项目配音',
 };
 
-const STATUS_TONE: Record<JobStatus, StatusTone> = {
+type TagType = 'default' | 'info' | 'success' | 'warning' | 'error';
+
+const STATUS_TONE: Record<JobStatus, TagType> = {
   queued: 'warning',
   running: 'info',
   succeeded: 'success',
-  failed: 'danger',
-  cancelled: 'neutral',
+  failed: 'error',
+  cancelled: 'default',
 };
 
 const STATUS_TEXT: Record<JobStatus, string> = {
@@ -173,14 +172,24 @@ function logTextClass(stream: string): string {
 <template>
   <div class="grid grid-cols-1 lg:grid-cols-[minmax(280px,360px)_1fr] gap-4 items-start">
     <aside>
-      <SectionCard title="任务列表">
-        <EmptyState v-if="error" tone="danger" :description="error" tip="任务列表加载失败">
-          <template #action>
-            <n-button type="primary" size="small" @click="refreshList">重试</n-button>
+      <NCard title="任务列表">
+        <NEmpty v-if="error" :description="error">
+          <template #icon>
+            <NIcon class="text-danger"><FolderOpenOutline /></NIcon>
           </template>
-        </EmptyState>
-        <SkeletonBlock v-else-if="loading" :rows="4" />
-        <EmptyState v-else-if="!jobs.length" description="暂无任务" tip="在项目页点生成、或在配音页触发试音后，任务会出现在这里" />
+          <template #default>
+            <div class="flex flex-col items-center gap-2">
+              <p class="m-0 text-xs text-ink-3">任务列表加载失败</p>
+              <NButton type="primary" size="small" @click="refreshList">重试</NButton>
+            </div>
+          </template>
+        </NEmpty>
+        <NSkeleton v-else-if="loading" text :repeat="4" class="w-full" />
+        <NEmpty v-else-if="!jobs.length" description="暂无任务">
+          <template #default>
+            <p class="m-0 text-xs text-ink-3">在项目页点生成、或在配音页触发试音后，任务会出现在这里</p>
+          </template>
+        </NEmpty>
         <ul v-else class="list-none m-0 p-0 flex flex-col gap-2">
           <li
             v-for="job in jobs"
@@ -191,7 +200,7 @@ function logTextClass(stream: string): string {
           >
             <div class="row-between">
               <span class="text-sm font-semibold text-ink">{{ COMMAND_LABEL[job.command] ?? job.command }}</span>
-              <StatusTag :status="STATUS_TONE[job.status]" :text="STATUS_TEXT[job.status]" />
+              <NTag :type="STATUS_TONE[job.status]" size="small" :bordered="false" class="flex-none w-fit">{{ STATUS_TEXT[job.status] }}</NTag>
             </div>
             <div class="flex gap-3 text-xs text-ink-3 num">
               <span>提交 {{ fmtTime(job.createdAt) }}</span>
@@ -199,16 +208,16 @@ function logTextClass(stream: string): string {
             </div>
           </li>
         </ul>
-      </SectionCard>
+      </NCard>
     </aside>
 
     <section>
-      <SectionCard title="任务详情">
-        <EmptyState v-if="!detail" description="从左侧选择一条任务查看详情与日志" />
+      <NCard title="任务详情">
+        <NEmpty v-if="!detail" description="从左侧选择一条任务查看详情与日志" />
         <template v-else>
           <div class="flex items-center gap-3 py-1 text-sm text-ink-2">
             <span class="flex-none w-16 text-xs text-ink-3">状态</span>
-            <StatusTag :status="STATUS_TONE[detail.status]" :text="STATUS_TEXT[detail.status]" />
+            <NTag :type="STATUS_TONE[detail.status]" size="small" :bordered="false" class="flex-none w-fit">{{ STATUS_TEXT[detail.status] }}</NTag>
             <NButton v-if="isActive(detail.status)" size="small" type="warning" class="ml-auto" @click="onCancel">
               取消任务
             </NButton>
@@ -258,7 +267,7 @@ function logTextClass(stream: string): string {
             </div>
           </div>
         </template>
-      </SectionCard>
+      </NCard>
     </section>
   </div>
 </template>

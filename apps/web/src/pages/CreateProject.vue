@@ -2,7 +2,7 @@
 import { computed, onMounted, reactive, ref } from 'vue';
 import { useRoute, useRouter } from 'vue-router';
 import {
-  NButton, NInput, NInputNumber, NSelect, NSpin, NTag, NForm, NFormItem, NAlert, NIcon,
+  NButton, NCard, NInput, NInputNumber, NSelect, NSpin, NTag, NForm, NFormItem, NAlert, NIcon,
   type FormInst, type FormRules,
 } from 'naive-ui';
 import {
@@ -11,7 +11,6 @@ import {
 import { listTemplates } from '../api/templates';
 import { listProjects, createProject, type Project } from '../api/projects';
 import type { TemplateSummary } from '../shared/types';
-import SectionCard from '../components/data/SectionCard.vue';
 
 const route = useRoute();
 const router = useRouter();
@@ -136,7 +135,13 @@ async function submit() {
       </div>
 
       <!-- 创作表单 -->
-      <SectionCard title="新建工程目录" subtitle="选模板、填标题与文稿建立工程骨架；入参调整与渲染交给外部 AI 工具">
+      <NCard>
+        <template #header>
+          <div class="min-w-0">
+            <h2 class="m-0 text-base font-semibold text-ink truncate">新建工程目录</h2>
+            <p class="m-0 mt-1 text-xs text-ink-2">选模板、填标题与文稿建立工程骨架；入参调整与渲染交给外部 AI 工具</p>
+          </div>
+        </template>
         <NForm ref="formRef" :model="form" :rules="rules" label-placement="top" class="flex flex-col gap-4">
           <NFormItem label="用哪个模板" path="templateId" label-class="text-xs text-ink-2">
             <NSelect v-model:value="form.templateId" :options="options" placeholder="先去模板页导入一个官网模板" filterable />
@@ -168,7 +173,7 @@ async function submit() {
             <NTag v-if="selected" size="small" :bordered="false">{{ selected.name }}</NTag>
           </div>
         </NForm>
-      </SectionCard>
+      </NCard>
       </div>
     </NSpin>
   </div>

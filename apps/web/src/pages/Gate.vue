@@ -84,7 +84,7 @@ async function enter(): Promise<void> {
         <div>
           连不上时，先在工程根目录运行 <span class="font-mono text-ink-2">pnpm dev:server</span> 启动后端，默认监听 <span class="font-mono text-ink-2">127.0.0.1:5199</span>；端口或主机有变动，再改上面的后端地址。
         </div>
-        <div>地址与密钥只存在本机浏览器，之后可在设置页调整；后端未开启鉴权时密钥留空即可。</div>
+        <div>地址与密钥只存在本机浏览器，之后可在环境页调整；后端未开启鉴权时密钥留空即可。</div>
       </div>
     </div>
   </div>

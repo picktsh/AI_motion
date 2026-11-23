@@ -16,6 +16,10 @@
 
 ## 0.2.0 · 2026-11-23
 
+- 清理 · #177 删掉四个自绘薄封装 `StatusTag`/`SkeletonBlock`/`EmptyState`/`SectionCard`，调用点全部换成 naive 原生 `NTag`/`NSkeleton`/`NEmpty`/`NCard`；标签状态映射到 NTag 原生 type（success/warning/error/info/default），卡片内边距统一进主题 Card 覆盖，不再各写一份壳组件
+- 清理 · #178 `.gitignore` 项目工程改为整条忽略 `studio/projects/`：目录内文稿、配置、素材、实例、成片等个人资料一律不入库；此前已跟踪的项目文件移出索引、磁盘保留
+- 调整 · #179 环境清单每项补一句用途说明；浏览器探测口径放宽并对齐模板包：认 `CHROME` 环境变量、扫 ms-playwright 缓存里的 headless shell，标签改为「Chromium 内核浏览器」（Chrome / Edge / Chromium / headless shell 均可，WebKit / Firefox 不在现有渲染通道内）；分组更名「渲染浏览器」
+- 调整 · #180 侧栏菜单「设置」更名「环境」；运行时与媒体工具等可下载项名称后附官网外链图标，点击新窗口打开；浏览器项并列 Edge / Chrome 两个下载标签（Edge 国内可直接访问），本地目录类依赖不挂外链
 - 新增 · #164 后端聚合快照接口 `GET /observatory/context`：一次回吐服务基址、是否强制鉴权、环境就位情况、模板槽位一层摘要、项目台账、素材与音色盘点、最近动态；只读不展开整份 schema 与文件树，供外部 AI 先读快照、不重复探测环境
 - 新增 · #162/#163 后端地址与访问密钥改为运行时配置（存 localStorage）：首次进入走类登录看门页填写地址与密钥（可留空），设置页可查看、修改、测试连接、恢复默认；Vite proxy 注释保留，前端不绑死构建期域名
 - 调整 · #163 CORS 未配白名单时默认放行本机回环来源（127.0.0.1 / localhost / ::1 各端口），便于桌面前端 dev 跨端口直连；公网来源不放行，显式 CORS_ORIGINS 白名单优先

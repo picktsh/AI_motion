@@ -1,10 +1,8 @@
 <script setup lang="ts">
 import { onMounted, onUnmounted, ref } from 'vue';
 import { useRouter } from 'vue-router';
-import { NButton, NTag, NSpin } from 'naive-ui';
+import { NButton, NTag, NSpin, NCard, NEmpty } from 'naive-ui';
 import { listProjects, type Project } from '../api/projects';
-import SectionCard from '../components/data/SectionCard.vue';
-import EmptyState from '../components/data/EmptyState.vue';
 
 const router = useRouter();
 const items = ref<Project[]>([]);
@@ -49,13 +47,19 @@ onUnmounted(() => window.clearInterval(timer));
 </script>
 
 <template>
-  <SectionCard title="项目" subtitle="每条片子的文稿、生成状态与发布配置在这里跟踪">
-    <template #extra>
+  <NCard>
+    <template #header>
+      <div class="min-w-0">
+        <h2 class="m-0 text-base font-semibold text-ink truncate">项目</h2>
+        <p class="m-0 mt-1 text-xs text-ink-2">每条片子的文稿、生成状态与发布配置在这里跟踪</p>
+      </div>
+    </template>
+    <template #header-extra>
       <NButton type="primary" @click="router.push('/create')">新建项目</NButton>
     </template>
     <NSpin :show="loading">
       <div v-if="error" class="text-sm text-danger">{{ error }}</div>
-      <EmptyState v-else-if="!items.length && !loading" title="还没有项目" description="外部 AI 在工程目录建好项目后，会自动出现在这里。" />
+      <NEmpty v-else-if="!items.length && !loading" title="还没有项目" description="外部 AI 在工程目录建好项目后，会自动出现在这里。" />
       <div v-else class="flex flex-col gap-2">
         <div
           v-for="p in items"
@@ -77,5 +81,5 @@ onUnmounted(() => window.clearInterval(timer));
         </div>
       </div>
     </NSpin>
-  </SectionCard>
+  </NCard>
 </template>

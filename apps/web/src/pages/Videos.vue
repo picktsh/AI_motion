@@ -1,15 +1,11 @@
 <script setup lang="ts">
 import { computed, onMounted, ref } from 'vue';
-import { NSelect, NImage, NIcon, NTooltip, NButton, NInputNumber, useMessage } from 'naive-ui';
-import { FilmOutline, DocumentOutline } from '@vicons/ionicons5';
+import { NSelect, NImage, NIcon, NTooltip, NButton, NCard, NEmpty, NSkeleton, NTag, NInputNumber, useMessage } from 'naive-ui';
+import { FilmOutline, DocumentOutline, FolderOpenOutline } from '@vicons/ionicons5';
 import { listVideos, getVideoDetail } from '../api/videos';
 import { listSegments } from '../api/tts';
 import { submitJob } from '../api/jobs';
 import { useFetch } from '../composables/useFetch';
-import SectionCard from '../components/data/SectionCard.vue';
-import StatusTag from '../components/data/StatusTag.vue';
-import SkeletonBlock from '../components/data/SkeletonBlock.vue';
-import EmptyState from '../components/data/EmptyState.vue';
 import PathCopy from '../components/data/PathCopy.vue';
 import SamplePlayer from '../components/media/SamplePlayer.vue';
 import TimelineTrack from '../components/media/TimelineTrack.vue';
@@ -260,15 +256,20 @@ function probeMeta(a: Artifact): string {
           size="small"
         />
 
-        <EmptyState v-if="error" tone="danger" :description="error">
-          <template #action>
-            <n-button type="primary" size="small" @click="run">重试</n-button>
+        <NEmpty v-if="error" :description="error">
+          <template #icon>
+            <NIcon class="text-danger"><FolderOpenOutline /></NIcon>
           </template>
-        </EmptyState>
+          <template #default>
+            <div class="flex flex-col items-center gap-2">
+              <NButton type="primary" size="small" @click="run">重试</NButton>
+            </div>
+          </template>
+        </NEmpty>
 
         <div v-else-if="loading" class="flex flex-col gap-2">
           <div v-for="i in 4" :key="i" class="flex gap-3 p-3 bg-panel border border-border rounded-control">
-            <SkeletonBlock :rows="2" />
+            <NSkeleton text :repeat="2" class="w-full" />
           </div>
         </div>
 
@@ -297,26 +298,31 @@ function probeMeta(a: Artifact): string {
         </div>
         </div>
 
-        <EmptyState v-else description="暂无视频条目" />
+        <NEmpty v-else description="暂无视频条目" />
       </aside>
 
       <!-- 右侧详情 -->
       <section class="min-w-0">
-        <EmptyState v-if="!activeId" boxed description="从左侧选择一个视频条目查看详情" />
+        <NEmpty v-if="!activeId" class="card min-h-80 px-5 py-10 flex flex-col items-center justify-center" description="从左侧选择一个视频条目查看详情" />
 
         <div v-else-if="detailLoading" class="p-4">
-          <SkeletonBlock :rows="6" />
+          <NSkeleton text :repeat="6" class="w-full" />
         </div>
 
-        <EmptyState v-else-if="detailError" tone="danger" :description="detailError">
-          <template #action>
-            <n-button type="primary" size="small" @click="activeId && loadDetail(activeId)">重试</n-button>
+        <NEmpty v-else-if="detailError" :description="detailError">
+          <template #icon>
+            <NIcon class="text-danger"><FolderOpenOutline /></NIcon>
           </template>
-        </EmptyState>
+          <template #default>
+            <div class="flex flex-col items-center gap-2">
+              <NButton type="primary" size="small" @click="activeId && loadDetail(activeId)">重试</NButton>
+            </div>
+          </template>
+        </NEmpty>
 
         <div v-else-if="detail" class="flex flex-col gap-4 min-w-0">
           <!-- 播放器 -->
-          <SectionCard>
+          <NCard>
             <div class="flex items-center justify-center bg-divider rounded-control aspect-video overflow-hidden">
               <video
                 v-if="mainVideo"
@@ -334,10 +340,10 @@ function probeMeta(a: Artifact): string {
                 <span>暂无成片</span>
               </div>
             </div>
-          </SectionCard>
+          </NCard>
 
           <!-- 生成操作：命令按当前条目上下文触发，路径自动带入 -->
-          <SectionCard title="生成操作">
+          <NCard title="生成操作">
             <div class="flex flex-wrap items-end gap-4">
               <div class="flex flex-wrap gap-3">
                 <div class="flex flex-col gap-1 min-w-40">
@@ -356,22 +362,22 @@ function probeMeta(a: Artifact): string {
                 <NButton type="primary" size="small" :loading="busyAction === 'render'" @click="runAction('render')">渲染成片</NButton>
               </div>
             </div>
-          </SectionCard>
+          </NCard>
 
           <!-- 元信息 -->
-          <SectionCard title="工程信息">
+          <NCard title="工程信息">
             <div class="grid grid-cols-[repeat(auto-fit,minmax(140px,1fr))] gap-3">
               <div class="flex items-center gap-2 text-sm py-1">
                 <span class="flex-none text-xs text-ink-3 w-16">布局</span>
-                <span class="text-ink">{{ detail.meta.layout || '—' }}</span>
+                <span class="text-ink">{{ detail!.meta.layout || '—' }}</span>
               </div>
               <div class="flex items-center gap-2 text-sm py-1">
                 <span class="flex-none text-xs text-ink-3 w-16">时长</span>
-                <span class="text-ink num">{{ detail.meta.duration ?? '—' }}s</span>
+                <span class="text-ink num">{{ detail!.meta.duration ?? '—' }}s</span>
               </div>
               <div class="flex items-center gap-2 text-sm py-1">
                 <span class="flex-none text-xs text-ink-3 w-16">场景</span>
-                <span class="text-ink num">{{ detail.meta.scenes?.length ?? 0 }}</span>
+                <span class="text-ink num">{{ detail!.meta.scenes?.length ?? 0 }}</span>
               </div>
               <div class="flex items-center gap-2 text-sm py-1">
                 <span class="flex-none text-xs text-ink-3 w-16">字幕</span>
@@ -380,33 +386,33 @@ function probeMeta(a: Artifact): string {
             </div>
             <div class="flex flex-col items-start gap-1 text-sm py-1">
               <span class="flex-none text-xs text-ink-3 w-16">输入文件</span>
-              <PathCopy :path="detail.inputFile" />
+              <PathCopy :path="detail!.inputFile" />
             </div>
-            <div v-if="detail.instanceDirs?.length" class="flex flex-col items-start gap-1 text-sm py-1">
+            <div v-if="detail!.instanceDirs?.length" class="flex flex-col items-start gap-1 text-sm py-1">
               <span class="flex-none text-xs text-ink-3 w-16">实例目录</span>
               <div class="flex flex-wrap gap-2">
-                <StatusTag v-for="d in detail.instanceDirs" :key="d" status="neutral" :text="d" />
+                <NTag v-for="d in detail!.instanceDirs" :key="d" type="default" size="small" :bordered="false" class="flex-none w-fit">{{ d }}</NTag>
               </div>
             </div>
-          </SectionCard>
+          </NCard>
 
           <!-- 背景音乐 -->
-          <SectionCard v-if="bgm" title="背景音乐">
+          <NCard v-if="bgm" title="背景音乐">
             <div class="flex flex-col gap-3">
               <div class="flex items-center gap-2 flex-wrap">
-                <StatusTag status="neutral" :text="bgm.file" />
+                <NTag type="default" size="small" :bordered="false" class="flex-none w-fit">{{ bgm.file }}</NTag>
                 <span v-if="bgmLicense" class="flex-1 min-w-0 text-xs text-ink-3 truncate">{{ bgmLicense }}</span>
               </div>
               <SamplePlayer :url="bgm.url" />
             </div>
-          </SectionCard>
+          </NCard>
 
           <!-- 引用素材 -->
-          <SectionCard title="引用素材">
+          <NCard title="引用素材">
             <div v-if="mediaViews.length" class="grid grid-cols-[repeat(auto-fill,minmax(240px,1fr))] gap-4">
               <div v-for="m in mediaViews" :key="m.file" class="flex flex-col gap-2 p-3 border border-border rounded-control">
                 <div class="row-between">
-                  <StatusTag :status="m.exists ? 'neutral' : 'danger'" :text="m.role" />
+                  <NTag :type="m.exists ? 'default' : 'error'" size="small" :bordered="false" class="flex-none w-fit">{{ m.role }}</NTag>
                   <span class="text-xs text-ink-2 truncate font-mono">{{ m.file }}</span>
                 </div>
                 <div class="flex-1 flex items-center justify-center min-h-20">
@@ -423,17 +429,17 @@ function probeMeta(a: Artifact): string {
                     <source :src="m.url" />
                   </audio>
                   <div v-else class="flex flex-col items-center gap-1 text-ink-3 text-xs">
-                    <StatusTag status="danger" text="缺失" />
+                    <NTag type="error" size="small" :bordered="false" class="flex-none w-fit">缺失</NTag>
                     <span class="mono">{{ m.file }}</span>
                   </div>
                 </div>
               </div>
             </div>
-            <EmptyState v-else description="无引用素材" />
-          </SectionCard>
+            <NEmpty v-else description="无引用素材" />
+          </NCard>
 
           <!-- 字幕 -->
-          <SectionCard :title="`字幕（${captions.length}）`">
+          <NCard :title="`字幕（${captions.length}）`">
             <TimelineTrack
               v-if="captions.length"
               class="mb-3"
@@ -464,11 +470,11 @@ function probeMeta(a: Artifact): string {
                 </div>
               </div>
             </div>
-            <EmptyState v-else description="暂无字幕" />
-          </SectionCard>
+            <NEmpty v-else description="暂无字幕" />
+          </NCard>
 
           <!-- 配音分段与词边界 -->
-          <SectionCard
+          <NCard
             v-if="matchedSegments.length"
             :title="`配音分段与词边界（${matchedSegments.length}）`"
           >
@@ -493,7 +499,7 @@ function probeMeta(a: Artifact): string {
                 v-show="expandedSegId === s.id"
               >
                 <div class="flex items-center gap-3">
-                  <StatusTag status="info" :text="s.id" />
+                  <NTag type="info" size="small" :bordered="false" class="flex-none w-fit">{{ s.id }}</NTag>
                   <span class="text-xs text-ink-2 num">{{ s.windowStart }} – {{ s.windowEnd }}s</span>
                   <div class="ml-auto w-55">
                     <SamplePlayer :url="s.exists ? s.url : null" />
@@ -533,12 +539,12 @@ function probeMeta(a: Artifact): string {
                 </div>
               </div>
             </div>
-          </SectionCard>
+          </NCard>
 
           <!-- 产物 -->
-          <SectionCard title="产物">
-            <div v-if="detail.artifacts.length" class="flex flex-col gap-4">
-              <div v-for="a in detail.artifacts" :key="a.name" class="flex flex-col gap-2 p-3 border border-border rounded-control">
+          <NCard title="产物">
+            <div v-if="detail!.artifacts.length" class="flex flex-col gap-4">
+              <div v-for="a in detail!.artifacts" :key="a.name" class="flex flex-col gap-2 p-3 border border-border rounded-control">
                 <div class="flex items-center gap-2">
                   <NIcon :size="15" class="flex-none text-ink-3">
                     <DocumentOutline />
@@ -553,8 +559,8 @@ function probeMeta(a: Artifact): string {
                 </div>
               </div>
             </div>
-            <EmptyState v-else description="暂无产物" />
-          </SectionCard>
+            <NEmpty v-else description="暂无产物" />
+          </NCard>
 
         </div>
       </section>

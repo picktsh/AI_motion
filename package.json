@@ -10,7 +10,8 @@
     "dev:server": "pnpm --dir ./apps/server dev",
     "dev:web": "pnpm --dir ./apps/web dev",
     "build:server": "pnpm --dir ./apps/server build",
-    "build": "pnpm --dir ./apps/server build && pnpm --dir ./apps/web build",
+    "build:web": "pnpm --dir ./apps/web build",
+    "build:all": "pnpm --dir ./apps/server build && pnpm --dir ./apps/web build",
     "preview": "pnpm --dir ./apps/web preview",
     "typecheck": "pnpm --dir ./apps/server typecheck && pnpm --dir ./apps/web typecheck"
   }

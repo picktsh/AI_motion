@@ -1,7 +1,7 @@
 import { reactive } from 'vue';
 
 // 后端服务地址与访问密钥：运行时可配，存 localStorage。
-// 前端是空壳，不绑死后端域名；默认本机回环，可在看门页或设置页修改。
+// 前端是空壳，不绑死后端域名；默认本机回环，可在看门页或环境页修改。
 
 const STORAGE_KEY = 'ams-server-config';
 const API_PREFIX = '/api/v1';

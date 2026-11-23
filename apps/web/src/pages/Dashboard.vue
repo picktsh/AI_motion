@@ -1,15 +1,13 @@
 <script setup lang="ts">
 import { computed, onMounted, ref, type Component } from 'vue';
 import { useRouter } from 'vue-router';
-import { NSpin, NButton, NIcon } from 'naive-ui';
+import { NSpin, NButton, NIcon, NCard, NEmpty } from 'naive-ui';
 import { ChevronForwardOutline } from '@vicons/ionicons5';
 import { listProjects, type Project } from '../api/projects';
 import { listAllAssets, listRecentActivity, type GlobalAsset, type ActivityItem } from '../api/observatory';
 import { listJobs } from '../api/jobs';
 import type { JobSnapshot } from '../shared/types';
 import { getEnvironment } from '../api/environment';
-import SectionCard from '../components/data/SectionCard.vue';
-import EmptyState from '../components/data/EmptyState.vue';
 
 const router = useRouter();
 
@@ -114,8 +112,18 @@ onMounted(load);
 
         <div class="grid grid-cols-1 lg:grid-cols-3 gap-4">
           <!-- 最近动态 -->
-          <SectionCard title="最近动态" subtitle="项目、成片、素材与后台任务的文件变更" class="lg:col-span-2">
-            <EmptyState v-if="!activity.length" description="还没有动态" tip="项目文件或任务发生变更后会出现在这里" />
+          <NCard class="lg:col-span-2">
+            <template #header>
+              <div class="min-w-0">
+                <h2 class="m-0 text-base font-semibold text-ink truncate">最近动态</h2>
+                <p class="m-0 mt-1 text-xs text-ink-2">项目、成片、素材与后台任务的文件变更</p>
+              </div>
+            </template>
+            <NEmpty v-if="!activity.length" description="还没有动态">
+              <template #default>
+                <p class="m-0 text-xs text-ink-3">项目文件或任务发生变更后会出现在这里</p>
+              </template>
+            </NEmpty>
             <ul v-else class="m-0 flex flex-col divide-y divide-divider">
               <li v-for="item in activity" :key="item.id" class="flex items-start gap-3 py-3 first:pt-0 last:pb-0">
                 <span class="flex-none w-12 text-xs font-medium" :class="KIND_META[item.kind].tone">
@@ -128,11 +136,17 @@ onMounted(load);
                 <span class="flex-none text-xs text-ink-3 num">{{ ago(item.at) }}</span>
               </li>
             </ul>
-          </SectionCard>
+          </NCard>
 
           <!-- 快捷入口 + 环境 -->
           <div class="flex flex-col gap-4">
-            <SectionCard title="快捷入口" subtitle="按观测对象进入对应页面">
+            <NCard>
+              <template #header>
+                <div class="min-w-0">
+                  <h2 class="m-0 text-base font-semibold text-ink truncate">快捷入口</h2>
+                  <p class="m-0 mt-1 text-xs text-ink-2">按观测对象进入对应页面</p>
+                </div>
+              </template>
               <div class="grid grid-cols-1 gap-2">
                 <NButton
                   v-for="sc in shortcuts"
@@ -152,9 +166,9 @@ onMounted(load);
                   <NIcon :size="14" class="flex-none text-ink-3"><ChevronForwardOutline /></NIcon>
                 </NButton>
               </div>
-            </SectionCard>
+            </NCard>
 
-            <SectionCard title="运行环境">
+            <NCard title="运行环境">
               <div class="flex items-center justify-between gap-3">
                 <span class="text-sm text-ink-2">
                   <template v-if="envSummary">就位 {{ envSummary.ok }} / {{ envSummary.total }}</template>
@@ -162,7 +176,7 @@ onMounted(load);
                 </span>
                 <NButton size="small" secondary @click="router.push('/environment')">查看详情</NButton>
               </div>
-            </SectionCard>
+            </NCard>
           </div>
         </div>
       </div>

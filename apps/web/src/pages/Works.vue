@@ -3,7 +3,7 @@ import { computed, onMounted, reactive, ref } from 'vue';
 import { useRouter } from 'vue-router';
 import {
   NButton, NDrawer, NDrawerContent, NInput, NDynamicTags, NRadioGroup, NRadio,
-  NSwitch, NSpin, NDatePicker, useMessage,
+  NSwitch, NSpin, NDatePicker, NEmpty, useMessage,
 } from 'naive-ui';
 import {
   listProjects, projectFiles, getPublish, savePublish,
@@ -11,7 +11,6 @@ import {
 } from '../api/projects';
 import { assetUrl } from '../api/client';
 import { endpoints } from '../api/endpoints';
-import EmptyState from '../components/data/EmptyState.vue';
 import PromptCopyBlock from '../components/data/PromptCopyBlock.vue';
 
 const router = useRouter();
@@ -137,7 +136,7 @@ async function copyText() {
       <NButton size="small" type="primary" @click="router.push('/create')">新建项目</NButton>
     </div>
     <NSpin :show="loading">
-      <EmptyState
+      <NEmpty
         v-if="!works.length && !loading"
         title="还没有作品"
         description="项目渲染出成片后，会自动出现在这里。"

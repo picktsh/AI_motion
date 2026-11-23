@@ -10,7 +10,7 @@ const http: AxiosInstance = axios.create({
   timeout: 15_000,
 });
 
-// 每次请求前同步最新配置（看门页/设置页改地址后无需重建实例），并带上访问密钥。
+// 每次请求前同步最新配置（看门页/环境页改地址后无需重建实例），并带上访问密钥。
 http.interceptors.request.use((config) => {
   config.baseURL = baseUrl();
   Object.assign(config.headers, authHeaders());

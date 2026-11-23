@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import { computed, h, onMounted, ref, watch } from 'vue';
 import { useRouter } from 'vue-router';
-import { NIcon, NButton, NDrawer, NDrawerContent, NInput, NTree, NProgress, NAlert, NRadioGroup, NRadioButton, useMessage, type TreeOption } from 'naive-ui';
+import { NIcon, NButton, NCard, NEmpty, NSkeleton, NTag, NDrawer, NDrawerContent, NInput, NTree, NProgress, NAlert, NRadioGroup, NRadioButton, useMessage, type TreeOption } from 'naive-ui';
 import {
   FolderOutline,
   DocumentOutline,
@@ -12,6 +12,7 @@ import {
   SearchOutline,
   CopyOutline,
   PlayCircleOutline,
+  FolderOpenOutline,
 } from '@vicons/ionicons5';
 import {
   listTemplates,
@@ -22,9 +23,6 @@ import {
 } from '../api/templates';
 import { useFetch } from '../composables/useFetch';
 import { useServerConfig } from '../composables/useServerConfig';
-import StatusTag from '../components/data/StatusTag.vue';
-import SkeletonBlock from '../components/data/SkeletonBlock.vue';
-import EmptyState from '../components/data/EmptyState.vue';
 import PathCopy from '../components/data/PathCopy.vue';
 import PromptCopyBlock from '../components/data/PromptCopyBlock.vue';
 import type {
@@ -197,9 +195,9 @@ async function open(id: string) {
 }
 
 function networkTag(network: boolean | null) {
-  if (network === true) return { tone: 'info' as const, text: '需联网' };
-  if (network === false) return { tone: 'neutral' as const, text: '离线' };
-  return { tone: 'neutral' as const, text: '未知' };
+  if (network === true) return { type: 'info' as const, text: '需联网' };
+  if (network === false) return { type: 'default' as const, text: '离线' };
+  return { type: 'default' as const, text: '未知' };
 }
 
 function coverOf(t: TemplateSummary): string | null {
@@ -368,23 +366,32 @@ const catSummary = computed(() => {
         <span v-if="local.data.value" class="text-xs text-ink-3 mr-auto">共 {{ local.data.value.length }} 个</span>
       </header>
 
-      <EmptyState v-if="local.error.value" tone="danger" :description="local.error.value" tip="模板清单加载失败">
-        <template #action>
-          <n-button type="primary" @click="local.run">重试</n-button>
+      <NEmpty v-if="local.error.value" :description="local.error.value">
+        <template #icon>
+          <NIcon class="text-danger"><FolderOpenOutline /></NIcon>
         </template>
-      </EmptyState>
+        <template #default>
+          <div class="flex flex-col items-center gap-2">
+            <p class="m-0 text-xs text-ink-3">模板清单加载失败</p>
+            <NButton type="primary" @click="local.run">重试</NButton>
+          </div>
+        </template>
+      </NEmpty>
 
       <div v-else-if="local.loading.value" class="grid grid-cols-[repeat(auto-fill,minmax(260px,1fr))] gap-4">
         <div v-for="i in 3" :key="i" class="card p-4">
-          <SkeletonBlock :rows="3" />
+          <NSkeleton text :repeat="3" class="w-full" />
         </div>
       </div>
 
-      <EmptyState
+      <NEmpty
         v-else-if="!local.data.value?.length"
         description="还没有本地模板"
-        tip="先在官网下载 .motion 包，再点右上角导入"
-      />
+      >
+        <template #default>
+          <p class="m-0 text-xs text-ink-3">先在官网下载 .motion 包，再点右上角导入</p>
+        </template>
+      </NEmpty>
 
       <div v-else class="grid grid-cols-[repeat(auto-fill,minmax(260px,1fr))] gap-4">
         <div
@@ -407,9 +414,9 @@ const catSummary = computed(() => {
                 {{ t.name.slice(0, 1) }}
               </div>
               <div class="absolute left-2 top-2 flex gap-1 flex-wrap">
-                <StatusTag v-if="isBroken(t)" status="danger" text="需重新下载" />
-                <StatusTag v-else-if="t.paidCloud" status="warning" text="需官方积分" />
-                <StatusTag v-else status="success" text="本机渲染" />
+                <NTag v-if="isBroken(t)" type="error" size="small" :bordered="false" class="flex-none w-fit">需重新下载</NTag>
+                <NTag v-else-if="t.paidCloud" type="warning" size="small" :bordered="false" class="flex-none w-fit">需官方积分</NTag>
+                <NTag v-else type="success" size="small" :bordered="false" class="flex-none w-fit">本机渲染</NTag>
               </div>
             </div>
 
@@ -461,19 +468,29 @@ const catSummary = computed(() => {
         清单拉取失败（{{ catalogMeta.error }}），当前显示本地缓存；可点刷新重试。
       </div>
 
-      <EmptyState v-if="catalog.error.value" tone="danger" :description="catalog.error.value" tip="模板中心清单加载失败">
-        <template #action>
-          <n-button type="primary" @click="refreshCatalog">重试</n-button>
+      <NEmpty v-if="catalog.error.value" :description="catalog.error.value">
+        <template #icon>
+          <NIcon class="text-danger"><FolderOpenOutline /></NIcon>
         </template>
-      </EmptyState>
+        <template #default>
+          <div class="flex flex-col items-center gap-2">
+            <p class="m-0 text-xs text-ink-3">模板中心清单加载失败</p>
+            <NButton type="primary" @click="refreshCatalog">重试</NButton>
+          </div>
+        </template>
+      </NEmpty>
 
       <div v-else-if="catalog.loading.value" class="grid grid-cols-[repeat(auto-fill,minmax(288px,1fr))] gap-4">
         <div v-for="i in 6" :key="i" class="card p-4">
-          <SkeletonBlock :rows="3" />
+          <NSkeleton text :repeat="3" class="w-full" />
         </div>
       </div>
 
-      <EmptyState v-else-if="!filteredCatalog.length" description="没有匹配的模板" tip="换个关键词或切回全部画幅" />
+      <NEmpty v-else-if="!filteredCatalog.length" description="没有匹配的模板">
+        <template #default>
+          <p class="m-0 text-xs text-ink-3">换个关键词或切回全部画幅</p>
+        </template>
+      </NEmpty>
 
       <template v-else>
         <div class="grid grid-cols-[repeat(auto-fill,minmax(288px,1fr))] gap-4">
@@ -507,7 +524,7 @@ const catSummary = computed(() => {
               <div class="flex flex-col gap-2 px-4 pt-3 pb-4 flex-1">
                 <div class="flex items-start justify-between gap-2">
                   <span class="text-sm font-semibold leading-5 text-ink line-clamp-2">{{ item.name }}</span>
-                  <StatusTag v-if="isImported(item)" status="success" text="已导入" />
+                  <NTag v-if="isImported(item)" type="success" size="small" :bordered="false" class="flex-none w-fit">已导入</NTag>
                 </div>
                 <p class="m-0 text-xs leading-5 text-ink-2 line-clamp-3">{{ item.summary || item.summaryEn || '—' }}</p>
                 <div class="row-between mt-auto text-xs text-ink-3">
@@ -543,10 +560,13 @@ const catSummary = computed(() => {
         </template>
 
         <div v-if="detailLoading" class="py-2">
-          <SkeletonBlock :rows="5" />
+          <NSkeleton text :repeat="5" class="w-full" />
         </div>
-        <EmptyState v-else-if="detailError" tone="danger" :description="detailError" />
-
+        <NEmpty v-else-if="detailError" :description="detailError">
+          <template #icon>
+            <NIcon class="text-danger"><FolderOpenOutline /></NIcon>
+          </template>
+        </NEmpty>
         <div v-else-if="detail" class="flex flex-col gap-6">
           <n-alert v-if="!detail.runtime.entry" type="warning" :bordered="false" title="这个包缺少运行入口">
             <div class="flex flex-col gap-2">
@@ -608,12 +628,12 @@ const catSummary = computed(() => {
             </div>
             <div class="flex items-center gap-3 py-1 text-sm">
               <span class="flex-none w-18 text-ink-3 text-xs">网络</span>
-              <StatusTag :status="networkTag(detail.network).tone" :text="networkTag(detail.network).text" />
+              <NTag :type="networkTag(detail.network).type" size="small" :bordered="false" class="flex-none w-fit">{{ networkTag(detail.network).text }}</NTag>
             </div>
             <div class="flex items-center gap-3 py-1 text-sm">
               <span class="flex-none w-18 text-ink-3 text-xs">计费依赖</span>
-              <StatusTag v-if="detail.paidCloud" status="warning" text="官方云端 · 消耗积分" />
-              <StatusTag v-else status="success" text="本机渲染 · 不消耗积分" />
+              <NTag v-if="detail.paidCloud" type="warning" size="small" :bordered="false" class="flex-none w-fit">官方云端 · 消耗积分</NTag>
+              <NTag v-else type="success" size="small" :bordered="false" class="flex-none w-fit">本机渲染 · 不消耗积分</NTag>
             </div>
             <div v-if="detail.cloudOrigin" class="flex flex-col items-start gap-1 py-1 text-sm">
               <span class="flex-none w-18 text-ink-3 text-xs">官方服务</span>
@@ -631,13 +651,13 @@ const catSummary = computed(() => {
               <span class="flex-none w-18 text-ink-3 text-xs">Schema</span>
               <PathCopy :path="detail.parameters.file" />
             </div>
-            <EmptyState v-if="!detail.parameters.fields.length" description="未声明参数 schema" />
+            <NEmpty v-if="!detail.parameters.fields.length" description="未声明参数 schema" />
             <div v-else class="flex flex-col gap-2">
               <div v-for="f in detail.parameters.fields" :key="f.name" class="flex flex-col gap-1 px-3 py-2 border border-border rounded-control">
                 <div class="flex items-center gap-2 flex-wrap">
                   <span class="font-mono text-sm font-semibold text-ink">{{ f.name }}</span>
-                  <StatusTag :status="f.required ? 'warning' : 'neutral'" :text="f.required ? '必填' : '可选'" />
-                  <StatusTag status="neutral" :text="typeLabel(f.type)" />
+                  <NTag :type="f.required ? 'warning' : 'default'" size="small" :bordered="false" class="flex-none w-fit">{{ f.required ? '必填' : '可选' }}</NTag>
+                  <NTag type="default" size="small" :bordered="false" class="flex-none w-fit">{{ typeLabel(f.type) }}</NTag>
                 </div>
                 <div v-if="fieldSummary(f).length" class="flex flex-wrap gap-3 text-xs text-ink-2">
                   <span v-for="bit in fieldSummary(f)" :key="bit">{{ bit }}</span>
@@ -655,7 +675,7 @@ const catSummary = computed(() => {
             </div>
             <div class="flex items-center gap-3 py-1 text-sm">
               <span class="flex-none w-18 text-ink-3 text-xs">状态</span>
-              <StatusTag :status="detail.license.present ? 'success' : 'neutral'" :text="detail.license.present ? '已包含' : '官网标注 MIT'" />
+              <NTag :type="detail.license.present ? 'success' : 'default'" size="small" :bordered="false" class="flex-none w-fit">{{ detail.license.present ? '已包含' : '官网标注 MIT' }}</NTag>
             </div>
           </section>
 
@@ -699,8 +719,8 @@ const catSummary = computed(() => {
           </div>
 
           <div class="flex flex-wrap gap-2">
-            <StatusTag v-for="badge in catBadges" :key="badge" status="neutral" :text="badge" />
-            <StatusTag v-if="isImported(catItem)" status="success" text="已导入" />
+            <NTag v-for="badge in catBadges" :key="badge" type="default" size="small" :bordered="false" class="flex-none w-fit">{{ badge }}</NTag>
+            <NTag v-if="isImported(catItem)" type="success" size="small" :bordered="false" class="flex-none w-fit">已导入</NTag>
           </div>
 
           <p class="m-0 text-sm leading-6 text-ink-2">{{ catSummary || '暂无简介' }}</p>

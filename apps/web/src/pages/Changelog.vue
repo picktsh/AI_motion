@@ -1,6 +1,6 @@
 <script setup lang="ts">
+import { NCard } from 'naive-ui';
 import { computed } from 'vue';
-import SectionCard from '../components/data/SectionCard.vue';
 import { renderMarkdown } from '../lib/markdown';
 import changelogRaw from '../../../../docs/changelog.md?raw';
 import roadmapRaw from '../../../../docs/roadmap.md?raw';
@@ -45,12 +45,12 @@ const note =
 
 <template>
   <div class="flex flex-col gap-4">
-    <SectionCard title="路线图 · 待办规划">
+    <NCard title="路线图 · 待办规划">
       <div class="md-body" v-html="roadmapHtml" />
       <p class="mt-4 mb-0 text-xs text-ink-3">{{ note }}</p>
-    </SectionCard>
+    </NCard>
 
-    <SectionCard v-for="release in releases" :key="release.version">
+    <NCard v-for="release in releases" :key="release.version">
       <div class="flex flex-col gap-3">
         <div class="flex items-baseline gap-3">
           <span class="text-lg font-semibold text-ink">{{ release.version }}</span>
@@ -58,7 +58,7 @@ const note =
         </div>
         <div class="md-body" v-html="release.html" />
       </div>
-    </SectionCard>
+    </NCard>
   </div>
 </template>
 

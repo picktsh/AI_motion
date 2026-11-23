@@ -1,50 +1,29 @@
-# ---- 依赖目录 ----
-node_modules/
-.venv/
-__pycache__/
+# ---- 代码系统：依赖、环境、本地配置、工具与编辑器 ----
+*.log
 *.py[cod]
-
-# ---- 本地工具二进制 ----
+.DS_Store
+.env.*.local
+.env.local
+.idea/
+.venv/
+.vscode/
+Thumbs.db
+__pycache__/
+node_modules/
 studio/bin/
 
-# ---- 渲染产物与中间实例（成片、抽帧、预览、prepare 实例、输入素材）----
-studio/videos/
+# ---- 构建产物 ----
+apps/server/dist/
+apps/web/dist/
 
-# ---- BGM 素材 ----
+# ---- 原材料：素材、TTS 音频、模板与下载缓存 ----
 studio/bgm/
-
-# ---- TTS 音频产物（保留 segments.json 词边界清单）----
+studio/templates-cache/
+studio/templates/
+studio/tts/samples/*.mp3
 studio/tts/segments/*.mp3
 studio/tts/segments/*.vtt
-studio/tts/samples/*.mp3
 
-# ---- 系统与编辑器 ----
-.DS_Store
-Thumbs.db
-*.log
-.idea/
-.vscode/
-
-# ---- 本地环境变量（.env 入库默认值，仅忽略本地覆盖）----
-.env.local
-.env.*.local
-
-# ---- 第三方模板下载缓存（锁清单 templates.lock.json 入库）----
-studio/templates-cache/
-
-# ---- 构建产物 ----
-apps/web/dist/
-apps/server/dist/
-
-# ---- 项目工程：只保留清单（project.json / input 文稿 / publish 清单），实例、成片、素材不入库 ----
-studio/projects/*/instance*/
-studio/projects/*/input/assets/
-studio/projects/*/input/voice.mp3
-studio/projects/*/input/*.wav
-studio/projects/*/output/
-!studio/projects/*/output/publish.json
-!studio/projects/*/output/publish.txt
-
-# ---- 模板包（含个人调用标识，禁止入库）----
-studio/templates/
-studio/templates-cache/
+# ---- 成品：渲染产物、成片与项目工程 ----
+studio/projects/
+studio/videos/

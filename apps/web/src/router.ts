@@ -148,9 +148,9 @@ const router = createRouter({
       name: 'environment',
       component: () => import('./pages/Environment.vue'),
       meta: {
-        title: '设置',
-        description: '本地依赖、媒体工具与工程目录就位情况',
-        menu: '设置',
+        title: '环境',
+        description: '后端连接、本地依赖、媒体工具与工程目录就位情况',
+        menu: '环境',
         icon: ConstructOutline,
       },
     },

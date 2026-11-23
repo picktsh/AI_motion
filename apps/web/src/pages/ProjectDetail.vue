@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import { computed, onMounted, onUnmounted, ref, watch } from 'vue';
 import { useRoute, useRouter } from 'vue-router';
-import { NButton, NSpin, NAlert, NTag, NCollapse, NCollapseItem, NIcon, NInput, NSelect, NImage, NText, useMessage } from 'naive-ui';
+import { NButton, NSpin, NAlert, NTag, NCard, NCollapse, NCollapseItem, NIcon, NInput, NSelect, NImage, NText, useMessage } from 'naive-ui';
 import { ArrowBackOutline } from '@vicons/ionicons5';
 import {
   getProject,
@@ -22,7 +22,6 @@ import {
 import { listSamples } from '../api/tts';
 import { assetUrl } from '../api/assets';
 import type { Sample } from '../shared/types';
-import SectionCard from '../components/data/SectionCard.vue';
 import SamplePlayer from '../components/media/SamplePlayer.vue';
 import PromptCopyBlock from '../components/data/PromptCopyBlock.vue';
 import { claimExclusive, releaseExclusive } from '../composables/useExclusivePlayer';
@@ -305,8 +304,14 @@ const runPrompt = computed(() => [
     </NButton>
     <NSpin :show="loading">
       <div v-if="project" class="flex flex-col gap-4">
-        <SectionCard :title="project.templateName" :subtitle="`${project.id} · ${projectDirRel}`">
-          <template #extra>
+        <NCard>
+          <template #header>
+            <div class="min-w-0">
+              <h2 class="m-0 text-base font-semibold text-ink truncate">{{ project.templateName }}</h2>
+              <p class="m-0 mt-1 text-xs text-ink-2">{{ project.id }} · {{ projectDirRel }}</p>
+            </div>
+          </template>
+          <template #header-extra>
             <NTag :type="statusType" size="small" :bordered="false">{{ statusText }}</NTag>
           </template>
 
@@ -332,9 +337,15 @@ const runPrompt = computed(() => [
           </div>
 
           <NAlert v-if="friendlyError" type="error" :show-icon="false" class="mt-3">{{ friendlyError }}</NAlert>
-        </SectionCard>
+        </NCard>
 
-        <SectionCard title="素材" subtitle="项目 input/assets 下的图片、音频、视频；清单按磁盘文件回显">
+        <NCard>
+          <template #header>
+            <div class="min-w-0">
+              <h2 class="m-0 text-base font-semibold text-ink truncate">素材</h2>
+              <p class="m-0 mt-1 text-xs text-ink-2">项目 input/assets 下的图片、音频、视频；清单按磁盘文件回显</p>
+            </div>
+          </template>
           <div class="flex flex-col gap-3">
             <div v-if="imageAssets.length || videoAssets.length" class="grid grid-cols-2 md:grid-cols-3 gap-3">
               <div v-for="a in [...imageAssets, ...videoAssets]" :key="a.rel" class="flex flex-col gap-1 border border-border rounded-control p-2">
@@ -368,9 +379,15 @@ const runPrompt = computed(() => [
               :prompt="assetPrompt"
             />
           </div>
-        </SectionCard>
+        </NCard>
 
-        <SectionCard title="配音与字幕" :subtitle="isCloud ? '官方云端包内助手负责配音与编排，音色以包内为准' : '选择配音音色；字幕稿按文稿拆分，时间码在配音生成后按语音回写'">
+        <NCard>
+          <template #header>
+            <div class="min-w-0">
+              <h2 class="m-0 text-base font-semibold text-ink truncate">配音与字幕</h2>
+              <p class="m-0 mt-1 text-xs text-ink-2">{{ isCloud ? '官方云端包内助手负责配音与编排，音色以包内为准' : '选择配音音色；字幕稿按文稿拆分，时间码在配音生成后按语音回写' }}</p>
+            </div>
+          </template>
           <div class="flex flex-col gap-4">
             <div class="flex flex-col gap-1">
               <span class="text-xs text-ink-2">配音音色（偏好可直接保存）</span>
@@ -405,9 +422,15 @@ const runPrompt = computed(() => [
               :prompt="voicePrompt"
             />
           </div>
-        </SectionCard>
+        </NCard>
 
-        <SectionCard v-if="isCloud && project.quote" title="报价明细" subtitle="只读；官网账号余额不足时，正式生成会被拒绝">
+        <NCard v-if="isCloud && project.quote">
+          <template #header>
+            <div class="min-w-0">
+              <h2 class="m-0 text-base font-semibold text-ink truncate">报价明细</h2>
+              <p class="m-0 mt-1 text-xs text-ink-2">只读；官网账号余额不足时，正式生成会被拒绝</p>
+            </div>
+          </template>
           <div class="grid gap-2 mb-3">
             <div class="row-between text-xs px-3 py-2 rounded-control bg-neutral-soft">
               <span class="text-ink-2">配音</span>
@@ -445,9 +468,15 @@ const runPrompt = computed(() => [
           <NAlert v-if="insufficient" type="warning" :show-icon="false">
             本次报价需要 {{ quoteTotal }} 积分，当前余额 {{ balance }}，生成会被官方直接拒绝。模板导入和本地服务不收费，这些积分是包内官方 Key 调云端配音和编排产生的。
           </NAlert>
-        </SectionCard>
+        </NCard>
 
-        <SectionCard title="生成与产物" :subtitle="isCloud ? '按报价全额提交；扣的是官方积分' : '本机渲染，不消耗积分'">
+        <NCard>
+          <template #header>
+            <div class="min-w-0">
+              <h2 class="m-0 text-base font-semibold text-ink truncate">生成与产物</h2>
+              <p class="m-0 mt-1 text-xs text-ink-2">{{ isCloud ? '按报价全额提交；扣的是官方积分' : '本机渲染，不消耗积分' }}</p>
+            </div>
+          </template>
           <div class="flex flex-col gap-3">
             <div class="flex items-center gap-3 flex-wrap">
               <span v-if="!isCloud" class="text-sm text-ink-2">本地渲染 · <b class="text-ink">0</b> 积分</span>
@@ -468,12 +497,18 @@ const runPrompt = computed(() => [
               </NCollapseItem>
             </NCollapse>
           </div>
-        </SectionCard>
+        </NCard>
 
-        <SectionCard v-if="project.videoUrl" title="成片" subtitle="生成产物已回填；发布配置请到作品页">
+        <NCard v-if="project.videoUrl">
+          <template #header>
+            <div class="min-w-0">
+              <h2 class="m-0 text-base font-semibold text-ink truncate">成片</h2>
+              <p class="m-0 mt-1 text-xs text-ink-2">生成产物已回填；发布配置请到作品页</p>
+            </div>
+          </template>
           <video class="w-full rounded-control bg-black" :src="project.videoUrl" controls playsinline />
           <div v-if="files?.video" class="mt-2 text-xs text-ink-3 font-mono break-all">{{ files.video }}</div>
-        </SectionCard>
+        </NCard>
       </div>
     </NSpin>
   </div>

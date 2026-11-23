@@ -1,8 +1,7 @@
 <script setup lang="ts">
 import { computed, onMounted, ref } from 'vue';
-import { NSpin, NTabs, NTabPane, NImage } from 'naive-ui';
+import { NSpin, NTabs, NTabPane, NImage, NEmpty } from 'naive-ui';
 import { listAllAssets, type GlobalAsset, type AssetMediaType } from '../api/observatory';
-import EmptyState from '../components/data/EmptyState.vue';
 import PathCopy from '../components/data/PathCopy.vue';
 import SamplePlayer from '../components/media/SamplePlayer.vue';
 
@@ -80,7 +79,7 @@ onMounted(load);
     </NTabs>
 
     <NSpin :show="loading">
-      <EmptyState
+      <NEmpty
         v-if="!filtered.length && !loading"
         title="没有匹配素材"
         :description="assets.length ? '换个分类看看' : '工程目录里还没有素材文件'"

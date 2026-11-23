@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import SectionCard from '../components/data/SectionCard.vue';
+import { NCard } from 'naive-ui';
 import { REPO_URL } from '../shared/constants';
 import { useServerConfig } from '../composables/useServerConfig';
 
@@ -10,7 +10,7 @@ const serverOrigin = state.origin;
 
 <template>
   <div class="flex flex-col gap-4">
-    <SectionCard title="关于我们">
+    <NCard title="关于我们">
       <p class="m-0 mb-2 text-sm leading-5 text-ink-2">
         AI Motion Studio 是本地 AI 视频制作工作台的图形控制台，用来浏览模板与素材、检查环境依赖、回显预览与产物。
       </p>
@@ -22,9 +22,9 @@ const serverOrigin = state.origin;
         <li>后端：Node.js + Fastify 5 + TypeScript，只读回显 + 白名单命令台任务执行</li>
         <li>安全：服务仅绑定本机回环地址，资源访问限 studio 白名单目录</li>
       </ul>
-    </SectionCard>
+    </NCard>
 
-    <SectionCard title="基本信息">
+    <NCard title="基本信息">
       <div class="grid grid-cols-[repeat(auto-fit,minmax(220px,1fr))] gap-3">
         <div class="flex items-center gap-2 text-sm py-1">
           <span class="flex-none text-xs text-ink-3 w-16">版本</span>
@@ -39,6 +39,6 @@ const serverOrigin = state.origin;
           <a class="text-brand no-underline break-all hover:underline" :href="REPO_URL" target="_blank" rel="noopener noreferrer">{{ REPO_URL }}</a>
         </div>
       </div>
-    </SectionCard>
+    </NCard>
   </div>
 </template>

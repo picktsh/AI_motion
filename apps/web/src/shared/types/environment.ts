@@ -1,6 +1,7 @@
 export interface EnvItem {
   key: string;
   label: string;
+  desc: string | null;
   ok: boolean;
   version: string | null;
   path: string | null;

@@ -71,6 +71,7 @@ function build(p: Palette): GlobalThemeOverrides {
       borderRadius: '12px',
       titleFontSize: '16px',
       fontSize: '14px',
+      padding: '16px 20px',
     },
     Layout: { color: p.bg, colorBase: p.bg },
     Menu: {
