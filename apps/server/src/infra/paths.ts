@@ -40,12 +40,28 @@ export const WHITELIST_DIRS: string[] = [
 
 // 解析白名单内的相对路径；越界返回 null。存在性由调用方 stat 判断，区分 403 与 404。
 export function resolveSafe(rel: string): string | null {
-  const cleaned = path.normalize(rel || '').replace(/^(\.\.[/\\])+/, '');
-  if (!cleaned || cleaned.startsWith(path.sep) || cleaned.split(/[/\\]/).includes('..')) return null;
-  const abs = path.join(ROOT, cleaned);
+  if (!rel || path.isAbsolute(rel) || rel.includes('\0')) return null;
+  const normalized = path.normalize(rel);
+  if (normalized === '..' || normalized.startsWith(`..${path.sep}`)) return null;
+  const abs = path.resolve(ROOT, normalized);
   const inScope = WHITELIST_DIRS.some((d) => {
-    const base = path.join(ROOT, d);
-    return abs === base || abs.startsWith(base + path.sep);
+    const base = path.resolve(ROOT, d);
+    if (abs !== base && !abs.startsWith(base + path.sep)) return false;
+    // Existing paths must also remain inside after symlink resolution.
+    try {
+      const real = fs.realpathSync(abs);
+      const realBase = fs.realpathSync(base);
+      return real === realBase || real.startsWith(realBase + path.sep);
+    } catch {
+      // For new destinations, validate the nearest existing ancestor.
+      let ancestor = path.dirname(abs);
+      while (!fs.existsSync(ancestor) && ancestor !== path.dirname(ancestor)) ancestor = path.dirname(ancestor);
+      try {
+        const realAncestor = fs.realpathSync(ancestor);
+        const realBase = fs.realpathSync(base);
+        return realAncestor === realBase || realAncestor.startsWith(realBase + path.sep);
+      } catch { return false; }
+    }
   });
   return inScope ? abs : null;
 }

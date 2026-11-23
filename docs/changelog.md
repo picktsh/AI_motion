@@ -16,6 +16,11 @@
 
 ## 0.2.0 · 2026-11-23
 
+- 修复 · TTS Python 环境缺失：补齐 `edge-tts 7.3.1` 锁定依赖与本地虚拟环境；`pnpm setup:python` 优先调用项目内 `apps/server/vendor/uv`，环境页确认依赖 9/9 全部就位
+- 调整 · 后端任务日志序号保持单调递增；项目清单使用原子替换写入，项目文件仓储与状态迁移独立管理；旧视频条目运行时解析从视频服务拆出
+- 修复 · 资产白名单解析校验真实路径，阻止通过符号链接越界；项目素材与封面采用流式写入并限制 20 MB
+- 新增 · 由后端 OpenAPI 文档生成前端任务接口类型，提供 `pnpm --dir apps/web run generate:api` 更新命令
+
 - 清理 · #177 删掉四个自绘薄封装 `StatusTag`/`SkeletonBlock`/`EmptyState`/`SectionCard`，调用点全部换成 naive 原生 `NTag`/`NSkeleton`/`NEmpty`/`NCard`；标签状态映射到 NTag 原生 type（success/warning/error/info/default），卡片内边距统一进主题 Card 覆盖，不再各写一份壳组件
 - 清理 · #178 `.gitignore` 项目工程改为整条忽略 `studio/projects/`：目录内文稿、配置、素材、实例、成片等个人资料一律不入库；此前已跟踪的项目文件移出索引、磁盘保留
 - 调整 · #179 环境清单每项补一句用途说明；浏览器探测口径放宽并对齐模板包：认 `CHROME` 环境变量、扫 ms-playwright 缓存里的 headless shell，标签改为「Chromium 内核浏览器」（Chrome / Edge / Chromium / headless shell 均可，WebKit / Firefox 不在现有渲染通道内）；分组更名「渲染浏览器」

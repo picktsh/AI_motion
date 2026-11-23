@@ -116,15 +116,7 @@ export function registerProjects(app: FastifyInstance, prefix: string): void {
       throw badRequest(`读取上传文件失败：${message || '未知原因'}`);
     }
     if (!part) throw badRequest('缺少上传文件字段 file');
-    let data: Buffer;
-    try {
-      data = await part.toBuffer();
-    } catch (err) {
-      const message = err instanceof Error ? err.message : '';
-      if (/too large/i.test(message)) throw badRequest('素材超过 20MB 上限');
-      throw badRequest(`读取素材失败：${message || '未知原因'}`);
-    }
-    const saved = saveProjectAsset(request.params.id, part.filename || 'asset', data);
+    const saved = await saveProjectAsset(request.params.id, part.filename || 'asset', part.file);
     return ok(saved);
   });
 
@@ -147,15 +139,7 @@ export function registerProjects(app: FastifyInstance, prefix: string): void {
         throw badRequest(`读取上传文件失败：${message || '未知原因'}`);
       }
       if (!part) throw badRequest('缺少上传文件字段 file');
-      let data: Buffer;
-      try {
-        data = await part.toBuffer();
-      } catch (err) {
-        const message = err instanceof Error ? err.message : '';
-        if (/too large/i.test(message)) throw badRequest('封面超过 20MB 上限');
-        throw badRequest(`读取封面文件失败：${message || '未知原因'}`);
-      }
-      const saved = saveProjectCover(request.params.id, slot, data);
+      const saved = await saveProjectCover(request.params.id, slot, part.file);
       return ok(saved);
     },
   );

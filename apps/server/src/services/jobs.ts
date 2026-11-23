@@ -2,7 +2,7 @@ import { randomUUID } from 'node:crypto';
 import path from 'node:path';
 import { runProcess, type ExecHandle, type ExecResult } from '../infra/exec.js';
 import { resolveCommand, type CommandParams, type ResolvedCommand } from './commands.js';
-import { resolveEntryRuntime } from './videos.js';
+import { resolveEntryRuntime } from './entryRuntime.js';
 import { findBin, ROOT, BIN_DIR } from '../infra/paths.js';
 import { config } from '../config.js';
 import { badRequest, forbidden, notFound } from '../core/errors.js';
@@ -32,6 +32,7 @@ interface JobRecord {
   result: unknown;
   artifact: JobArtifact | null;
   log: JobLogLine[];
+  nextLogSeq: number;
   handle: ExecHandle | null;
   cancelRequested: boolean;
   resolved: ResolvedCommand | null;
@@ -47,7 +48,7 @@ const GROUP_LIMIT: Record<Group, number> = {
 };
 
 function pushLog(record: JobRecord, stream: 'stdout' | 'stderr', text: string): void {
-  record.log.push({ seq: record.log.length + 1, stream, time: Date.now(), text });
+  record.log.push({ seq: record.nextLogSeq++, stream, time: Date.now(), text });
   if (record.log.length > config.job.logCapacity) {
     record.log.splice(0, record.log.length - config.job.logCapacity);
   }
@@ -76,7 +77,7 @@ function snapshot(record: JobRecord): JobSnapshot {
     error: record.error,
     result: record.result,
     artifact: record.artifact,
-    logLineCount: record.log.length,
+    logLineCount: record.nextLogSeq - 1,
   };
 }
 
@@ -129,6 +130,7 @@ export function submitJob(command: string, params: CommandParams): JobSnapshot {
     result: null,
     artifact: resolved.artifact,
     log: [],
+    nextLogSeq: 1,
     handle: null,
     cancelRequested: false,
     resolved,
@@ -248,7 +250,7 @@ export function getJobLogs(id: string, offset: number): { lines: JobLogLine[]; n
   if (!record) throw notFound('任务不存在');
   const from = Number.isInteger(offset) && offset >= 0 ? offset : 0;
   const lines = record.log.filter((l) => l.seq > from);
-  return { lines, nextOffset: lines.length ? lines[lines.length - 1].seq : from, total: record.log.length };
+  return { lines, nextOffset: lines.length ? lines[lines.length - 1].seq : Math.max(from, record.nextLogSeq - 1), total: record.nextLogSeq - 1 };
 }
 
 export function cancelJob(id: string): JobSnapshot {

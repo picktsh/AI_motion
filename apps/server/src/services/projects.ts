@@ -1,40 +1,22 @@
 import fs from 'node:fs';
 import path from 'node:path';
 import { spawn } from 'node:child_process';
+import { createWriteStream } from 'node:fs';
+import { Transform, type Readable } from 'node:stream';
+import { pipeline } from 'node:stream/promises';
 import { ROOT, findBin } from '../infra/paths.js';
 import { config } from '../config.js';
 import { badRequest, notFound } from '../core/errors.js';
 import { mediaType, type MediaType } from '../infra/probe.js';
 import { submitJob, getJob } from './jobs.js';
+import { projectDir, readProject, writeProject, type Project } from './projectRepository.js';
+import { transitionProject } from './projectState.js';
 
 // 创作项目：模板 + 文稿 → 报价 → 异步生成（任务服务）→ 作品页发布配置。
 // 模板一律来自官网导入，落在 studio/templates/<id>；运行入口跟随模板自身：
 // 带 assistant/motion.mjs 的走官方云端（积分），带 adapter.py 的走本机渲染。
 
-export interface Project {
-  id: string;
-  name: string;
-  templateId: string;
-  templateName: string;
-  templateVersion: string | null;
-  templateDir: string;
-  templateSha256: string | null;
-  runner: 'adapter' | 'cloud';
-  archiveRel: string;
-  scriptRel: string;
-  status: 'draft' | 'quoted' | 'running' | 'failed' | 'done';
-  createdAt: string;
-  duration: number;
-  keywords: string[];
-  quote: Record<string, unknown> | null;
-  artifactRel: string | null;
-  videoUrl: string | null;
-  logRel: string | null;
-  jobId: string | null;
-  error: string | null;
-  runMaxCredits: number;
-  scriptText?: string;
-}
+export type { Project } from './projectRepository.js';
 
 interface TemplateRef {
   id: string;
@@ -51,39 +33,10 @@ function assetUrl(rel: string): string {
   return `${config.apiPrefix}/assets?path=${encodeURIComponent(rel)}`;
 }
 
-function projectDir(id: string): string {
-  return path.join(ROOT, 'studio', 'projects', id);
-}
-
-function writeProject(p: Project): void {
-  fs.writeFileSync(path.join(projectDir(p.id), 'project.json'), `${JSON.stringify(p, null, 2)}\n`, 'utf8');
-}
-
-function readProject(id: string): Project | null {
-  if (!/^[\w一-龥.@-]+$/.test(id)) return null;
-  const file = path.join(projectDir(id), 'project.json');
-  if (!fs.existsSync(file)) return null;
-  try {
-    const raw = JSON.parse(fs.readFileSync(file, 'utf8')) as Project & { kind?: string };
-    // 旧版项目字段兼容：kind → runner；缺 runner 时按 archiveRel 判定（云端包带原始包路径，本机包为空）。
-    if (!raw.runner) raw.runner = raw.kind === 'personal' || (raw.archiveRel && raw.archiveRel.length) ? 'cloud' : 'adapter';
-    delete raw.kind;
-    raw.jobId ??= null;
-    raw.error ??= null;
-    raw.runMaxCredits ??= 0;
-    raw.templateVersion ??= null;
-    raw.templateDir ??= '';
-    raw.templateSha256 ??= null;
-    return raw;
-  } catch {
-    return null;
-  }
-}
-
 function hydrate(p: Project): Project {
   // 服务重启后 running 状态可能悬空：任务不在内存里就按失败回落，允许重跑。
   if (p.status === 'running' && (!p.jobId || !getJob(p.jobId))) {
-    p.status = 'failed';
+    transitionProject(p, 'failed');
     p.error = p.error ?? '服务重启导致任务中断，请重新生成';
     writeProject(p);
   }
@@ -277,7 +230,7 @@ export async function quoteProject(id: string, maxCredits = 0): Promise<Project>
   if (!tpl) throw notFound('模板不可用，请重新下载导入');
   if (tpl.runner === 'adapter') {
     project.quote = { route: 'local-adapter', total: 0, note: '本机渲染，不调用官方云端，不消耗积分' };
-    project.status = 'quoted';
+    transitionProject(project, 'quoted');
     writeProject(project);
     return hydrate(project);
   }
@@ -311,7 +264,7 @@ export async function quoteProject(id: string, maxCredits = 0): Promise<Project>
     throw badRequest(`报价失败：${(stderr || stdout).trim().slice(0, 300) || '未知原因'}`);
   }
   project.quote = json;
-  project.status = 'quoted';
+  transitionProject(project, 'quoted');
   writeProject(project);
   return hydrate(project);
 }
@@ -327,7 +280,7 @@ export function runProject(id: string, maxCredits: number): Project {
   }
   if (!Number.isFinite(maxCredits) || maxCredits < 0) throw badRequest('授权额度不合法');
 
-  project.status = 'running';
+  transitionProject(project, 'running');
   project.error = null;
   project.runMaxCredits = tpl.runner === 'cloud' ? maxCredits : 0;
   project.logRel = `studio/projects/${project.id}/run.log`;
@@ -447,7 +400,7 @@ export async function preparePublish(id: string): Promise<Project> {
   };
   fs.writeFileSync(path.join(outDir, 'publish.json'), `${JSON.stringify(publish, null, 2)}\n`, 'utf8');
   writePublishText(outDir, publish);
-  project.status = 'done';
+  transitionProject(project, 'done');
   writeProject(project);
   return hydrate(project);
 }
@@ -585,11 +538,10 @@ export function listProjectAssets(id: string): ProjectAsset[] {
   return onDisk;
 }
 
-export function saveProjectAsset(id: string, filename: string, data: Buffer): ProjectAsset {
+export async function saveProjectAsset(id: string, filename: string, source: Readable): Promise<ProjectAsset> {
   if (!readProject(id)) throw notFound('项目不存在');
   const ext = path.extname(filename || '').toLowerCase();
   if (!ASSET_EXTS.has(ext)) throw badRequest('只接收图片、音频或视频素材');
-  if (data.length > MAX_ASSET_BYTES) throw badRequest('素材超过 20MB 上限');
 
   const base = path.basename(filename || 'upload').trim()
     .slice(0, -ext.length)
@@ -608,7 +560,19 @@ export function saveProjectAsset(id: string, filename: string, data: Buffer): Pr
   }
 
   const abs = path.join(assetDir(id), name);
-  fs.writeFileSync(abs, data);
+  const temp = `${abs}.${process.pid}.upload`;
+  let bytes = 0;
+  try {
+    await pipeline(source, new Transform({ transform(chunk: Buffer, _encoding, callback) {
+      bytes += chunk.length;
+      callback(bytes > MAX_ASSET_BYTES ? badRequest('素材超过 20MB 上限') : null, chunk);
+    } }), createWriteStream(temp, { flags: 'wx' }));
+    if (bytes === 0) throw badRequest('素材文件为空');
+    fs.renameSync(temp, abs);
+  } catch (error) {
+    fs.rmSync(temp, { force: true });
+    throw error;
+  }
   const rel = path.relative(ROOT, abs).split(path.sep).join('/');
   const asset: ProjectAsset = { name, type: mediaType(name), rel, url: assetUrl(rel) };
 
@@ -624,16 +588,26 @@ const COVER_FILES: Record<'horizontal' | 'vertical', string> = {
   vertical: 'cover-3x4.jpg',
 };
 
-export function saveProjectCover(id: string, slot: 'horizontal' | 'vertical', data: Buffer): ProjectAsset {
+export async function saveProjectCover(id: string, slot: 'horizontal' | 'vertical', source: Readable): Promise<ProjectAsset> {
   if (!readProject(id)) throw notFound('项目不存在');
-  if (!data || data.length === 0) throw badRequest('封面文件为空');
-  if (data.length > MAX_ASSET_BYTES) throw badRequest('封面超过 20MB 上限');
 
   const name = COVER_FILES[slot];
   const outDir = path.join(projectDir(id), 'output');
   fs.mkdirSync(outDir, { recursive: true });
   const abs = path.join(outDir, name);
-  fs.writeFileSync(abs, data);
+  const temp = `${abs}.${process.pid}.upload`;
+  let bytes = 0;
+  try {
+    await pipeline(source, new Transform({ transform(chunk: Buffer, _encoding, callback) {
+      bytes += chunk.length;
+      callback(bytes > MAX_ASSET_BYTES ? badRequest('封面超过 20MB 上限') : null, chunk);
+    } }), createWriteStream(temp, { flags: 'w' }));
+    if (!bytes) throw badRequest('封面文件为空');
+    fs.renameSync(temp, abs);
+  } catch (error) {
+    fs.rmSync(temp, { force: true });
+    throw error;
+  }
   const rel = path.relative(ROOT, abs).split(path.sep).join('/');
   return { name, type: mediaType(name), rel, url: assetUrl(rel) };
 }

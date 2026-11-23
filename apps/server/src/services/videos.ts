@@ -5,6 +5,7 @@ import { probeMedia, mediaType, type MediaType } from '../infra/probe.js';
 import { config } from '../config.js';
 import { badRequest } from '../core/errors.js';
 import type { ProbeResult } from '@ai-motion/shared/types';
+export { resolveEntryRuntime } from './entryRuntime.js';
 
 interface VideoMeta {
   title?: string;
@@ -153,28 +154,6 @@ export async function listVideos(): Promise<VideoSummary[]> {
       preview,
     };
   });
-}
-
-export interface EntryRuntime {
-  input: string;
-  instance: string;
-  previewOut: string;
-  renderOut: string;
-}
-
-// 按条目解析命令台动作所需的标准相对路径，供命令提交时自动带入，避免前端手填路径。
-export function resolveEntryRuntime(entryId: string, instanceName?: string): EntryRuntime | null {
-  const item = discover().find((i) => i.id === entryId);
-  if (!item) return null;
-  const safeName = (instanceName ?? '').trim();
-  const instance = safeName && /^[A-Za-z0-9._-]+$/.test(safeName) ? safeName : 'instance';
-  const rel = (abs: string) => path.relative(ROOT, abs).split(path.sep).join('/');
-  return {
-    input: rel(item.inputFile),
-    instance: rel(path.join(item.rootDir, instance)),
-    previewOut: rel(path.join(item.rootDir, 'preview.jpg')),
-    renderOut: rel(path.join(item.rootDir, 'output.mp4')),
-  };
 }
 
 export async function getVideo(id: string): Promise<VideoDetail | null> {

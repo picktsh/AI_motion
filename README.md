@@ -5,7 +5,7 @@
 ## 环境要求
 
 - Node.js >= 22（自带 corepack，pnpm 通过 corepack 启用）
-- uv（Python 脚本依赖，按脚本头 PEP723 隔离）
+- uv（Python 脚本依赖；优先使用 `apps/server/vendor/uv`，否则从系统 `PATH` 查找）
 - ffmpeg / ffprobe（可放在 `studio/bin/` 或加入 PATH）
 - Chrome / Chromium（模板渲染用）
 
@@ -32,6 +32,14 @@ pnpm dev:web
 ```bash
 pnpm build
 ```
+
+初始化或修复 TTS Python 环境：
+
+```bash
+pnpm setup:python
+```
+
+该命令根据 `apps/server/python/pyproject.toml` 与 `uv.lock` 在 `apps/server/python/.venv/` 安装依赖。首次安装需要连接 Python 包索引；若网络受限，可配置 `UV_CACHE_DIR` 指向可写缓存目录。
 
 ## 配置项
 

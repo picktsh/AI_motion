@@ -18,6 +18,7 @@ import { envelope, listEnvelope, errorStatuses, idParam, type JsonSchema } from 
 const artifact: JsonSchema = {
   type: ['object', 'null'],
   additionalProperties: true,
+  required: ['rel', 'url'],
   properties: {
     rel: { type: 'string', description: '相对工程根的产物路径' },
     url: { type: 'string', description: '经资产回显路由访问的地址' },
@@ -27,6 +28,7 @@ const artifact: JsonSchema = {
 const jobSnapshot: JsonSchema = {
   type: 'object',
   additionalProperties: true,
+  required: ['id', 'command', 'params', 'status', 'createdAt', 'startedAt', 'finishedAt', 'exitCode', 'error', 'result', 'artifact', 'logLineCount'],
   properties: {
     id: { type: 'string' },
     command: { type: 'string', enum: commandNames() },
@@ -61,6 +63,7 @@ const jobSnapshot: JsonSchema = {
 const logLine: JsonSchema = {
   type: 'object',
   additionalProperties: true,
+  required: ['seq', 'stream', 'time', 'text'],
   properties: {
     seq: { type: 'integer', description: '单调递增行号' },
     stream: { type: 'string', enum: ['stdout', 'stderr'] },
@@ -72,6 +75,7 @@ const logLine: JsonSchema = {
 const logResult: JsonSchema = {
   type: 'object',
   additionalProperties: true,
+  required: ['lines', 'nextOffset', 'total'],
   properties: {
     lines: { type: 'array', items: logLine },
     nextOffset: { type: 'integer', description: '下次拉取应传的 offset' },
