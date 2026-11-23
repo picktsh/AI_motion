@@ -22,7 +22,7 @@ export interface AppConfig {
 
 const DEFAULTS = {
   host: '127.0.0.1',
-  port: 5199,
+  port: 5599,
   apiPrefix: DEFAULT_API_PREFIX,
   service: SERVICE_NAME,
 };

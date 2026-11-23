@@ -5,7 +5,7 @@ import { reactive } from 'vue';
 
 const STORAGE_KEY = 'ams-server-config';
 const API_PREFIX = '/api/v1';
-const DEFAULT_ORIGIN = 'http://127.0.0.1:5199';
+const DEFAULT_ORIGIN = 'http://127.0.0.1:5599';
 
 export interface ServerConfig {
   /** 后端基址，含协议与端口；空串表示走相对前缀（仅开发代理兜底）。 */

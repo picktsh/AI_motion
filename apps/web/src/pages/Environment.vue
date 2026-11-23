@@ -104,7 +104,7 @@ const groups = computed(() =>
         <NFormItem label="后端地址" label-class="text-xs text-ink-2">
           <NInput
             v-model:value="origin"
-            placeholder="http://127.0.0.1:5199"
+            placeholder="http://127.0.0.1:5599"
             spellcheck="false"
             :status="originError ? 'error' : undefined"
             @input="originError = false"
@@ -128,7 +128,7 @@ const groups = computed(() =>
       </div>
 
       <div class="mt-3 flex flex-col gap-1 text-xs text-ink-3 leading-5">
-        <div>后端未启动时，在工程根目录运行 <span class="font-mono text-ink-2">pnpm dev:server</span>，默认监听 127.0.0.1:5199。</div>
+        <div>后端未启动时，在工程根目录运行 <span class="font-mono text-ink-2">pnpm dev:server</span>，默认监听 127.0.0.1:5599。</div>
         <div>健康检查：<span class="font-mono text-ink-2">/api/v1/health</span>；下方清单列出本机依赖就位情况，缺项按提示补齐。</div>
       </div>
     </NCard>
