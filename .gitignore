@@ -27,3 +27,11 @@ studio/tts/segments/*.vtt
 # ---- 成品：渲染产物、成片与项目工程 ----
 studio/projects/
 studio/videos/
+
+# === AI generated files (managed by ai-protocol-sync) ===
+AGENTS.md
+.aiignore
+.tmp/
+# AGENTS.local.md = 项目约定单一源头，要提交
+!AGENTS.local.md
+# === end AI generated ===

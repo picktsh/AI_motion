@@ -14,6 +14,7 @@
     "build:all": "pnpm --dir ./apps/server build && pnpm --dir ./apps/web build",
     "preview": "pnpm --dir ./apps/web preview",
     "setup:python": "node scripts/setup-python.mjs",
-    "typecheck": "pnpm --dir ./apps/server typecheck && pnpm --dir ./apps/web typecheck"
+    "typecheck": "pnpm --dir ./apps/server typecheck && pnpm --dir ./apps/web typecheck",
+    "sync:ai": "npx -y github:picktsh/ai-protocol"
   }
 }
