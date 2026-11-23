@@ -55,10 +55,9 @@ async function runTtsAction(command: CommandName): Promise<void> {
     </div>
 
     <template v-else-if="data">
-      <SectionCard title="配音生成">
+      <SectionCard title="生成音色样例">
         <div class="flex flex-wrap gap-2">
-          <NButton size="small" :loading="busyAction === 'tts:voice'" @click="runTtsAction('tts:voice')">生成配音分段</NButton>
-          <NButton size="small" :loading="busyAction === 'tts:samples'" @click="runTtsAction('tts:samples')">生成试音样例</NButton>
+          <NButton size="small" secondary :loading="busyAction === 'tts:samples'" @click="runTtsAction('tts:samples')">生成试音样例</NButton>
         </div>
       </SectionCard>
 

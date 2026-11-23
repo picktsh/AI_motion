@@ -4,6 +4,7 @@ import { spawn } from 'node:child_process';
 import { ROOT, findBin } from '../infra/paths.js';
 import { config } from '../config.js';
 import { badRequest, notFound } from '../core/errors.js';
+import { mediaType, type MediaType } from '../infra/probe.js';
 import { submitJob, getJob } from './jobs.js';
 
 // 创作项目：模板 + 文稿 → 报价 → 异步生成（任务服务）→ 作品页发布配置。
@@ -15,6 +16,9 @@ export interface Project {
   name: string;
   templateId: string;
   templateName: string;
+  templateVersion: string | null;
+  templateDir: string;
+  templateSha256: string | null;
   runner: 'adapter' | 'cloud';
   archiveRel: string;
   scriptRel: string;
@@ -29,13 +33,17 @@ export interface Project {
   jobId: string | null;
   error: string | null;
   runMaxCredits: number;
+  scriptText?: string;
 }
 
 interface TemplateRef {
   id: string;
   name: string;
-  archiveRel: string | null;
+  version: string | null;
   dir: string;
+  dirRel: string;
+  packageSha256: string | null;
+  archiveRel: string | null;
   runner: 'adapter' | 'cloud';
 }
 
@@ -57,12 +65,15 @@ function readProject(id: string): Project | null {
   if (!fs.existsSync(file)) return null;
   try {
     const raw = JSON.parse(fs.readFileSync(file, 'utf8')) as Project & { kind?: string };
-    // 旧版项目字段兼容：kind → runner，补齐任务字段。
-    if (!raw.runner) raw.runner = raw.kind === 'personal' ? 'cloud' : 'adapter';
+    // 旧版项目字段兼容：kind → runner；缺 runner 时按 archiveRel 判定（云端包带原始包路径，本机包为空）。
+    if (!raw.runner) raw.runner = raw.kind === 'personal' || (raw.archiveRel && raw.archiveRel.length) ? 'cloud' : 'adapter';
     delete raw.kind;
     raw.jobId ??= null;
     raw.error ??= null;
     raw.runMaxCredits ??= 0;
+    raw.templateVersion ??= null;
+    raw.templateDir ??= '';
+    raw.templateSha256 ??= null;
     return raw;
   } catch {
     return null;
@@ -76,8 +87,12 @@ function hydrate(p: Project): Project {
     p.error = p.error ?? '服务重启导致任务中断，请重新生成';
     writeProject(p);
   }
+  const scriptText = p.scriptRel && fs.existsSync(path.join(ROOT, p.scriptRel))
+    ? fs.readFileSync(path.join(ROOT, p.scriptRel), 'utf8').trim()
+    : '';
   return {
     ...p,
+    scriptText,
     videoUrl: p.artifactRel && fs.existsSync(path.join(ROOT, p.artifactRel)) ? assetUrl(p.artifactRel) : null,
   };
 }
@@ -100,13 +115,16 @@ function findTemplateRef(templateId: string): TemplateRef | null {
     const canonical = slug.includes('@') ? slug : `${slug}@${String(meta.version ?? tmeta.version ?? '')}`;
     if (canonical !== templateId && name !== templateId && String(tmeta.id ?? '') !== templateId) continue;
     const cloud = fs.existsSync(path.join(dir, 'assistant', 'motion.mjs'));
+    const version = String(meta.version ?? tmeta.version ?? '') || null;
+    const packageSha256 = String(meta.packageSha256 ?? '') || null;
+    const dirRel = path.relative(ROOT, dir);
     if (cloud) {
       const archiveRel = String(meta.archiveRel ?? '');
       if (!archiveRel || !fs.existsSync(path.join(ROOT, archiveRel))) return null;
-      return { id: templateId, name: String(meta.name ?? tmeta.name ?? slug), archiveRel, dir, runner: 'cloud' };
+      return { id: templateId, name: String(meta.name ?? tmeta.name ?? slug), version, dir, dirRel, packageSha256, archiveRel, runner: 'cloud' };
     }
     if (!fs.existsSync(path.join(dir, 'adapter.py'))) return null;
-    return { id: templateId, name: String(tmeta.name ?? meta.name ?? name), archiveRel: null, dir, runner: 'adapter' };
+    return { id: templateId, name: String(tmeta.name ?? meta.name ?? name), version, dir, dirRel, packageSha256, archiveRel: null, runner: 'adapter' };
   }
   return null;
 }
@@ -152,10 +170,15 @@ function writeAdapterInput(tplDir: string, outFile: string, title: string, scrip
         captions: [],
       };
   const lines = script.split(/[。！？!?\n]/).map((t) => t.trim()).filter(Boolean).slice(0, 2);
+  const zh = String(base.language ?? 'zh') === 'zh';
+  // 与 adapter.py 的 basic 字段容量对齐：keyword/explanation 按整段字数上限（中文），超出截断避免 plan 阶段被拒。
+  const keywordCap = zh ? 8 : 36;
+  const explanationCap = zh ? 42 : 138;
+  const explanationSource = lines[0] ?? title.slice(0, keywordCap);
   base.title = title.slice(0, 30);
   base.basic = {
-    keyword: title.slice(0, 12),
-    explanation: (lines.length ? lines : [title.slice(0, 12)]).join('\n'),
+    keyword: title.slice(0, keywordCap),
+    explanation: explanationSource.slice(0, explanationCap),
   };
   fs.writeFileSync(outFile, `${JSON.stringify(base, null, 2)}\n`, 'utf8');
   return Number(base.duration) || 8;
@@ -189,6 +212,9 @@ export function createProject(input: Record<string, unknown>): Project {
     name: title,
     templateId,
     templateName: tpl.name,
+    templateVersion: tpl.version,
+    templateDir: tpl.dirRel,
+    templateSha256: tpl.packageSha256,
     runner: tpl.runner,
     archiveRel: tpl.archiveRel ?? '',
     scriptRel,
@@ -426,17 +452,33 @@ export async function preparePublish(id: string): Promise<Project> {
   return hydrate(project);
 }
 
-export function projectFiles(id: string): Record<string, string | null> {
+export function projectFiles(id: string): Record<string, unknown> {
   const project = readProject(id);
   if (!project) throw notFound('项目不存在');
   const dir = projectDir(id);
   const rel = (abs: string) => (fs.existsSync(abs) ? path.relative(ROOT, abs).split(path.sep).join('/') : null);
+  const voiceMetaAbs = path.join(dir, 'input', 'voice.json');
+  let voiceMeta: { voice: string; duration_s: number; createdAt: string } | null = null;
+  if (fs.existsSync(voiceMetaAbs)) {
+    try {
+      const raw = JSON.parse(fs.readFileSync(voiceMetaAbs, 'utf8')) as Record<string, unknown>;
+      voiceMeta = {
+        voice: String(raw.voice ?? ''),
+        duration_s: Number(raw.duration_s ?? 0),
+        createdAt: String(raw.createdAt ?? ''),
+      };
+    } catch {
+      voiceMeta = null;
+    }
+  }
   return {
     video: project.artifactRel,
     cover4x3: rel(path.join(dir, 'output', 'cover-4x3.jpg')),
     cover3x4: rel(path.join(dir, 'output', 'cover-3x4.jpg')),
     publishTxt: rel(path.join(dir, 'output', 'publish.txt')),
     log: project.logRel,
+    voice: rel(path.join(dir, 'input', 'voice.mp3')),
+    voiceMeta,
   };
 }
 
@@ -447,4 +489,151 @@ export function readLog(id: string, offset = 0): { text: string; next: number } 
   if (!fs.existsSync(abs)) return { text: '', next: 0 };
   const full = fs.readFileSync(abs, 'utf8');
   return { text: full.slice(offset), next: full.length };
+}
+
+/* ---------- 环节配置：素材 / 配音偏好（独立 studio-config.json，不干涉 adapter 输入 user.json） ---------- */
+
+export interface ProjectAsset {
+  name: string;
+  type: MediaType;
+  rel: string;
+  url: string;
+}
+
+export interface StudioConfig {
+  voicePreference: string | null;
+  assets: ProjectAsset[];
+}
+
+const ASSET_EXTS = new Set(['.png', '.jpg', '.jpeg', '.webp', '.gif', '.mp3', '.wav', '.m4a', '.aac', '.mp4', '.webm', '.mov', '.mkv']);
+const MAX_ASSET_BYTES = 20 * 1024 * 1024;
+
+function studioConfigPath(id: string): string {
+  return path.join(projectDir(id), 'input', 'studio-config.json');
+}
+
+export function readStudioConfig(id: string): StudioConfig {
+  if (!readProject(id)) throw notFound('项目不存在');
+  const file = studioConfigPath(id);
+  if (!fs.existsSync(file)) return { voicePreference: null, assets: [] };
+  try {
+    const raw = JSON.parse(fs.readFileSync(file, 'utf8')) as Partial<StudioConfig>;
+    return {
+      voicePreference: typeof raw.voicePreference === 'string' ? raw.voicePreference : null,
+      assets: Array.isArray(raw.assets) ? raw.assets : [],
+    };
+  } catch {
+    return { voicePreference: null, assets: [] };
+  }
+}
+
+function writeStudioConfig(id: string, cfg: StudioConfig): void {
+  fs.mkdirSync(path.join(projectDir(id), 'input'), { recursive: true });
+  fs.writeFileSync(studioConfigPath(id), `${JSON.stringify(cfg, null, 2)}\n`, 'utf8');
+}
+
+export function updateStudioConfig(id: string, patch: { voicePreference?: string | null }): StudioConfig {
+  const cfg = readStudioConfig(id);
+  if (patch.voicePreference !== undefined) cfg.voicePreference = patch.voicePreference || null;
+  writeStudioConfig(id, cfg);
+  return cfg;
+}
+
+/** 面板内轻编辑：只改标题、文稿这类纯文本；模板入参 user.json 等创作文件仍交外部 AI。 */
+export function updateProjectText(id: string, patch: { name?: string; script?: string }): Project {
+  const p = readProject(id);
+  if (!p) throw notFound('项目不存在');
+  if (patch.name !== undefined) {
+    const name = patch.name.trim();
+    if (!name) throw badRequest('标题不能为空');
+    if (name.length > 30) throw badRequest('标题不超过 30 字');
+    p.name = name;
+  }
+  if (patch.script !== undefined) {
+    const script = patch.script.trim();
+    if (!script) throw badRequest('文稿不能为空');
+    fs.writeFileSync(path.join(ROOT, p.scriptRel), `${script}\n`, 'utf8');
+  }
+  writeProject(p);
+  return hydrate(p);
+}
+
+function assetDir(id: string): string {
+  return path.join(projectDir(id), 'input', 'assets');
+}
+
+/** 素材清单以磁盘 input/assets 为准，配置里只保留顺序与登记信息。 */
+export function listProjectAssets(id: string): ProjectAsset[] {
+  if (!readProject(id)) throw notFound('项目不存在');
+  const dir = assetDir(id);
+  if (!fs.existsSync(dir)) return [];
+  const cfg = readStudioConfig(id);
+  const ordered = new Map(cfg.assets.map((a) => [a.rel, a]));
+  const onDisk = fs.readdirSync(dir, { withFileTypes: true })
+    .filter((d) => d.isFile() && !['.DS_Store', 'Thumbs.db'].includes(d.name))
+    .map((d) => {
+      const abs = path.join(dir, d.name);
+      const rel = path.relative(ROOT, abs).split(path.sep).join('/');
+      const existing = ordered.get(rel);
+      return existing ?? {
+        name: d.name,
+        type: mediaType(d.name),
+        rel,
+        url: assetUrl(rel),
+      };
+    });
+  return onDisk;
+}
+
+export function saveProjectAsset(id: string, filename: string, data: Buffer): ProjectAsset {
+  if (!readProject(id)) throw notFound('项目不存在');
+  const ext = path.extname(filename || '').toLowerCase();
+  if (!ASSET_EXTS.has(ext)) throw badRequest('只接收图片、音频或视频素材');
+  if (data.length > MAX_ASSET_BYTES) throw badRequest('素材超过 20MB 上限');
+
+  const base = path.basename(filename || 'upload').trim()
+    .slice(0, -ext.length)
+    .replace(/[^\w一-龥.-]+/g, '-')
+    .replace(/-+/g, '-')
+    .replace(/^-|-$/g, '');
+  if (!base) throw badRequest('文件名不合法');
+
+  fs.mkdirSync(assetDir(id), { recursive: true });
+  let name = `${base}${ext}`;
+  let n = 1;
+  while (fs.existsSync(path.join(assetDir(id), name))) {
+    name = `${base}-${n}${ext}`;
+    n += 1;
+    if (n > 99) throw badRequest('同名素材过多，请先清理目录');
+  }
+
+  const abs = path.join(assetDir(id), name);
+  fs.writeFileSync(abs, data);
+  const rel = path.relative(ROOT, abs).split(path.sep).join('/');
+  const asset: ProjectAsset = { name, type: mediaType(name), rel, url: assetUrl(rel) };
+
+  const cfg = readStudioConfig(id);
+  cfg.assets = [asset, ...cfg.assets.filter((a) => a.rel !== rel)];
+  writeStudioConfig(id, cfg);
+  return asset;
+}
+
+// 项目封面槽位：横版 4:3、竖版 3:4，固定落在 output 目录，供发布页取用。
+const COVER_FILES: Record<'horizontal' | 'vertical', string> = {
+  horizontal: 'cover-4x3.jpg',
+  vertical: 'cover-3x4.jpg',
+};
+
+export function saveProjectCover(id: string, slot: 'horizontal' | 'vertical', data: Buffer): ProjectAsset {
+  if (!readProject(id)) throw notFound('项目不存在');
+  if (!data || data.length === 0) throw badRequest('封面文件为空');
+  if (data.length > MAX_ASSET_BYTES) throw badRequest('封面超过 20MB 上限');
+
+  const name = COVER_FILES[slot];
+  const outDir = path.join(projectDir(id), 'output');
+  fs.mkdirSync(outDir, { recursive: true });
+  const abs = path.join(outDir, name);
+  fs.writeFileSync(abs, data);
+  const rel = path.relative(ROOT, abs).split(path.sep).join('/');
+  return { name, type: mediaType(name), rel, url: assetUrl(rel) };
 }

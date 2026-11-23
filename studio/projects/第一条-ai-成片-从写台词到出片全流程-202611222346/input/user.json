@@ -1,0 +1,68 @@
+{
+  "mode": "user-media",
+  "language": "zh",
+  "layout": "landscape",
+  "duration": 41.0,
+  "title": "第一条 AI 成片，从写台词到出片全流程",
+  "presenterLabel": "",
+  "scenes": [
+    {
+      "id": "B1",
+      "title": "复盘开篇"
+    },
+    {
+      "id": "B2",
+      "title": "制作步骤",
+      "duration": 12.6
+    },
+    {
+      "id": "B3",
+      "title": "前后对比",
+      "duration": 12.4
+    },
+    {
+      "id": "B4",
+      "title": "收尾总结"
+    }
+  ],
+  "content": {},
+  "basic": {
+    "keyword": "第一条成片复盘",
+    "explanation": "从写台词、配人声，\n绑人像和 BGM，套模板出成片，拆给你看。",
+    "heading": "当时分这几步",
+    "points": [
+      "先按复盘话题写口播稿",
+      "给稿子配好旁白和字幕",
+      "绑上人像照片和背景音乐",
+      "套进模板跑预览逐段核对",
+      "确认画面声音后渲染成片"
+    ],
+    "left": "手动剪片费时",
+    "right": "模板出片省心",
+    "conclusion": "这一条跑通以后，我确认流程能复用，\n下一期再补改版和踩坑的细节。",
+    "summary": "幕后全流程",
+    "action": "看完这条关注我，\n改版过程和踩过的坑，一条条补出来。"
+  },
+  "media": {
+    "presenter": {
+      "mode": "image",
+      "file": "assets/presenter.png",
+      "face": {
+        "cx": 0.66,
+        "cy": 0.34,
+        "h": 0.30
+      }
+    },
+    "voice": {
+      "mode": "file",
+      "file": "voice.mp3"
+    },
+    "music": {
+      "mode": "file",
+      "file": "assets/bgm.mp3",
+      "license": "来源 Mixkit 免费素材库 https://mixkit.co/free-stock-music/ ，曲目直链 https://assets.mixkit.co/music/1076/1076.mp3 ，按 Mixkit Free License 使用；发布前以官网 mixkit.co/license 最新条款为准"
+    }
+  },
+  "soundEffects": "native",
+  "captions": []
+}

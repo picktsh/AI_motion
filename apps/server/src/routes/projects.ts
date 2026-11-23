@@ -11,6 +11,12 @@ import {
   quoteProject,
   readLog,
   runProject,
+  readStudioConfig,
+  updateStudioConfig,
+  listProjectAssets,
+  saveProjectAsset,
+  saveProjectCover,
+  updateProjectText,
 } from '../services/projects.js';
 import { badRequest, notFound } from '../core/errors.js';
 import { ok, list } from '../core/response.js';
@@ -74,5 +80,83 @@ export function registerProjects(app: FastifyInstance, prefix: string): void {
   app.get<{ Params: { id: string }; Querystring: { offset?: string } }>(
     `${prefix}/projects/:id/log`,
     async (request) => ok(readLog(request.params.id, Number(request.query.offset ?? 0))),
+  );
+
+  app.get<{ Params: { id: string } }>(`${prefix}/projects/:id/config`, async (request) =>
+    ok(readStudioConfig(request.params.id)),
+  );
+
+  app.put<{ Params: { id: string }; Body: { voicePreference?: string | null } }>(
+    `${prefix}/projects/:id/config`,
+    async (request) => ok(updateStudioConfig(request.params.id, request.body ?? {})),
+  );
+
+  app.put<{ Params: { id: string }; Body: { name?: string; script?: string } }>(
+    `${prefix}/projects/:id/text`,
+    async (request) => ok(updateProjectText(request.params.id, request.body ?? {})),
+  );
+
+  app.get<{ Params: { id: string } }>(`${prefix}/projects/:id/assets`, async (request) =>
+    list(listProjectAssets(request.params.id)),
+  );
+
+  app.post<{ Params: { id: string } }>(`${prefix}/projects/:id/assets`, {
+    schema: {
+      tags: ['projects'],
+      summary: '上传项目素材（图片/音频/视频，multipart 字段 file，落 input/assets）',
+      consumes: ['multipart/form-data'],
+      params: idParam,
+    },
+  }, async (request) => {
+    let part;
+    try {
+      part = await request.file();
+    } catch (err) {
+      const message = err instanceof Error ? err.message : '';
+      throw badRequest(`读取上传文件失败：${message || '未知原因'}`);
+    }
+    if (!part) throw badRequest('缺少上传文件字段 file');
+    let data: Buffer;
+    try {
+      data = await part.toBuffer();
+    } catch (err) {
+      const message = err instanceof Error ? err.message : '';
+      if (/too large/i.test(message)) throw badRequest('素材超过 20MB 上限');
+      throw badRequest(`读取素材失败：${message || '未知原因'}`);
+    }
+    const saved = saveProjectAsset(request.params.id, part.filename || 'asset', data);
+    return ok(saved);
+  });
+
+  app.post<{ Params: { id: string }; Querystring: { slot?: string } }>(
+    `${prefix}/projects/:id/cover`,
+    {
+      schema: {
+        tags: ['projects'],
+        summary: '上传项目封面（multipart 字段 file，slot=horizontal/vertical，落 output）',
+        consumes: ['multipart/form-data'],
+        params: idParam,
+      },
+    }, async (request) => {
+      const slot = request.query.slot === 'vertical' ? 'vertical' : 'horizontal';
+      let part;
+      try {
+        part = await request.file();
+      } catch (err) {
+        const message = err instanceof Error ? err.message : '';
+        throw badRequest(`读取上传文件失败：${message || '未知原因'}`);
+      }
+      if (!part) throw badRequest('缺少上传文件字段 file');
+      let data: Buffer;
+      try {
+        data = await part.toBuffer();
+      } catch (err) {
+        const message = err instanceof Error ? err.message : '';
+        if (/too large/i.test(message)) throw badRequest('封面超过 20MB 上限');
+        throw badRequest(`读取封面文件失败：${message || '未知原因'}`);
+      }
+      const saved = saveProjectCover(request.params.id, slot, data);
+      return ok(saved);
+    },
   );
 }

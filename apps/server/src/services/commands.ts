@@ -15,7 +15,7 @@ export interface CommandParams {
   [key: string]: unknown;
 }
 
-type ScriptKind = 'adapter' | 'voice' | 'samples' | 'project';
+type ScriptKind = 'adapter' | 'voice' | 'samples' | 'project' | 'voice-project';
 
 interface ResolvedPath {
   abs: string;
@@ -46,6 +46,7 @@ const SCRIPT_ABS: Record<Exclude<ScriptKind, 'adapter'>, string> = {
   voice: path.join(ROOT, 'studio', 'tts', 'make_voice.py'),
   samples: path.join(ROOT, 'studio', 'tts', 'gen_samples.py'),
   project: path.join(ROOT, 'studio', 'tools', 'project_run.py'),
+  'voice-project': path.join(ROOT, 'studio', 'tts', 'synthesize_project.py'),
 };
 
 /** 渲染适配器跟随模板自身：优先 params.template，否则取第一个带 adapter.py 的已导入模板。 */
@@ -170,6 +171,22 @@ const COMMANDS: Record<CommandName, CommandDef> = {
     script: 'voice',
     bins: ['uv'],
     resolve: () => ({ scriptArgs: [], artifact: null }),
+  },
+  'project:voice': {
+    name: 'project:voice',
+    group: 'default',
+    timeoutKind: 'default',
+    script: 'voice-project',
+    bins: ['uv', 'ffprobe'],
+    resolve: (p) => {
+      const id = typeof p.projectId === 'string' ? p.projectId.trim() : '';
+      if (!id || !/^[\w\u4e00-\u9fa5.@-]+$/.test(id)) return '缺少合法的 projectId';
+      const rel = `studio/projects/${id}/input/voice.mp3`;
+      return {
+        scriptArgs: ['--project', id],
+        artifact: { rel, url: assetUrl(rel) },
+      };
+    },
   },
   'tts:samples': {
     name: 'tts:samples',

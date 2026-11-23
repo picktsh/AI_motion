@@ -93,7 +93,11 @@ function toggle(): void {
   void ws?.playPause();
 }
 
-defineExpose({ toggle, playing, current, duration });
+function pause(): void {
+  ws?.pause();
+}
+
+defineExpose({ toggle, pause, playing, current, duration });
 
 onMounted(async () => {
   await nextTick();

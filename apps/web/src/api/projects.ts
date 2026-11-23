@@ -1,5 +1,6 @@
-import { getJson, getList, postJson, putJson } from './client';
+import { getJson, getList, postJson, putJson, postForm } from './client';
 import { endpoints } from './endpoints';
+import { resolveAssetUrl } from '../composables/useServerConfig';
 
 export interface ProjectQuote {
   total?: number;
@@ -21,6 +22,9 @@ export interface Project {
   name: string;
   templateId: string;
   templateName: string;
+  templateVersion: string | null;
+  templateDir: string;
+  templateSha256: string | null;
   status: 'draft' | 'quoted' | 'running' | 'failed' | 'done';
   createdAt: string;
   duration: number;
@@ -32,6 +36,25 @@ export interface Project {
   jobId: string | null;
   error: string | null;
   runMaxCredits: number;
+  scriptText?: string;
+}
+
+export interface ProjectAsset {
+  name: string;
+  type: 'image' | 'audio' | 'video' | 'file';
+  rel: string;
+  url: string | null;
+}
+
+export interface StudioConfig {
+  voicePreference: string | null;
+  assets: ProjectAsset[];
+}
+
+export interface VoiceMeta {
+  voice: string;
+  duration_s: number;
+  createdAt: string;
 }
 
 export interface ProjectFiles {
@@ -40,6 +63,8 @@ export interface ProjectFiles {
   cover3x4: string | null;
   publishTxt: string | null;
   log: string | null;
+  voice: string | null;
+  voiceMeta: VoiceMeta | null;
 }
 
 export interface ProjectPublish {
@@ -52,12 +77,18 @@ export interface ProjectPublish {
   publishAt: string;
 }
 
-export function listProjects(): Promise<Project[]> {
-  return getList<Project>(endpoints.projects.list);
+function resolveProject(p: Project): Project {
+  return { ...p, videoUrl: resolveAssetUrl(p.videoUrl) };
 }
 
-export function getProject(id: string): Promise<Project> {
-  return getJson<Project>(endpoints.projects.detail(id));
+export async function listProjects(): Promise<Project[]> {
+  const items = await getList<Project>(endpoints.projects.list);
+  return items.map(resolveProject);
+}
+
+export async function getProject(id: string): Promise<Project> {
+  const p = await getJson<Project>(endpoints.projects.detail(id));
+  return resolveProject(p);
 }
 
 export function createProject(payload: {
@@ -109,4 +140,31 @@ export interface ProjectCredits {
 
 export function getProjectCredits(id: string): Promise<ProjectCredits> {
   return getJson<ProjectCredits>(endpoints.projects.credits(id));
+}
+
+export function getStudioConfig(id: string): Promise<StudioConfig> {
+  return getJson<StudioConfig>(endpoints.projects.config(id));
+}
+
+export function saveStudioConfig(id: string, payload: { voicePreference?: string | null }): Promise<StudioConfig> {
+  return putJson<StudioConfig>(endpoints.projects.config(id), payload);
+}
+
+export async function listProjectAssets(id: string): Promise<ProjectAsset[]> {
+  const items = await getList<ProjectAsset>(endpoints.projects.assets(id));
+  return items.map((a) => ({ ...a, url: resolveAssetUrl(a.url) }));
+}
+
+/** 面板内轻编辑：标题 / 文稿纯文本，不动创作入参文件。 */
+export function saveProjectText(
+  id: string,
+  payload: { name?: string; script?: string },
+): Promise<Project> {
+  return putJson<Project>(endpoints.projects.text(id), payload);
+}
+
+export function uploadProjectAsset(id: string, file: File, onProgress?: (percent: number) => void): Promise<ProjectAsset> {
+  const form = new FormData();
+  form.append('file', file, file.name);
+  return postForm<ProjectAsset>(endpoints.projects.assets(id), form, onProgress);
 }

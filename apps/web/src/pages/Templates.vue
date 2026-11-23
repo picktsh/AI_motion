@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import { computed, h, onMounted, ref, watch } from 'vue';
 import { useRouter } from 'vue-router';
-import { NIcon, NButton, NDrawer, NDrawerContent, NInput, NTree, NProgress, NAlert, useMessage, type TreeOption } from 'naive-ui';
+import { NIcon, NButton, NDrawer, NDrawerContent, NInput, NTree, NProgress, NAlert, NRadioGroup, NRadioButton, useMessage, type TreeOption } from 'naive-ui';
 import {
   FolderOutline,
   DocumentOutline,
@@ -21,10 +21,12 @@ import {
   getTemplateRedirect,
 } from '../api/templates';
 import { useFetch } from '../composables/useFetch';
+import { useServerConfig } from '../composables/useServerConfig';
 import StatusTag from '../components/data/StatusTag.vue';
 import SkeletonBlock from '../components/data/SkeletonBlock.vue';
 import EmptyState from '../components/data/EmptyState.vue';
 import PathCopy from '../components/data/PathCopy.vue';
+import PromptCopyBlock from '../components/data/PromptCopyBlock.vue';
 import type {
   TemplateDetail,
   TemplateSummary,
@@ -41,11 +43,12 @@ function useTemplate() {
   if (!detail.value) return;
   const id = detail.value.id;
   show.value = false;
-  router.push({ path: '/', query: { template: id } });
+  router.push({ path: '/create', query: { template: id } });
 }
 
 const local = useFetch(listTemplates);
 const catalog = useFetch(getCatalog);
+const { backendContextLines, apiUrl } = useServerConfig();
 
 onMounted(() => {
   void local.run();
@@ -157,12 +160,6 @@ watch(query, resetVisible);
 function setOrientation(value: 'all' | 'landscape' | 'portrait') {
   orientation.value = value;
   resetVisible();
-}
-
-function segClass(value: string): string {
-  return orientation.value === value
-    ? 'bg-brand-soft text-brand font-semibold'
-    : 'text-ink-2 hover:text-ink';
 }
 
 async function refreshCatalog() {
@@ -286,6 +283,21 @@ const outputText = computed(() => {
   return [wh, fps].filter(Boolean).join(' · ') || '—';
 });
 
+const templatePrompt = computed(() => {
+  const d = detail.value;
+  if (!d) return '';
+  return [
+    ...backendContextLines(),
+    '',
+    `我要基于模板「${d.name}」做一条片子。`,
+    `模板 ID：${d.id} · 版本：${d.version || '—'}`,
+    `模板本地目录："${d.localPath}"`,
+    `- 先在快照 templates 里核对该模板的槽位摘要，再按参数 schema${d.parameters.file ? `（"${d.parameters.file}"）` : ''}准备输入：标题、口播文稿、素材绑定与配音偏好。`,
+    `- 新建项目调 POST ${apiUrl('/projects')}，body 带 templateId（必填）、script（必填，口播文稿）、title、keywords、duration；后端自动建目录、写 "script.txt" 并登记台账，不要手工建目录。`,
+    '- 入参文件落到新项目的 "input/" 目录，不要改动模板包本身。',
+  ].join('\n');
+});
+
 /* ---------- 模板中心详情 ---------- */
 const catShow = ref(false);
 const catItem = ref<CatalogItem | null>(null);
@@ -335,7 +347,7 @@ const catSummary = computed(() => {
           </template>
           导入 .motion
         </n-button>
-        <n-button tag="a" :href="OFFICIAL_SITE" target="_blank" rel="noopener noreferrer" quaternary>
+        <n-button tag="a" :href="OFFICIAL_SITE" target="_blank" rel="noopener noreferrer" secondary>
           <template #icon>
             <n-icon :size="14"><OpenOutline /></n-icon>
           </template>
@@ -375,46 +387,45 @@ const catSummary = computed(() => {
       />
 
       <div v-else class="grid grid-cols-[repeat(auto-fill,minmax(260px,1fr))] gap-4">
-        <button
+        <div
           v-for="t in local.data.value"
           :key="t.id"
-          type="button"
-          class="card flex flex-col text-left p-0 overflow-hidden cursor-pointer transition duration-150 hover:border-brand hover:-translate-y-px"
+          class="card flex flex-col text-left overflow-hidden cursor-pointer transition duration-150 hover:border-brand hover:-translate-y-px"
           :class="isBroken(t) ? 'opacity-60 saturate-50' : ''"
           @click="open(t.id)"
         >
-          <div class="relative h-35 bg-divider overflow-hidden">
-            <img
-              v-if="coverOf(t)"
-              :src="coverOf(t) ?? ''"
-              :alt="t.name"
-              loading="lazy"
-              referrerpolicy="no-referrer"
-              class="w-full h-full object-cover block"
-            />
-            <div v-else class="flex items-center justify-center h-full text-4xl font-bold text-brand bg-brand-soft">
-              {{ t.name.slice(0, 1) }}
+            <div class="relative h-35 bg-divider overflow-hidden">
+              <img
+                v-if="coverOf(t)"
+                :src="coverOf(t) ?? ''"
+                :alt="t.name"
+                loading="lazy"
+                referrerpolicy="no-referrer"
+                class="w-full h-full object-cover block"
+              />
+              <div v-else class="flex items-center justify-center h-full text-4xl font-bold text-brand bg-brand-soft">
+                {{ t.name.slice(0, 1) }}
+              </div>
+              <div class="absolute left-2 top-2 flex gap-1 flex-wrap">
+                <StatusTag v-if="isBroken(t)" status="danger" text="需重新下载" />
+                <StatusTag v-else-if="t.paidCloud" status="warning" text="需官方积分" />
+                <StatusTag v-else status="success" text="本机渲染" />
+              </div>
             </div>
-            <div class="absolute left-2 top-2 flex gap-1 flex-wrap">
-              <StatusTag v-if="isBroken(t)" status="danger" text="需重新下载" />
-              <StatusTag v-else-if="t.paidCloud" status="warning" text="需官方积分" />
-              <StatusTag v-else status="success" text="本机渲染" />
-            </div>
-          </div>
 
-          <div class="flex flex-col gap-2 px-4 pt-3 pb-4">
-            <div class="text-lg font-semibold text-ink line-clamp-2">{{ t.name }}</div>
-            <div class="flex items-center gap-2 text-xs text-ink-3">
-              <span class="font-mono">{{ t.version || '—' }}</span>
-              <span v-if="t.fileCount">{{ t.fileCount }} 个文件</span>
+            <div class="flex flex-col gap-2 px-4 pt-3 pb-4">
+              <div class="text-lg font-semibold text-ink line-clamp-2">{{ t.name }}</div>
+              <div class="flex items-center gap-2 text-xs text-ink-3">
+                <span class="font-mono">{{ t.version || '—' }}</span>
+                <span v-if="t.fileCount">{{ t.fileCount }} 个文件</span>
+              </div>
+              <div class="font-mono text-xs text-ink-3 truncate">{{ t.localPath }}</div>
+              <div class="flex items-center gap-2 text-xs min-w-0">
+                <span class="flex-none w-12 text-ink-3">入口</span>
+                <span class="font-mono text-ink-2 truncate">{{ t.runtime.entry || '缺失' }}</span>
+              </div>
             </div>
-            <div class="font-mono text-xs text-ink-3 truncate">{{ t.localPath }}</div>
-            <div class="flex items-center gap-2 text-xs min-w-0">
-              <span class="flex-none w-12 text-ink-3">入口</span>
-              <span class="font-mono text-ink-2 truncate">{{ t.runtime.entry || '缺失' }}</span>
-            </div>
-          </div>
-        </button>
+        </div>
       </div>
     </section>
 
@@ -425,7 +436,7 @@ const catSummary = computed(() => {
         <span v-if="catalogMeta" class="text-xs text-ink-3 mr-auto">
           {{ catalogMeta.items.length }} 条公开清单<template v-if="catalogMeta.fetchedAt"> · 更新于 {{ new Date(catalogMeta.fetchedAt).toLocaleString('zh-CN') }}</template>
         </span>
-        <n-button size="small" quaternary :loading="catalog.loading.value" @click="refreshCatalog">
+        <n-button size="small" secondary :loading="catalog.loading.value" @click="refreshCatalog">
           <template #icon>
             <n-icon :size="14"><RefreshOutline /></n-icon>
           </template>
@@ -439,18 +450,11 @@ const catSummary = computed(() => {
             <n-icon :size="16"><SearchOutline /></n-icon>
           </template>
         </n-input>
-        <div class="inline-flex p-1 gap-1 bg-panel border border-border rounded-control">
-          <button
-            v-for="opt in orientationOptions"
-            :key="opt.value"
-            type="button"
-            class="border-0 bg-transparent text-xs px-3 py-1 rounded-control cursor-pointer transition-colors duration-150"
-            :class="segClass(opt.value)"
-            @click="setOrientation(opt.value)"
-          >
+        <NRadioGroup :value="orientation" size="small" @update:value="setOrientation">
+          <NRadioButton v-for="opt in orientationOptions" :key="opt.value" :value="opt.value">
             {{ opt.label }}
-          </button>
-        </div>
+          </NRadioButton>
+        </NRadioGroup>
       </div>
 
       <div v-if="catalogMeta?.error" class="px-3 py-2 text-xs text-warning bg-warning-soft rounded-control">
@@ -473,50 +477,49 @@ const catSummary = computed(() => {
 
       <template v-else>
         <div class="grid grid-cols-[repeat(auto-fill,minmax(288px,1fr))] gap-4">
-          <button
+          <div
             v-for="item in visibleCatalog"
             :key="item.templateId"
-            type="button"
-            class="card flex flex-col p-0 overflow-hidden text-left cursor-pointer transition duration-150 hover:border-brand hover:-translate-y-px"
+            class="card overflow-hidden text-left cursor-pointer transition duration-150 hover:border-brand hover:-translate-y-px"
             @click="openCatalog(item)"
           >
-            <div class="relative h-42 bg-divider overflow-hidden">
-              <img
-                v-if="item.poster"
-                :src="item.poster"
-                :alt="item.name"
-                loading="lazy"
-                referrerpolicy="no-referrer"
-                class="w-full h-full block"
-                :class="item.orientation === 'portrait' ? 'object-contain bg-black' : 'object-cover'"
-              />
-              <div v-else class="flex items-center justify-center h-full text-4xl font-bold text-brand bg-brand-soft">
-                {{ item.name.slice(0, 1) }}
+              <div class="relative h-42 bg-divider overflow-hidden">
+                <img
+                  v-if="item.poster"
+                  :src="item.poster"
+                  :alt="item.name"
+                  loading="lazy"
+                  referrerpolicy="no-referrer"
+                  class="w-full h-full block"
+                  :class="item.orientation === 'portrait' ? 'object-contain bg-black' : 'object-cover'"
+                />
+                <div v-else class="flex items-center justify-center h-full text-4xl font-bold text-brand bg-brand-soft">
+                  {{ item.name.slice(0, 1) }}
+                </div>
+                <span class="absolute right-2 top-2 px-2 py-1 text-xs rounded-control text-ink bg-panel shadow-card">
+                  {{ item.ratio || (item.orientation === 'portrait' ? '9:16' : '16:9') }}
+                </span>
+                <span v-if="item.demo" class="absolute left-2 bottom-2 inline-flex text-panel opacity-90 drop-shadow">
+                  <n-icon :size="18"><PlayCircleOutline /></n-icon>
+                </span>
               </div>
-              <span class="absolute right-2 top-2 px-2 py-1 text-xs rounded-control text-ink bg-panel shadow-card">
-                {{ item.ratio || (item.orientation === 'portrait' ? '9:16' : '16:9') }}
-              </span>
-              <span v-if="item.demo" class="absolute left-2 bottom-2 inline-flex text-panel opacity-90 drop-shadow">
-                <n-icon :size="18"><PlayCircleOutline /></n-icon>
-              </span>
-            </div>
 
-            <div class="flex flex-col gap-2 px-4 pt-3 pb-4 flex-1">
-              <div class="flex items-start justify-between gap-2">
-                <span class="text-sm font-semibold leading-5 text-ink line-clamp-2">{{ item.name }}</span>
-                <StatusTag v-if="isImported(item)" status="success" text="已导入" />
+              <div class="flex flex-col gap-2 px-4 pt-3 pb-4 flex-1">
+                <div class="flex items-start justify-between gap-2">
+                  <span class="text-sm font-semibold leading-5 text-ink line-clamp-2">{{ item.name }}</span>
+                  <StatusTag v-if="isImported(item)" status="success" text="已导入" />
+                </div>
+                <p class="m-0 text-xs leading-5 text-ink-2 line-clamp-3">{{ item.summary || item.summaryEn || '—' }}</p>
+                <div class="row-between mt-auto text-xs text-ink-3">
+                  <span class="font-mono text-brand">#{{ item.templateId }}</span>
+                  <span class="font-mono">{{ item.version || '—' }}</span>
+                </div>
               </div>
-              <p class="m-0 text-xs leading-5 text-ink-2 line-clamp-3">{{ item.summary || item.summaryEn || '—' }}</p>
-              <div class="row-between mt-auto text-xs text-ink-3">
-                <span class="font-mono text-brand">#{{ item.templateId }}</span>
-                <span class="font-mono">{{ item.version || '—' }}</span>
-              </div>
-            </div>
-          </button>
         </div>
+      </div>
 
         <div class="flex justify-center pt-1">
-          <n-button v-if="hasMore" quaternary @click="visibleCount += 24">
+          <n-button v-if="hasMore" secondary @click="visibleCount += 24">
             加载更多（剩余 {{ filteredCatalog.length - visibleCatalog.length }}）
           </n-button>
           <span v-else class="text-xs text-ink-3">已显示全部 {{ filteredCatalog.length }} 条</span>
@@ -530,7 +533,7 @@ const catSummary = computed(() => {
         <template #header>
           <div class="row-between gap-3">
             <span class="text-lg font-semibold text-ink">{{ detail?.name ?? '模板详情' }}</span>
-            <n-button v-if="redirectUrl" tag="a" :href="redirectUrl" target="_blank" rel="noopener noreferrer" size="small" quaternary>
+            <n-button v-if="redirectUrl" tag="a" :href="redirectUrl" target="_blank" rel="noopener noreferrer" size="small" secondary>
               <template #icon>
                 <n-icon :size="14"><OpenOutline /></n-icon>
               </template>
@@ -661,9 +664,14 @@ const catSummary = computed(() => {
             <n-tree :data="treeData" :render-prefix="renderPrefix" default-expand-all :selectable="false" />
           </section>
 
-          <div class="sticky bottom-0 pt-3 pb-1 bg-overlay">
-            <n-button type="primary" size="large" block :disabled="!detail.runtime.entry" @click="useTemplate">
-              用这个模板创作
+          <div class="flex flex-col gap-3 sticky bottom-0 pt-3 pb-1 bg-overlay">
+            <PromptCopyBlock
+              title="交给 AI 助手"
+              hint="选好模板后，把这段提示词复制给外部 AI 工具；由它按模板参数准备输入并落到新项目目录。"
+              :prompt="templatePrompt"
+            />
+            <n-button secondary block :disabled="!detail.runtime.entry" @click="useTemplate">
+              仍要在面板建工程目录
             </n-button>
           </div>
         </div>
@@ -676,7 +684,7 @@ const catSummary = computed(() => {
         <template #header>
           <div class="row-between gap-3">
             <span class="text-lg font-semibold text-ink">{{ catItem?.name ?? '模板详情' }}</span>
-            <n-button v-if="catItem?.website" tag="a" :href="catItem.website" target="_blank" rel="noopener noreferrer" size="small" quaternary>
+            <n-button v-if="catItem?.website" tag="a" :href="catItem.website" target="_blank" rel="noopener noreferrer" size="small" secondary>
               <template #icon>
                 <n-icon :size="14"><OpenOutline /></n-icon>
               </template>
@@ -701,7 +709,7 @@ const catSummary = computed(() => {
             <div class="flex items-center gap-3 py-1 text-sm">
               <span class="flex-none w-18 text-ink-3 text-xs">编号</span>
               <span class="font-mono text-ink">#{{ catItem.templateId }}</span>
-              <n-button size="tiny" quaternary @click="copyNumber(catItem.templateId)">
+              <n-button size="tiny" secondary @click="copyNumber(catItem.templateId)">
                 <template #icon>
                   <n-icon :size="12"><CopyOutline /></n-icon>
                 </template>
@@ -747,10 +755,10 @@ const catSummary = computed(() => {
               </template>
               去官网下载
             </n-button>
-            <n-button v-if="catItem.repository" tag="a" :href="catItem.repository" target="_blank" rel="noopener noreferrer" quaternary>
+            <n-button v-if="catItem.repository" tag="a" :href="catItem.repository" target="_blank" rel="noopener noreferrer" secondary>
               源码仓
             </n-button>
-            <n-button quaternary @click="pickFile">导入本地包</n-button>
+            <n-button secondary @click="pickFile">导入本地包</n-button>
           </div>
         </div>
       </n-drawer-content>

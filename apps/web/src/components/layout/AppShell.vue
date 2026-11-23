@@ -8,7 +8,6 @@ import {
   SunnyOutline,
   MoonOutline,
   ApertureOutline,
-  ArrowBackOutline,
 } from '@vicons/ionicons5';
 import type { Component } from 'vue';
 import { getEnvironment } from '../../api/environment';
@@ -26,8 +25,9 @@ watch(collapsed, (v) => localStorage.setItem(SHELL_COLLAPSED_KEY, v ? '1' : '0')
 const current = computed(() => ({
   title: (route.meta.title as string) ?? 'AI Motion Studio',
   description: (route.meta.description as string) ?? '',
-  back: (route.meta.back as string) ?? '',
 }));
+
+const isGate = computed(() => route.meta.gate === true);
 
 const menuOptions = computed(() =>
   router.options.routes
@@ -56,11 +56,6 @@ function onSelect(key: string) {
 
 function goHome() {
   router.push('/');
-}
-
-function goBack() {
-  if (current.value.back) router.push(current.value.back);
-  else router.back();
 }
 
 /* 顶栏环境健康灯 */
@@ -112,7 +107,10 @@ onUnmounted(() => window.clearInterval(healthTimer));
 </script>
 
 <template>
-  <div class="flex h-screen overflow-hidden">
+  <div v-if="isGate" class="h-screen overflow-hidden">
+      <router-view />
+    </div>
+    <div v-else class="flex h-screen overflow-hidden">
     <aside
       class="flex flex-col flex-none min-w-0 bg-panel border-r border-border transition-[width] duration-150"
       :class="collapsed ? 'w-12' : 'w-60'"
@@ -123,7 +121,7 @@ onUnmounted(() => window.clearInterval(healthTimer));
           title="返回主页"
           @click="goHome"
         >
-          <n-icon :size="20" class="flex-none text-brand">
+          <n-icon :size="18" class="flex-none text-brand">
             <ApertureOutline />
           </n-icon>
           <span v-show="!collapsed" class="truncate whitespace-nowrap text-lg font-semibold text-ink">
@@ -133,23 +131,26 @@ onUnmounted(() => window.clearInterval(healthTimer));
       </div>
 
       <nav class="flex-1 min-h-0 overflow-y-auto overflow-x-hidden flex flex-col gap-1 px-2 py-2">
-        <button
-          v-for="opt in menuOptions"
-          :key="opt.key"
-          type="button"
-          class="flex items-center w-full px-2 py-2 gap-2 leading-none rounded-control border-0 cursor-pointer transition-colors duration-150"
-          :class="navClass(opt.key)"
-          @click="onSelect(opt.key)"
-        >
+      <n-button
+        v-for="opt in menuOptions"
+        :key="opt.key"
+        block
+        secondary
+        class="!px-2 !py-2 rounded-control justify-start"
+        :class="navClass(opt.key)"
+        @click="onSelect(opt.key)"
+      >
+        <template #icon>
           <span class="w-5 flex-none flex items-center justify-center">
             <n-icon :size="18">
               <component :is="opt.icon" />
             </n-icon>
           </span>
-          <span v-show="!collapsed" class="flex-1 min-w-0 text-left truncate text-sm leading-none">
-            {{ opt.label }}
-          </span>
-        </button>
+        </template>
+        <span v-show="!collapsed" class="flex-1 min-w-0 text-left truncate text-sm leading-none">
+          {{ opt.label }}
+        </span>
+      </n-button>
       </nav>
     </aside>
 
@@ -159,7 +160,7 @@ onUnmounted(() => window.clearInterval(healthTimer));
       >
         <div class="flex-1 min-w-0 flex items-center gap-3">
           <n-button
-            quaternary
+            secondary
             circle
             class="flex-none"
             :title="collapsed ? '展开侧边栏' : '收起侧边栏'"
@@ -170,14 +171,6 @@ onUnmounted(() => window.clearInterval(healthTimer));
                 <MenuOutline />
               </n-icon>
             </template>
-          </n-button>
-          <n-button v-if="current.back" size="small" class="flex-none" @click="goBack">
-            <template #icon>
-              <n-icon :size="16">
-                <ArrowBackOutline />
-              </n-icon>
-            </template>
-            返回
           </n-button>
           <div class="flex flex-col gap-1 min-w-0">
             <div class="truncate whitespace-nowrap text-lg font-semibold text-ink">
@@ -190,9 +183,9 @@ onUnmounted(() => window.clearInterval(healthTimer));
         </div>
 
         <div class="flex-none flex items-center gap-2">
-          <button
-            type="button"
-            class="p-2 inline-flex items-center justify-center bg-transparent border-0 rounded-control cursor-pointer transition-colors duration-150 hover:bg-neutral-soft"
+          <n-button
+            circle
+            secondary
             :title="health.text"
             aria-label="环境状态，点击查看环境检查"
             @click="router.push('/environment')"
@@ -200,15 +193,15 @@ onUnmounted(() => window.clearInterval(healthTimer));
             <span class="w-5 h-5 inline-flex items-center justify-center">
               <span class="w-2 h-2 rounded-full" :class="dotClass" />
             </span>
-          </button>
-          <n-button quaternary circle title="刷新当前页" @click="refresh">
+          </n-button>
+          <n-button secondary circle title="刷新当前页" @click="refresh">
             <template #icon>
               <n-icon :size="18">
                 <RefreshOutline />
               </n-icon>
             </template>
           </n-button>
-          <n-button quaternary circle :title="isDark ? '切换到亮色' : '切换到暗色'" @click="toggle">
+          <n-button secondary circle :title="isDark ? '切换到亮色' : '切换到暗色'" @click="toggle">
             <template #icon>
               <n-icon :size="18">
                 <component :is="isDark ? SunnyOutline : MoonOutline" />

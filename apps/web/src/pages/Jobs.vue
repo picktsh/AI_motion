@@ -16,6 +16,7 @@ const COMMAND_LABEL: Record<CommandName, string> = {
   'tts:voice': '生成配音分段',
   'tts:samples': '生成试音样例',
   'project:run': '项目生成',
+  'project:voice': '项目配音',
 };
 
 const STATUS_TONE: Record<JobStatus, StatusTone> = {

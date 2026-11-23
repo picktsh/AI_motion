@@ -36,13 +36,14 @@ studio/templates-cache/
 apps/web/dist/
 apps/server/dist/
 
-# ---- 项目产物与中间实例（清单 json/txt 保留，实例与媒体不入库）----
+# ---- 项目工程：只保留清单（project.json / input 文稿 / publish 清单），实例、成片、素材不入库 ----
 studio/projects/*/instance*/
-studio/projects/*/output/*.mp4
-studio/projects/*/output/*.wav
-studio/projects/*/output/*.png
-studio/projects/*/output/*.webm
-studio/projects/*/output/*.gif
+studio/projects/*/input/assets/
+studio/projects/*/input/voice.mp3
+studio/projects/*/input/*.wav
+studio/projects/*/output/
+!studio/projects/*/output/publish.json
+!studio/projects/*/output/publish.txt
 
 # ---- 模板包（含个人调用标识，禁止入库）----
 studio/templates/

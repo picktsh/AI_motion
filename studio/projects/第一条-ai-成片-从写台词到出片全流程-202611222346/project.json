@@ -1,0 +1,29 @@
+{
+  "id": "第一条-ai-成片-从写台词到出片全流程-202611222346",
+  "name": "第一条 AI 成片，从写台词到出片全流程",
+  "templateId": "kinetic-tech@0.2.7-open-beta",
+  "templateName": "酷炫科技风",
+  "templateVersion": "0.2.7-open-beta",
+  "templateDir": "studio/templates/kinetic-tech@0.2.7-open-beta",
+  "templateSha256": "472a95af35f8e0c09c0f7dc2ca0992b7c9a3405c5aa8063730c347fc4e015c21",
+  "runner": "adapter",
+  "archiveRel": "",
+  "scriptRel": "studio/projects/第一条-ai-成片-从写台词到出片全流程-202611222346/input/script.txt",
+  "status": "done",
+  "createdAt": "2026-11-22T23:46:58.860Z",
+  "duration": 8,
+  "keywords": [
+    "第一条成片复盘"
+  ],
+  "quote": {
+    "route": "local-adapter",
+    "total": 0,
+    "note": "本机渲染，不调用官方云端"
+  },
+  "artifactRel": "studio/projects/第一条-ai-成片-从写台词到出片全流程-202611222346/output/video-with-audio.mp4",
+  "videoUrl": null,
+  "logRel": "studio/projects/第一条-ai-成片-从写台词到出片全流程-202611222346/run.log",
+  "jobId": "job_737fcde768",
+  "error": null,
+  "runMaxCredits": 0
+}

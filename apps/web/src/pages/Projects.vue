@@ -49,30 +49,32 @@ onUnmounted(() => window.clearInterval(timer));
 </script>
 
 <template>
-  <SectionCard title="项目" subtitle="每条片子从模板和文稿开始，生成进度在这里跟踪">
+  <SectionCard title="项目" subtitle="每条片子的文稿、生成状态与发布配置在这里跟踪">
     <template #extra>
-      <NButton type="primary" @click="router.push('/')">新建项目</NButton>
+      <NButton type="primary" @click="router.push('/create')">新建项目</NButton>
     </template>
     <NSpin :show="loading">
       <div v-if="error" class="text-sm text-danger">{{ error }}</div>
-      <EmptyState v-else-if="!items.length && !loading" title="还没有项目" description="从模板挑一个，贴一段文稿，建第一条。" />
+      <EmptyState v-else-if="!items.length && !loading" title="还没有项目" description="外部 AI 在工程目录建好项目后，会自动出现在这里。" />
       <div v-else class="flex flex-col gap-2">
-        <button
+        <div
           v-for="p in items"
           :key="p.id"
-          class="flex items-center justify-between gap-4 text-left px-4 py-3 border border-border rounded-control bg-overlay cursor-pointer transition-colors duration-150 hover:border-brand"
+          class="card px-4 py-3 cursor-pointer transition duration-150 hover:border-brand"
           @click="router.push(`/projects/${encodeURIComponent(p.id)}`)"
         >
-          <div class="min-w-0">
-            <div class="font-semibold text-ink truncate">{{ p.name }}</div>
-            <div class="mt-1 text-xs text-ink-3 truncate">
-              {{ p.templateName }} · {{ new Date(p.createdAt).toLocaleString() }} · {{ p.duration }}s
+          <div class="flex items-center justify-between gap-4">
+            <div class="min-w-0">
+              <div class="font-semibold text-ink truncate">{{ p.name }}</div>
+              <div class="mt-1 text-xs text-ink-3 truncate">
+                {{ p.templateName }} · {{ new Date(p.createdAt).toLocaleString() }} · {{ p.duration }}s
+              </div>
             </div>
+            <NTag :type="statusType[p.status]" size="small" :bordered="false" class="flex-none">
+              {{ statusText[p.status] }}
+            </NTag>
           </div>
-          <NTag :type="statusType[p.status]" size="small" :bordered="false" class="flex-none">
-            {{ statusText[p.status] }}
-          </NTag>
-        </button>
+        </div>
       </div>
     </NSpin>
   </SectionCard>

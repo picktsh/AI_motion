@@ -1,11 +1,13 @@
 import type { Component } from 'vue';
 import { createRouter, createWebHashHistory } from 'vue-router';
+import { useServerConfig } from './composables/useServerConfig';
 import {
   CreateOutline,
   FolderOpenOutline,
   HomeOutline,
   CubeOutline,
   AlbumsOutline,
+  ImagesOutline,
   FilmOutline,
   MicOutline,
   TerminalOutline,
@@ -24,6 +26,8 @@ declare module 'vue-router' {
     icon?: Component;
     /** 子页面：顶栏显示返回按钮，值为返回路径 */
     back?: string;
+    /** 看门页：不套侧边栏布局，未配置后端地址时拦截进入 */
+    gate?: boolean;
   }
 }
 
@@ -31,14 +35,40 @@ const router = createRouter({
   history: createWebHashHistory(),
   routes: [
     {
+      path: '/gate',
+      name: 'gate',
+      component: () => import('./pages/Gate.vue'),
+      meta: { title: '连接后端', gate: true },
+    },
+    {
       path: '/',
+      name: 'dashboard',
+      component: () => import('./pages/Dashboard.vue'),
+      meta: {
+        title: '观测总览',
+        description: '文件变动监测、素材与产物盘点、环境就位情况',
+        menu: '总览',
+        icon: HomeOutline,
+      },
+    },
+    {
+      path: '/create',
       name: 'create',
       component: () => import('./pages/CreateProject.vue'),
       meta: {
-        title: '创作',
-        description: '选模板、写文稿、报价、生成，一条链路走到底',
-        menu: '创作',
-        icon: CreateOutline,
+        title: '新建项目',
+        description: '选模板、写文稿建立工程目录；入参调整交给外部 AI 工具',
+      },
+    },
+    {
+      path: '/assets',
+      name: 'assets',
+      component: () => import('./pages/Assets.vue'),
+      meta: {
+        title: '素材库',
+        description: '工程内全部可用素材与产物，按磁盘文件回显',
+        menu: '素材',
+        icon: ImagesOutline,
       },
     },
     {
@@ -67,7 +97,7 @@ const router = createRouter({
       path: '/projects/:id',
       name: 'project-detail',
       component: () => import('./pages/ProjectDetail.vue'),
-      meta: { title: '项目详情', description: '文稿、报价与生成进度', back: '/projects' },
+      meta: { title: '项目详情', description: '文稿、报价与生成进度' },
     },
     {
       path: '/works',
@@ -137,6 +167,18 @@ const router = createRouter({
       meta: { title: '关于我们', description: '产品定位、技术栈与安全边界', back: '/' },
     },
   ],
+});
+
+// 未配置后端地址时拦截到看门页；已配置后访问看门页直接回首页。
+router.beforeEach((to) => {
+  const { state } = useServerConfig();
+  if (!state.saved && to.path !== '/gate') {
+    return { path: '/gate', query: { redirect: to.fullPath } };
+  }
+  if (state.saved && to.path === '/gate') {
+    return { path: '/' };
+  }
+  return true;
 });
 
 export default router;

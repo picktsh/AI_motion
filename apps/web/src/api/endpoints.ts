@@ -3,6 +3,7 @@
  * 业务页面与领域模块只引用这里的常量或工厂，不在代码里拼路径字面量。
  */
 export const endpoints = {
+  health: '/health',
   environment: '/environment',
 
   templates: {
@@ -43,6 +44,14 @@ export const endpoints = {
     credits: (id: string): string => `/projects/${encodeURIComponent(id)}/credits`,
     publish: (id: string): string => `/projects/${encodeURIComponent(id)}/publish`,
     log: (id: string, offset = 0): string => `/projects/${encodeURIComponent(id)}/log?offset=${offset}`,
+    config: (id: string): string => `/projects/${encodeURIComponent(id)}/config`,
+    assets: (id: string): string => `/projects/${encodeURIComponent(id)}/assets`,
+    text: (id: string): string => `/projects/${encodeURIComponent(id)}/text`,
+  },
+
+  observatory: {
+    assets: '/observatory/assets',
+    activity: '/observatory/activity',
   },
 
   assets: {

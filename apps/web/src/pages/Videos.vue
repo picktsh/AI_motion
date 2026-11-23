@@ -273,14 +273,14 @@ function probeMeta(a: Artifact): string {
         </div>
 
         <div v-else-if="filtered.length" class="flex flex-col gap-2">
-          <button
-            v-for="v in filtered"
-            :key="v.id"
-            type="button"
-            class="flex gap-3 p-3 text-left bg-panel border border-transparent rounded-control cursor-pointer transition-colors duration-150 hover:border-border"
-            :class="v.id === activeId ? 'border-brand bg-brand-soft' : ''"
-            @click="select(v.id)"
-          >
+        <div
+          v-for="v in filtered"
+          :key="v.id"
+          class="px-3 py-3 rounded-control cursor-pointer transition duration-150"
+          :class="v.id === activeId ? 'border border-brand bg-brand-soft' : 'border border-transparent hover:border-border'"
+          @click="select(v.id)"
+        >
+          <div class="flex gap-3">
             <div class="w-24 h-14 flex-none rounded-control bg-divider flex items-center justify-center overflow-hidden">
               <img v-if="v.preview?.url" :src="v.preview.url" :alt="v.title" class="w-full h-full object-cover" />
               <NIcon v-else :size="20" class="text-ink-3">
@@ -293,7 +293,8 @@ function probeMeta(a: Artifact): string {
                 {{ v.duration ?? '—' }}s · {{ v.sceneCount }} 场景 · {{ v.captionCount }} 字幕
               </div>
             </div>
-          </button>
+          </div>
+        </div>
         </div>
 
         <EmptyState v-else description="暂无视频条目" />
@@ -349,9 +350,9 @@ function probeMeta(a: Artifact): string {
                 </div>
               </div>
               <div class="ml-auto flex flex-wrap gap-2">
-                <NButton size="small" :loading="busyAction === 'plan'" @click="runAction('plan')">计划校验</NButton>
-                <NButton size="small" :loading="busyAction === 'prepare'" @click="runAction('prepare')">准备实例</NButton>
-                <NButton size="small" :loading="busyAction === 'preview'" @click="runAction('preview')">预览单帧</NButton>
+                <NButton size="small" secondary :loading="busyAction === 'plan'" @click="runAction('plan')">计划校验</NButton>
+                <NButton size="small" secondary :loading="busyAction === 'prepare'" @click="runAction('prepare')">准备实例</NButton>
+                <NButton size="small" secondary :loading="busyAction === 'preview'" @click="runAction('preview')">预览单帧</NButton>
                 <NButton type="primary" size="small" :loading="busyAction === 'render'" @click="runAction('render')">渲染成片</NButton>
               </div>
             </div>
@@ -449,18 +450,19 @@ function probeMeta(a: Artifact): string {
                 <span>结束</span>
                 <span>文本</span>
               </div>
-              <button
+              <div
                 v-for="(c, i) in captions"
                 :key="i"
-                type="button"
-                class="grid grid-cols-[80px_80px_1fr] gap-3 px-2 py-2 text-left bg-transparent border-0 rounded-control cursor-pointer text-sm text-ink hover:bg-neutral-soft"
-                :class="activeCaption === i ? 'bg-brand-soft' : ''"
+                class="px-2 py-2 rounded-control cursor-pointer transition duration-150"
+                :class="activeCaption === i ? 'bg-brand-soft' : 'hover:bg-neutral-soft'"
                 @click="seekTo(c.start)"
               >
-                <span class="text-ink-2 text-xs num">{{ c.start.toFixed(2) }}</span>
-                <span class="text-ink-2 text-xs num">{{ c.end.toFixed(2) }}</span>
-                <span class="truncate">{{ c.text }}</span>
-              </button>
+                <div class="grid grid-cols-[80px_80px_1fr] gap-3 text-sm text-ink">
+                  <span class="text-ink-2 text-xs num">{{ c.start.toFixed(2) }}</span>
+                  <span class="text-ink-2 text-xs num">{{ c.end.toFixed(2) }}</span>
+                  <span class="truncate">{{ c.text }}</span>
+                </div>
+              </div>
             </div>
             <EmptyState v-else description="暂无字幕" />
           </SectionCard>
@@ -515,19 +517,20 @@ function probeMeta(a: Artifact): string {
                   <span>台词</span>
                   <span>词数</span>
                 </div>
-                <button
+                <div
                   v-for="s in matchedSegments"
                   :key="`row-${s.id}`"
-                  type="button"
-                  class="grid grid-cols-[72px_150px_1fr_64px] gap-3 p-2 items-center text-left bg-transparent border-0 rounded-control cursor-pointer text-sm text-ink hover:bg-neutral-soft"
-                  :class="expandedSegId === s.id ? 'bg-brand-soft' : ''"
+                  class="p-2 rounded-control cursor-pointer transition duration-150"
+                  :class="expandedSegId === s.id ? 'bg-brand-soft' : 'hover:bg-neutral-soft'"
                   @click="toggleSegment(s.id)"
                 >
-                  <span class="font-mono truncate">{{ s.id }}</span>
-                  <span class="text-ink-2 text-xs num">{{ s.windowStart }} – {{ s.windowEnd }}s</span>
-                  <span class="truncate">{{ s.text }}</span>
-                  <span class="text-ink-2 text-xs num">{{ s.bounds.length }}</span>
-                </button>
+                  <div class="grid grid-cols-[72px_150px_1fr_64px] gap-3 items-center text-sm text-ink">
+                    <span class="font-mono truncate">{{ s.id }}</span>
+                    <span class="text-ink-2 text-xs num">{{ s.windowStart }} – {{ s.windowEnd }}s</span>
+                    <span class="truncate">{{ s.text }}</span>
+                    <span class="text-ink-2 text-xs num">{{ s.bounds.length }}</span>
+                  </div>
+                </div>
               </div>
             </div>
           </SectionCard>

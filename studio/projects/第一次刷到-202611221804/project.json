@@ -1,12 +1,11 @@
 {
   "id": "第一次刷到-202611221804",
-  "kind": "builtin",
   "name": "第一次刷到",
   "templateId": "kinetic-tech@0.2.7-open-beta",
   "templateName": "酷炫科技风",
   "archiveRel": "",
   "scriptRel": "studio/projects/第一次刷到-202611221804/input/script.txt",
-  "status": "failed",
+  "status": "done",
   "createdAt": "2026-11-22T18:04:46.033Z",
   "duration": 8,
   "keywords": [
@@ -19,5 +18,9 @@
   },
   "artifactRel": "studio/projects/第一次刷到-202611221804/output/video-with-audio.mp4",
   "videoUrl": null,
-  "logRel": "studio/projects/第一次刷到-202611221804/run.log"
+  "logRel": "studio/projects/第一次刷到-202611221804/run.log",
+  "runner": "adapter",
+  "jobId": "job_9eca2955eb",
+  "error": null,
+  "runMaxCredits": 0
 }

@@ -15,6 +15,7 @@ import { registerTts } from './routes/tts.js';
 import { registerJobs } from './routes/jobs.js';
 import { registerAssets } from './routes/assets.js';
 import { registerProjects } from './routes/projects.js';
+import { registerObservatory } from './routes/observatory.js';
 
 // 装配 Fastify 实例：插件、错误收口、文档与路由挂载。启停逻辑在 index.ts。
 export async function buildApp(): Promise<FastifyInstance> {
@@ -70,6 +71,7 @@ export async function buildApp(): Promise<FastifyInstance> {
   registerTts(app, config.apiPrefix);
   registerJobs(app, config.apiPrefix);
   registerAssets(app, config.apiPrefix);
+  registerObservatory(app, config.apiPrefix);
 
   return app;
 }

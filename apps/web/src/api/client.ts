@@ -1,17 +1,24 @@
 import axios, { type AxiosError, type AxiosInstance } from 'axios';
 import type { Envelope } from '@ai-motion/shared/types';
+import { useServerConfig } from '../composables/useServerConfig';
 
-const API_PREFIX = import.meta.env.VITE_SERVER_API;
-const serverOrigin = import.meta.env.VITE_SERVER_ORIGIN;
+const { baseUrl, apiUrl, authHeaders, state } = useServerConfig();
 
 const http: AxiosInstance = axios.create({
-  baseURL: API_PREFIX,
+  baseURL: baseUrl(),
   headers: { Accept: 'application/json' },
   timeout: 15_000,
 });
 
+// 每次请求前同步最新配置（看门页/设置页改地址后无需重建实例），并带上访问密钥。
+http.interceptors.request.use((config) => {
+  config.baseURL = baseUrl();
+  Object.assign(config.headers, authHeaders());
+  return config;
+});
+
 function unreachableMessage(): string {
-  return `无法连接本地后端服务 ${serverOrigin}，请确认后端已启动`;
+  return `无法连接后端服务 ${state.origin}，请确认后端已启动且地址正确`;
 }
 
 /** 归一后的错误：保留后端错误体的 details（如缺失依赖清单），供页面二次展示。 */
@@ -113,7 +120,7 @@ export async function getList<T>(path: string): Promise<T[]> {
   return data.items;
 }
 
-/** 拼出可直接用于 img/audio/video 或直取静态文件的相对地址。 */
+/** 拼出可直接用于 img/audio/video 或直取静态文件的绝对地址。 */
 export function assetUrl(relPath: string): string {
-  return `${API_PREFIX}${relPath}`;
+  return apiUrl(relPath);
 }

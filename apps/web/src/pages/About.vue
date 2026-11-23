@@ -1,9 +1,11 @@
 <script setup lang="ts">
 import SectionCard from '../components/data/SectionCard.vue';
 import { REPO_URL } from '../shared/constants';
+import { useServerConfig } from '../composables/useServerConfig';
 
 const VERSION = '0.1.0';
-const serverOrigin = import.meta.env.VITE_SERVER_ORIGIN;
+const { state } = useServerConfig();
+const serverOrigin = state.origin;
 </script>
 
 <template>

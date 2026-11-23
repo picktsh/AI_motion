@@ -6,13 +6,13 @@ import {
   NSwitch, NSpin, NDatePicker, useMessage,
 } from 'naive-ui';
 import {
-  listProjects, projectFiles, getPublish, savePublish, preparePublish,
+  listProjects, projectFiles, getPublish, savePublish,
   type Project, type ProjectFiles, type ProjectPublish,
 } from '../api/projects';
 import { assetUrl } from '../api/client';
 import { endpoints } from '../api/endpoints';
-import SectionCard from '../components/data/SectionCard.vue';
 import EmptyState from '../components/data/EmptyState.vue';
+import PromptCopyBlock from '../components/data/PromptCopyBlock.vue';
 
 const router = useRouter();
 const message = useMessage();
@@ -42,7 +42,6 @@ const drawer = ref(false);
 const active = ref<Project | null>(null);
 const files = ref<ProjectFiles | null>(null);
 const saving = ref(false);
-const coverBusy = ref(false);
 const draft = reactive({
   title: '',
   body: '',
@@ -99,19 +98,23 @@ async function doSave() {
   }
 }
 
-async function regenCovers() {
-  if (!active.value) return;
-  coverBusy.value = true;
-  try {
-    await preparePublish(active.value.id);
-    files.value = await projectFiles(active.value.id);
-    message.success('封面与发布文案已重新生成');
-  } catch (e) {
-    message.error(e instanceof Error ? e.message : '生成失败');
-  } finally {
-    coverBusy.value = false;
-  }
-}
+const outputDirRel = computed(() => (active.value ? `studio/projects/${active.value.id}/output/` : ''));
+
+const coverPrompt = computed(() => {
+  const p = active.value;
+  if (!p) return '';
+  return [
+    `请为项目「${p.name}」生成封面与发布文案。`,
+    `- 项目目录："studio/projects/${p.id}/"`,
+    '- 封面依据口播文稿、作品主题与项目里的人物素材，用 AI 生成图片（不从成片截帧），出 4:3（1440×1080）cover-4x3.jpg 与 3:4（1080×1440）cover-3x4.jpg。',
+    '- 封面图与文案不要直接写本地磁盘；先提交给后端接口，由后端服务落到该项目 "output/" 目录。',
+    '- 标题：依据口播文稿与主题，由 AI 优化出 30 字内、有点击钩子、贴合平台风格的标题；可先给多个候选，再择优定稿一个。',
+    '- 简介：从口播文稿提炼，1000 字内，口语化讲清这条片子的看点与价值，保留关键信息，不堆砌套话。',
+    '- 话题：先查同类内容当前的热门话题与标签，再从中筛选与本作品主题、受众关联度高的若干个；只保留相关的，不蹭无关的热门词。',
+    '- 标题、简介、话题整理后通过接口回写 "output/publish.json" 与 "output/publish.txt"。',
+    '- 不要改动成片本身。',
+  ].join('\n');
+});
 
 async function copyText() {
   if (!files.value?.publishTxt) {
@@ -122,50 +125,45 @@ async function copyText() {
   await navigator.clipboard.writeText(await res.text());
   message.success('标题+简介+话题已复制');
 }
-
-async function copyPath(rel: string | null | undefined) {
-  if (!rel) return;
-  await navigator.clipboard.writeText(rel);
-  message.success('相对路径已复制（工程根目录下）');
-}
 </script>
 
 <template>
   <div class="flex flex-col gap-4">
-    <SectionCard title="作品" subtitle="已生成的成片在这里维护发布配置；制作进度在项目页">
-      <template #extra>
-        <NButton size="small" @click="router.push('/videos')">旧视频条目</NButton>
-        <NButton size="small" type="primary" @click="router.push('/')">新建项目</NButton>
-      </template>
-      <NSpin :show="loading">
-        <EmptyState
-          v-if="!works.length && !loading"
-          title="还没有作品"
-          description="去创作页建一个项目，生成完成后成片会自动出现在这里。"
-        />
-        <div v-else class="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4">
-          <div v-for="p in works" :key="p.id" class="card overflow-hidden flex flex-col">
-            <video
-              class="w-full aspect-video bg-black object-cover"
-              :src="p.videoUrl ?? ''"
-              preload="metadata"
-              muted
-              playsinline
-            />
-            <div class="p-4 flex flex-col gap-2 flex-1">
-              <div class="font-semibold text-ink truncate">{{ p.name }}</div>
-              <div class="text-xs text-ink-3 truncate">
-                {{ p.templateName }} · {{ new Date(p.createdAt).toLocaleString() }} · {{ p.duration }}s
-              </div>
-              <div class="mt-auto flex items-center gap-2 pt-2">
-                <NButton size="small" type="primary" @click="openPublish(p)">发布配置</NButton>
-                <NButton size="small" @click="router.push(`/projects/${encodeURIComponent(p.id)}`)">项目详情</NButton>
-              </div>
+    <div class="row-between">
+      <div class="min-w-0">
+        <h2 class="page-title">作品</h2>
+        <p class="page-desc mt-1">已生成的成片在这里维护发布配置；制作进度在项目页</p>
+      </div>
+      <NButton size="small" type="primary" @click="router.push('/create')">新建项目</NButton>
+    </div>
+    <NSpin :show="loading">
+      <EmptyState
+        v-if="!works.length && !loading"
+        title="还没有作品"
+        description="项目渲染出成片后，会自动出现在这里。"
+      />
+      <div v-else class="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4">
+        <div v-for="p in works" :key="p.id" class="card overflow-hidden flex flex-col">
+          <video
+            class="w-full aspect-video bg-black object-contain"
+            :src="p.videoUrl ?? ''"
+            preload="metadata"
+            controls
+            playsinline
+          />
+          <div class="p-4 flex flex-col gap-2 flex-1">
+            <div class="font-semibold text-ink truncate">{{ p.name }}</div>
+            <div class="text-xs text-ink-3 truncate">
+              {{ p.templateName }} · {{ new Date(p.createdAt).toLocaleString() }} · {{ p.duration }}s
+            </div>
+            <div class="mt-auto flex items-center gap-2 pt-2">
+              <NButton size="small" type="primary" @click="openPublish(p)">发布配置</NButton>
+              <NButton size="small" secondary @click="router.push(`/projects/${encodeURIComponent(p.id)}`)">项目详情</NButton>
             </div>
           </div>
         </div>
-      </NSpin>
-    </SectionCard>
+      </div>
+    </NSpin>
 
     <NDrawer v-model:show="drawer" :width="480">
       <NDrawerContent :title="`发布配置 · ${active?.name ?? ''}`" closable>
@@ -184,10 +182,7 @@ async function copyPath(rel: string | null | undefined) {
           </div>
 
           <div class="flex flex-col gap-2">
-            <div class="row-between">
-              <span class="text-xs text-ink-2">封面（4:3 横 / 3:4 竖）</span>
-              <NButton size="tiny" :loading="coverBusy" @click="regenCovers">生成封面与文案</NButton>
-            </div>
+            <span class="text-xs text-ink-2">封面（4:3 横 / 3:4 竖）</span>
             <div class="flex gap-3">
               <div class="flex flex-col gap-1 items-center">
                 <img v-if="files?.cover4x3" :src="fileUrl(files.cover4x3)" class="w-40 rounded-control border border-border" alt="横封面" />
@@ -200,6 +195,11 @@ async function copyPath(rel: string | null | undefined) {
                 <span class="text-xs text-ink-3">3:4</span>
               </div>
             </div>
+            <PromptCopyBlock
+              title="生成封面与文案"
+              hint="面板不直接生成封面；复制提示词给外部 AI，依据文稿、主题与人物素材生图出双比例封面，再经后端接口落盘并回写发布文案。"
+              :prompt="coverPrompt"
+            />
           </div>
 
           <div class="flex flex-col gap-1">
@@ -223,22 +223,17 @@ async function copyPath(rel: string | null | undefined) {
             <NDatePicker v-if="draft.publishAt === 'schedule'" v-model:value="draft.schedule" type="datetime" class="w-full" />
           </div>
 
-          <div class="flex flex-col gap-2 border-t border-divider pt-4">
-            <div class="text-xs text-ink-2">交付物（工程根目录相对路径，点击复制）</div>
-            <button
-              v-for="f in [files?.video, files?.cover4x3, files?.cover3x4, files?.publishTxt]"
-              :key="f ?? 'none'"
-              class="text-left text-xs font-mono text-ink-2 bg-neutral-soft rounded-control px-3 py-2 border-0 cursor-pointer break-all hover:text-brand"
-              :disabled="!f"
-              @click="copyPath(f)"
-            >
-              {{ f ?? '未生成' }}
-            </button>
-          </div>
+          <PromptCopyBlock
+            title="交付物目录"
+            hint="工程根目录相对路径；只给到目录，不带文件名"
+            :prompt="outputDirRel"
+            button-text="复制目录"
+            :disabled="!outputDirRel"
+          />
         </div>
         <template #footer>
           <div class="flex items-center gap-2">
-            <NButton @click="copyText">复制标题+简介+话题</NButton>
+            <NButton secondary @click="copyText">复制标题+简介+话题</NButton>
             <NButton type="primary" :loading="saving" @click="doSave">保存配置</NButton>
           </div>
         </template>

@@ -1,8 +1,9 @@
 <script setup lang="ts">
-import { ref } from 'vue';
-import { NIcon } from 'naive-ui';
+import { ref, onBeforeUnmount } from 'vue';
+import { NButton, NIcon } from 'naive-ui';
 import { PlayOutline, PauseOutline } from '@vicons/ionicons5';
 import InteractiveWave from './InteractiveWave.vue';
+import { claimExclusive, releaseExclusive } from '../../composables/useExclusivePlayer';
 
 const props = defineProps<{
   url: string | null;
@@ -14,6 +15,8 @@ const playing = ref(false);
 const current = ref(0);
 const duration = ref(props.durationS ?? 0);
 
+const pauseSelf: () => void = () => waveRef.value?.pause();
+
 function onTime(t: number, d: number) {
   current.value = t;
   if (d > 0) duration.value = d;
@@ -21,11 +24,15 @@ function onTime(t: number, d: number) {
 
 function onPlay(p: boolean) {
   playing.value = p;
+  if (p) claimExclusive(pauseSelf);
+  else releaseExclusive(pauseSelf);
 }
 
 async function toggle() {
   await waveRef.value?.toggle();
 }
+
+onBeforeUnmount(() => releaseExclusive(pauseSelf));
 
 function fmt(t: number): string {
   return `${t.toFixed(1)}s`;
@@ -34,11 +41,11 @@ function fmt(t: number): string {
 
 <template>
   <div v-if="url" class="flex items-center gap-2">
-    <button type="button" class="flex items-center justify-center w-8 h-8 flex-none border-0 rounded-full bg-brand-soft text-brand cursor-pointer transition-colors duration-150 hover:bg-brand hover:text-white" @click="toggle">
-      <n-icon :size="15">
+    <NButton circle size="small" secondary class="flex-none text-brand" @click="toggle">
+      <NIcon :size="15">
         <component :is="playing ? PauseOutline : PlayOutline" />
-      </n-icon>
-    </button>
+      </NIcon>
+    </NButton>
     <InteractiveWave
       ref="waveRef"
       :url="url"

@@ -23,19 +23,21 @@ AI_motion/
 ├── packages/
 │   └── shared/               # 前后端共享错误码、常量与契约类型
 ├── docs/                     # 设计与说明文档
-└── studio/                   # 业务资产收拢目录
-    ├── templates/            # 自有和已落地模板源码（入库）
+└── studio/                   # 业务资产收拢目录（面板收纳层，非模板输入契约，见 motion-layout.md）
+    ├── templates/            # 已落地模板包（只读，跟随官方包结构）
     ├── templates-cache/      # 第三方模板下载缓存（不入库，类比 node_modules）
     ├── templates.lock.json   # 模板锁清单（规划预留）
+    ├── projects/<id>/        # 各期工程：面板台账 + 输入归集 + 实例 + 成片产物
     ├── public/               # 公共 demo 素材（入库，可再分发）
-    ├── videos/               # 每条视频的输入素材与产物（不入库）
     ├── tts/                  # 公共配音脚本与样例（入库）
+    ├── videos/               # 旧链路产物（待下线，范围另立步骤）
     └── bin/                  # 外部二进制（不入库）
 ```
 
+模板、素材、台词、音频、成片的官方放置契约与本平台收纳层对照，见 [motion-layout.md](./motion-layout.md)；入参槽位以各模板自身 schema / contract 为准，不在面板写死固定目录。
+
 现状映射（一期先保留旧路径，迁移另立步骤）：
-- 现 `studio/template/` 将来迁到 `studio/templates/kinetic-tech/`。
-- 现 `studio/videos/` 将来迁到 `studio/videos/v01-ai-edit/`。
+- 旧 `studio/videos/` 条目产物已被 `studio/projects/<id>/` 取代，旧目录待清理。
 - 后端读取路径做一层适配，迁移后只改路径映射，不改业务逻辑。
 
 ## 三、模板依赖管理

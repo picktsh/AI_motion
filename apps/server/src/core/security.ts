@@ -23,14 +23,25 @@ function sameKey(provided: string, expected: string): boolean {
   return timingSafeEqual(a, b);
 }
 
-// CORS：白名单来源；列表为空时不发出跨域头（前端经 Vite 代理同源访问）。
+/** 本机回环来源：桌面前端 dev 跨端口直连属于回环，允许；公网来源不放行。 */
+function isLoopbackOrigin(origin: string | null | undefined): boolean {
+  if (!origin) return false;
+  try {
+    const hostname = new URL(origin).hostname;
+    return hostname === '127.0.0.1' || hostname === 'localhost' || hostname === '::1' || hostname === '[::1]';
+  } catch {
+    return false;
+  }
+}
+
+// CORS：显式白名单优先；未配白名单时仅放行本机回环来源（前端 dev 跨端口直连）。
 export async function registerCors(app: FastifyInstance): Promise<void> {
   const origins = config.corsOrigins;
   await app.register(cors, {
-    origin:
-      origins.length === 0
-        ? false
-        : (origin, callback) => callback(null, origins.includes(origin ?? '')),
+    origin: (origin, callback) => {
+      const allowed = origins.length > 0 ? origins.includes(origin ?? '') : isLoopbackOrigin(origin);
+      callback(null, allowed);
+    },
     methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
     allowedHeaders: ['Content-Type', 'Authorization', 'X-Access-Key'],
   });
