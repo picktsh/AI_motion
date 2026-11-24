@@ -41,7 +41,7 @@ function fmt(t: number): string {
 
 <template>
   <div v-if="url" class="flex items-center gap-2">
-    <NButton circle size="small" secondary class="flex-none text-brand" @click="toggle">
+    <NButton circle secondary class="flex-none text-brand" @click="toggle">
       <NIcon :size="15">
         <component :is="playing ? PauseOutline : PlayOutline" />
       </NIcon>

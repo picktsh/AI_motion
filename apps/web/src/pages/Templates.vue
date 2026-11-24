@@ -443,7 +443,7 @@ const catSummary = computed(() => {
         <span v-if="catalogMeta" class="text-xs text-ink-3 mr-auto">
           {{ catalogMeta.items.length }} 条公开清单<template v-if="catalogMeta.fetchedAt"> · 更新于 {{ new Date(catalogMeta.fetchedAt).toLocaleString('zh-CN') }}</template>
         </span>
-        <n-button size="small" secondary :loading="catalog.loading.value" @click="refreshCatalog">
+        <n-button  secondary :loading="catalog.loading.value" @click="refreshCatalog">
           <template #icon>
             <n-icon :size="14"><RefreshOutline /></n-icon>
           </template>
@@ -457,7 +457,7 @@ const catSummary = computed(() => {
             <n-icon :size="16"><SearchOutline /></n-icon>
           </template>
         </n-input>
-        <NRadioGroup :value="orientation" size="small" @update:value="setOrientation">
+        <NRadioGroup :value="orientation" @update:value="setOrientation">
           <NRadioButton v-for="opt in orientationOptions" :key="opt.value" :value="opt.value">
             {{ opt.label }}
           </NRadioButton>
@@ -536,9 +536,9 @@ const catSummary = computed(() => {
       </div>
 
         <div class="flex justify-center pt-1">
-          <n-button v-if="hasMore" secondary @click="visibleCount += 24">
+          <NButton v-if="hasMore" secondary @click="visibleCount += 24">
             加载更多（剩余 {{ filteredCatalog.length - visibleCatalog.length }}）
-          </n-button>
+          </NButton>
           <span v-else class="text-xs text-ink-3">已显示全部 {{ filteredCatalog.length }} 条</span>
         </div>
       </template>
@@ -550,12 +550,12 @@ const catSummary = computed(() => {
         <template #header>
           <div class="row-between gap-3">
             <span class="text-lg font-semibold text-ink">{{ detail?.name ?? '模板详情' }}</span>
-            <n-button v-if="redirectUrl" tag="a" :href="redirectUrl" target="_blank" rel="noopener noreferrer" size="small" secondary>
+            <NButton v-if="redirectUrl" tag="a" :href="redirectUrl" target="_blank" rel="noopener noreferrer" secondary>
               <template #icon>
                 <n-icon :size="14"><OpenOutline /></n-icon>
               </template>
               源码
-            </n-button>
+            </NButton>
           </div>
         </template>
 
@@ -571,7 +571,7 @@ const catSummary = computed(() => {
           <n-alert v-if="!detail.runtime.entry" type="warning" :bordered="false" title="这个包缺少运行入口">
             <div class="flex flex-col gap-2">
               <span>包结构不完整或版本不匹配，无法用于创作。请到官网重新下载对应版本的 .motion 包，再回这里导入；导入按版本落盘，旧目录不用管。</span>
-              <n-button tag="a" :href="redirectUrl ?? OFFICIAL_SITE" target="_blank" rel="noopener noreferrer" size="small" type="primary" class="self-start">
+              <n-button tag="a" :href="redirectUrl ?? OFFICIAL_SITE" target="_blank" rel="noopener noreferrer" type="primary" class="self-start">
                 去官网重新下载
               </n-button>
             </div>
@@ -704,12 +704,12 @@ const catSummary = computed(() => {
         <template #header>
           <div class="row-between gap-3">
             <span class="text-lg font-semibold text-ink">{{ catItem?.name ?? '模板详情' }}</span>
-            <n-button v-if="catItem?.website" tag="a" :href="catItem.website" target="_blank" rel="noopener noreferrer" size="small" secondary>
+            <NButton v-if="catItem?.website" tag="a" :href="catItem.website" target="_blank" rel="noopener noreferrer" secondary>
               <template #icon>
                 <n-icon :size="14"><OpenOutline /></n-icon>
               </template>
               官网
-            </n-button>
+            </NButton>
           </div>
         </template>
 

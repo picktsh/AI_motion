@@ -49,7 +49,6 @@ async function copy() {
         <p v-if="hint" class="m-0 mt-1 text-xs leading-5 text-ink-2">{{ hint }}</p>
       </div>
       <NButton
-        size="small"
         :type="copied ? 'success' : 'primary'"
         :disabled="disabled"
         class="flex-none"

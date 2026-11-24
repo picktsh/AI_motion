@@ -2,7 +2,6 @@ import type { Component } from 'vue';
 import { createRouter, createWebHashHistory } from 'vue-router';
 import { useServerConfig } from './composables/useServerConfig';
 import {
-  CreateOutline,
   FolderOpenOutline,
   HomeOutline,
   CubeOutline,

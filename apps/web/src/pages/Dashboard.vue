@@ -153,7 +153,7 @@ onMounted(load);
                   :key="sc.to"
                   block
                   secondary
-                  class="!justify-start rounded-control hover:bg-neutral-soft"
+                  class="!justify-start h-15 rounded-control"
                   @click="router.push(sc.to)"
                 >
                   <template #icon>
@@ -174,7 +174,7 @@ onMounted(load);
                   <template v-if="envSummary">就位 {{ envSummary.ok }} / {{ envSummary.total }}</template>
                   <template v-else>检查中…</template>
                 </span>
-                <NButton size="small" secondary @click="router.push('/environment')">查看详情</NButton>
+                <NButton secondary @click="router.push('/environment')">查看详情</NButton>
               </div>
             </NCard>
           </div>

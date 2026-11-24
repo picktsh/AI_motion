@@ -244,17 +244,8 @@ function probeMeta(a: Artifact): string {
     <div class="grid grid-cols-1 lg:grid-cols-[340px_minmax(0,1fr)] gap-4 items-start">
       <!-- 左侧列表 -->
       <aside class="flex flex-col gap-3">
-        <NInput
-          v-model:value="query"
-          placeholder="按标题过滤"
-          clearable
-          size="small"
-        />
-        <NSelect
-          v-model:value="sortBy"
-          :options="sortOptions"
-          size="small"
-        />
+        <NInput v-model:value="query" placeholder="按标题过滤" clearable/>
+        <NSelect v-model:value="sortBy" :options="sortOptions"/>
 
         <NEmpty v-if="error" :description="error">
           <template #icon>
@@ -262,7 +253,7 @@ function probeMeta(a: Artifact): string {
           </template>
           <template #default>
             <div class="flex flex-col items-center gap-2">
-              <NButton type="primary" size="small" @click="run">重试</NButton>
+              <NButton type="primary" @click="run">重试</NButton>
             </div>
           </template>
         </NEmpty>
@@ -315,7 +306,7 @@ function probeMeta(a: Artifact): string {
           </template>
           <template #default>
             <div class="flex flex-col items-center gap-2">
-              <NButton type="primary" size="small" @click="activeId && loadDetail(activeId)">重试</NButton>
+              <NButton type="primary" @click="activeId && loadDetail(activeId)">重试</NButton>
             </div>
           </template>
         </NEmpty>
@@ -348,18 +339,18 @@ function probeMeta(a: Artifact): string {
               <div class="flex flex-wrap gap-3">
                 <div class="flex flex-col gap-1 min-w-40">
                   <label class="text-xs text-ink-3">实例目录</label>
-                  <NSelect v-model:value="selectedInstance" :options="instanceOptions" size="small" />
+                  <NSelect v-model:value="selectedInstance" :options="instanceOptions"/>
                 </div>
                 <div class="flex flex-col gap-1 min-w-40">
                   <label class="text-xs text-ink-3">预览时刻（秒）</label>
-                  <NInputNumber v-model:value="previewTime" :min="0.1" :step="0.5" size="small" />
+                  <NInputNumber v-model:value="previewTime" :min="0.1" :step="0.5"/>
                 </div>
               </div>
               <div class="ml-auto flex flex-wrap gap-2">
-                <NButton size="small" secondary :loading="busyAction === 'plan'" @click="runAction('plan')">计划校验</NButton>
-                <NButton size="small" secondary :loading="busyAction === 'prepare'" @click="runAction('prepare')">准备实例</NButton>
-                <NButton size="small" secondary :loading="busyAction === 'preview'" @click="runAction('preview')">预览单帧</NButton>
-                <NButton type="primary" size="small" :loading="busyAction === 'render'" @click="runAction('render')">渲染成片</NButton>
+                <NButton secondary :loading="busyAction === 'plan'" @click="runAction('plan')">计划校验</NButton>
+                <NButton secondary :loading="busyAction === 'prepare'" @click="runAction('prepare')">准备实例</NButton>
+                <NButton secondary :loading="busyAction === 'preview'" @click="runAction('preview')">预览单帧</NButton>
+                <NButton type="primary" :loading="busyAction === 'render'" @click="runAction('render')">渲染成片</NButton>
               </div>
             </div>
           </NCard>
@@ -368,28 +359,28 @@ function probeMeta(a: Artifact): string {
           <NCard title="工程信息">
             <div class="grid grid-cols-[repeat(auto-fit,minmax(140px,1fr))] gap-3">
               <div class="flex items-center gap-2 text-sm py-1">
-                <span class="flex-none text-xs text-ink-3 w-16">布局</span>
+                <span class="flex-none text-ink-3 w-16">布局</span>
                 <span class="text-ink">{{ detail!.meta.layout || '—' }}</span>
               </div>
               <div class="flex items-center gap-2 text-sm py-1">
-                <span class="flex-none text-xs text-ink-3 w-16">时长</span>
+                <span class="flex-none text-ink-3 w-16">时长</span>
                 <span class="text-ink num">{{ detail!.meta.duration ?? '—' }}s</span>
               </div>
               <div class="flex items-center gap-2 text-sm py-1">
-                <span class="flex-none text-xs text-ink-3 w-16">场景</span>
+                <span class="flex-none text-ink-3 w-16">场景</span>
                 <span class="text-ink num">{{ detail!.meta.scenes?.length ?? 0 }}</span>
               </div>
               <div class="flex items-center gap-2 text-sm py-1">
-                <span class="flex-none text-xs text-ink-3 w-16">字幕</span>
+                <span class="flex-none text-ink-3 w-16">字幕</span>
                 <span class="text-ink num">{{ captions.length }}</span>
               </div>
             </div>
             <div class="flex flex-col items-start gap-1 text-sm py-1">
-              <span class="flex-none text-xs text-ink-3 w-16">输入文件</span>
+              <span class="flex-none text-ink-3 w-16">输入文件</span>
               <PathCopy :path="detail!.inputFile" />
             </div>
             <div v-if="detail!.instanceDirs?.length" class="flex flex-col items-start gap-1 text-sm py-1">
-              <span class="flex-none text-xs text-ink-3 w-16">实例目录</span>
+              <span class="flex-none text-ink-3 w-16">实例目录</span>
               <div class="flex flex-wrap gap-2">
                 <NTag v-for="d in detail!.instanceDirs" :key="d" type="default" size="small" :bordered="false" class="flex-none w-fit">{{ d }}</NTag>
               </div>

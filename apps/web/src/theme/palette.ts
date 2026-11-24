@@ -9,6 +9,9 @@ export interface Palette {
   bg: string;
   panel: string;
   overlay: string;
+  glass: string;
+  glassBorder: string;
+  glassSoft: string;
   border: string;
   divider: string;
   textPrimary: string;
@@ -23,12 +26,16 @@ export interface Palette {
   danger: string;
   shadowCard: string;
   shadowOverlay: string;
+  shadowFloat: string;
 }
 
 export const lightPalette: Palette = {
   bg: '#f6f7f9',
   panel: '#ffffff',
   overlay: '#ffffff',
+  glass: 'rgba(255, 255, 255, 0.66)',
+  glassBorder: 'rgba(255, 255, 255, 0.9)',
+  glassSoft: 'rgba(255, 255, 255, 0.42)',
   border: '#e6e8ec',
   divider: '#edf0f3',
   textPrimary: '#111827',
@@ -43,12 +50,16 @@ export const lightPalette: Palette = {
   danger: '#f26d6d',
   shadowCard: '0 1px 2px rgba(16, 24, 40, 0.06)',
   shadowOverlay: '0 8px 24px rgba(16, 24, 40, 0.18)',
+  shadowFloat: '0 14px 36px rgba(50, 42, 82, 0.1)',
 };
 
 export const darkPalette: Palette = {
   bg: '#0e1014',
   panel: '#16181f',
   overlay: '#1c1f27',
+  glass: 'rgba(24, 25, 34, 0.78)',
+  glassBorder: 'rgba(255, 255, 255, 0.13)',
+  glassSoft: 'rgba(255, 255, 255, 0.06)',
   border: '#262a33',
   divider: '#1f232b',
   textPrimary: '#e8eaf0',
@@ -63,6 +74,7 @@ export const darkPalette: Palette = {
   danger: '#f26d6d',
   shadowCard: '0 1px 2px rgba(0, 0, 0, 0.3)',
   shadowOverlay: '0 8px 24px rgba(0, 0, 0, 0.45)',
+  shadowFloat: '0 16px 42px rgba(0, 0, 0, 0.32)',
 };
 
 export const fontFamily =
@@ -85,6 +97,9 @@ export function applyPaletteVars(p: Palette): void {
   set('--color-bg', p.bg);
   set('--color-panel', p.panel);
   set('--color-overlay', p.overlay);
+  set('--color-glass', p.glass);
+  set('--color-glass-border', p.glassBorder);
+  set('--color-glass-soft', p.glassSoft);
   set('--color-border', p.border);
   set('--color-divider', p.divider);
   set('--color-text-primary', p.textPrimary);
@@ -104,6 +119,9 @@ export function applyPaletteVars(p: Palette): void {
   set('--color-neutral-soft', rgba(p.textSecondary, 0.1));
   set('--shadow-card', p.shadowCard);
   set('--shadow-overlay', p.shadowOverlay);
+  set('--shadow-float', p.shadowFloat);
+  set('--color-glow-brand', rgba(p.brand, document.documentElement.dataset.theme === 'dark' ? 0.12 : 0.18));
+  set('--color-glow-cyan', rgba(p.cyan, document.documentElement.dataset.theme === 'dark' ? 0.08 : 0.12));
   set('--font-family', fontFamily);
   set('--font-mono', fontMono);
 }

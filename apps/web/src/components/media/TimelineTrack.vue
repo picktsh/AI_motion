@@ -35,7 +35,6 @@ function onSeek(item: TimelineItem) {
     class="relative w-full overflow-hidden rounded-control bg-divider"
     :style="{ height: `${height}px` }"
     role="timeline"
-    aria-label="时间线轨道"
   >
     <div class="absolute inset-0">
       <button

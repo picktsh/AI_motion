@@ -180,7 +180,7 @@ function logTextClass(stream: string): string {
           <template #default>
             <div class="flex flex-col items-center gap-2">
               <p class="m-0 text-xs text-ink-3">任务列表加载失败</p>
-              <NButton type="primary" size="small" @click="refreshList">重试</NButton>
+              <NButton type="primary" @click="refreshList">重试</NButton>
             </div>
           </template>
         </NEmpty>
@@ -218,9 +218,7 @@ function logTextClass(stream: string): string {
           <div class="flex items-center gap-3 py-1 text-sm text-ink-2">
             <span class="flex-none w-16 text-xs text-ink-3">状态</span>
             <NTag :type="STATUS_TONE[detail.status]" size="small" :bordered="false" class="flex-none w-fit">{{ STATUS_TEXT[detail.status] }}</NTag>
-            <NButton v-if="isActive(detail.status)" size="small" type="warning" class="ml-auto" @click="onCancel">
-              取消任务
-            </NButton>
+            <NButton v-if="isActive(detail.status)" type="warning" class="ml-auto" @click="onCancel">取消任务</NButton>
           </div>
           <div class="flex items-center gap-3 py-1 text-sm text-ink-2">
             <span class="flex-none w-16 text-xs text-ink-3">命令</span>

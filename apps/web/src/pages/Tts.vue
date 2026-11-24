@@ -60,7 +60,7 @@ async function runTtsAction(command: CommandName): Promise<void> {
     <template v-else-if="data">
       <NCard title="生成音色样例">
         <div class="flex flex-wrap gap-2">
-          <NButton size="small" secondary :loading="busyAction === 'tts:samples'" @click="runTtsAction('tts:samples')">生成试音样例</NButton>
+          <NButton secondary :loading="busyAction === 'tts:samples'" @click="runTtsAction('tts:samples')">生成试音样例</NButton>
         </div>
       </NCard>
 

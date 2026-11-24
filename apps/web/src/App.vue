@@ -2,7 +2,7 @@
 import { NConfigProvider, lightTheme, darkTheme } from 'naive-ui';
 import { useTheme } from './theme/useTheme';
 import { lightThemeOverrides, darkThemeOverrides } from './theme/naiveTheme';
-import AppShell from './components/layout/AppShell.vue';
+import AppIndex from './layout/AppIndex.vue';
 
 const { isDark } = useTheme();
 </script>
@@ -16,7 +16,7 @@ const { isDark } = useTheme();
     <n-message-provider>
       <n-notification-provider>
         <n-dialog-provider>
-          <AppShell />
+          <AppIndex />
         </n-dialog-provider>
       </n-notification-provider>
     </n-message-provider>

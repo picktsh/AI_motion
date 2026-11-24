@@ -1,0 +1,41 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="2816" height="2740" viewBox="0 0 2816 2740" role="img" aria-labelledby="title">
+<title id="title">AI Motion Desk logo design card</title>
+<rect width="2816" height="2740" fill="#F3F0F7"/>
+<!-- Header uses the same 128px inset as all content below. -->
+<text x="128" y="112" font-family="Arial,sans-serif" font-size="32" font-weight="700" letter-spacing="5" fill="#555">AI MOTION DESK</text>
+<text x="2688" y="112" text-anchor="end" font-family="Arial,sans-serif" font-size="24" letter-spacing="3" fill="#777">LOGO SYSTEM</text>
+<path d="M128 152H2688" stroke="#DDD7E6" stroke-width="2"/>
+<!-- Icon showcase: 2560 x 1024 frame; artwork centered at native 1024 x 1024 size. -->
+<rect x="128" y="190" width="2560" height="1024" rx="32" fill="#FFF"/>
+<g transform="translate(896 190)">
+  <rect width="1024" height="1024" rx="220" fill="#F7F2FF"/>
+  <path d="M512 626v108" stroke="#BC8CFF" stroke-width="26"/>
+  <path d="M290 746h444" stroke="#BC8CFF" stroke-width="28" stroke-linecap="round"/>
+  <rect x="216" y="206" width="592" height="420" rx="74" fill="#FBF9FE" stroke="#BC8CFF" stroke-width="26"/>
+  <text x="512" y="418" text-anchor="middle" dominant-baseline="middle" font-family="Arial,sans-serif" font-size="210" font-weight="700" letter-spacing="-12" fill="#BC8CFF">.m</text>
+</g>
+<!-- Icon metadata: equal 832px capsules, 32px gaps, aligned to showcase edges. -->
+<g font-family="Arial,sans-serif">
+ <rect x="128" y="1240" width="832" height="112" rx="28" fill="#FFF"/><text x="164" y="1284" font-size="19" font-weight="700" letter-spacing="1.5" fill="#3B3549">01  ICON</text><text x="164" y="1321" font-size="19" fill="#777185">Canvas 1024 × 1024 · rounded background #F7F2FF</text>
+ <rect x="992" y="1240" width="832" height="112" rx="28" fill="#FFF"/><text x="1028" y="1284" font-size="19" font-weight="700" letter-spacing="1.5" fill="#3B3549">COLOR</text><rect x="1028" y="1302" width="25" height="25" rx="7" fill="#BC8CFF"/><text x="1066" y="1322" font-size="19" fill="#777185">#BC8CFF · solid</text>
+ <rect x="1856" y="1240" width="832" height="112" rx="28" fill="#FFF"/><text x="1892" y="1284" font-size="19" font-weight="700" letter-spacing="1.5" fill="#3B3549">MARK</text><text x="1892" y="1321" font-size="19" fill="#777185">.m · 210 px / Bold · centered</text>
+</g>
+<!-- Horizontal showcase: logo artwork retains its native 2560 x 1024 dimensions. -->
+<rect x="128" y="1420" width="2560" height="1024" rx="32" fill="#FFF"/>
+<g transform="translate(128 1420)">
+  <path d="M512 626v108" stroke="#BC8CFF" stroke-width="26"/>
+  <path d="M290 746h444" stroke="#BC8CFF" stroke-width="28" stroke-linecap="round"/>
+  <rect x="216" y="206" width="592" height="420" rx="74" fill="#FBF9FE" stroke="#BC8CFF" stroke-width="26"/>
+  <text x="512" y="418" text-anchor="middle" dominant-baseline="middle" font-family="Arial,sans-serif" font-size="210" font-weight="700" letter-spacing="-12" fill="#BC8CFF">.m</text>
+  <text x="1024" y="473" font-family="Arial,sans-serif" font-size="210" font-weight="800" letter-spacing="-10" fill="#222">AI Motion Desk</text>
+  <text x="1028" y="613" font-family="Arial,sans-serif" font-size="70" font-weight="800" letter-spacing="6" fill="#555">LOCAL.MOTION.WORKSPACE</text>
+</g>
+<!-- Horizontal logo metadata: same capsule grid and insets as the row above. -->
+<g font-family="Arial,sans-serif">
+ <rect x="128" y="2470" width="832" height="112" rx="28" fill="#FFF"/><text x="164" y="2514" font-size="19" font-weight="700" letter-spacing="1.5" fill="#3B3549">02  HORIZONTAL LOGO</text><text x="164" y="2551" font-size="19" fill="#777185">Canvas 2560 × 1024 · mark + wordmark</text>
+ <rect x="992" y="2470" width="832" height="112" rx="28" fill="#FFF"/><text x="1028" y="2514" font-size="19" font-weight="700" letter-spacing="1.5" fill="#3B3549">WORDMARK</text><text x="1028" y="2551" font-size="19" fill="#777185">AI Motion Desk · 210 px / Extra Bold · #222</text>
+ <rect x="1856" y="2470" width="832" height="112" rx="28" fill="#FFF"/><text x="1892" y="2514" font-size="19" font-weight="700" letter-spacing="1.5" fill="#3B3549">TAGLINE</text><text x="1892" y="2551" font-size="19" fill="#777185">LOCAL.MOTION.WORKSPACE · 70 px / Extra Bold · #555</text>
+</g>
+<text x="128" y="2690" font-family="Arial,sans-serif" font-size="20" font-weight="700" letter-spacing="2" fill="#777">DESIGNED BY: DEAR · 2026-11-24</text>
+<text x="2688" y="2690" text-anchor="end" font-family="Arial,sans-serif" font-size="20" letter-spacing="2" fill="#999">AI MOTION DESK · BRAND CARD</text>
+</svg>

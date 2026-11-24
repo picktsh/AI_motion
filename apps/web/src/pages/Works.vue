@@ -133,7 +133,7 @@ async function copyText() {
         <h2 class="page-title">作品</h2>
         <p class="page-desc mt-1">已生成的成片在这里维护发布配置；制作进度在项目页</p>
       </div>
-      <NButton size="small" type="primary" @click="router.push('/create')">新建项目</NButton>
+      <NButton type="primary" @click="router.push('/create')">新建项目</NButton>
     </div>
     <NSpin :show="loading">
       <NEmpty
@@ -156,8 +156,8 @@ async function copyText() {
               {{ p.templateName }} · {{ new Date(p.createdAt).toLocaleString() }} · {{ p.duration }}s
             </div>
             <div class="mt-auto flex items-center gap-2 pt-2">
-              <NButton size="small" type="primary" @click="openPublish(p)">发布配置</NButton>
-              <NButton size="small" secondary @click="router.push(`/projects/${encodeURIComponent(p.id)}`)">项目详情</NButton>
+              <NButton type="primary" @click="openPublish(p)">发布配置</NButton>
+              <NButton secondary @click="router.push(`/projects/${encodeURIComponent(p.id)}`)">项目详情</NButton>
             </div>
           </div>
         </div>

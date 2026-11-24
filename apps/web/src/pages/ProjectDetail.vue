@@ -296,7 +296,7 @@ const runPrompt = computed(() => [
 
 <template>
   <div class="max-w-240 flex flex-col gap-4">
-    <NButton size="small" secondary class="self-start" @click="router.push('/projects')">
+    <NButton secondary class="self-start" @click="router.push('/projects')">
       <template #icon>
         <NIcon :size="16"><ArrowBackOutline /></NIcon>
       </template>
@@ -325,7 +325,7 @@ const runPrompt = computed(() => [
               <NInput v-model:value="editScript" type="textarea" :rows="5" placeholder="口播文稿" />
             </div>
             <div class="flex items-center gap-2 flex-wrap">
-              <NButton size="small" type="primary" :loading="textBusy" @click="saveText">保存标题与文稿</NButton>
+              <NButton type="primary" :loading="textBusy" @click="saveText">保存标题与文稿</NButton>
               <span class="text-xs text-ink-3">模板入参、素材绑定等创作文件，仍由外部 AI 工具修改</span>
             </div>
             <div v-if="captionLines.length" class="flex flex-col gap-1">
@@ -401,14 +401,13 @@ const runPrompt = computed(() => [
                   :disabled="isCloud"
                 />
                 <NButton
-                  size="small"
                   secondary
                   :disabled="!selectedSample?.url || isCloud"
                   @click="togglePreview"
                 >
                   {{ previewPlaying ? '暂停' : '试听' }}
                 </NButton>
-                <NButton size="small" type="primary" :loading="voiceBusy" :disabled="isCloud" @click="saveVoice">保存音色</NButton>
+                <NButton type="primary" :loading="voiceBusy" :disabled="isCloud" @click="saveVoice">保存音色</NButton>
                 <NText type="link" @click="router.push('/tts')">听更多音色</NText>
               </div>
             </div>
@@ -481,8 +480,8 @@ const runPrompt = computed(() => [
             <div class="flex items-center gap-3 flex-wrap">
               <span v-if="!isCloud" class="text-sm text-ink-2">本地渲染 · <b class="text-ink">0</b> 积分</span>
               <span v-else class="text-sm text-ink-2">本次预计消耗 <b class="text-ink num">{{ quoteTotal }}</b> 官方积分</span>
-              <NButton v-if="project.jobId" size="small" secondary @click="router.push('/jobs')">查看任务</NButton>
-              <NButton v-if="project.status === 'done'" size="small" type="primary" tertiary @click="router.push('/works')">
+              <NButton v-if="project.jobId" secondary @click="router.push('/jobs')">查看任务</NButton>
+              <NButton v-if="project.status === 'done'" type="primary" tertiary @click="router.push('/works')">
                 去作品页配置发布
               </NButton>
             </div>

@@ -14,6 +14,8 @@ export default defineConfig({
       bg: 'var(--color-bg)',
       panel: 'var(--color-panel)',
       overlay: 'var(--color-overlay)',
+      glass: 'var(--color-glass)',
+      'glass-border': 'var(--color-glass-border)',
       border: 'var(--color-border)',
       divider: 'var(--color-divider)',
       ink: 'var(--color-text-primary)',
@@ -49,6 +51,7 @@ export default defineConfig({
     },
     boxShadow: {
       card: 'var(--shadow-card)',
+      float: 'var(--shadow-float)',
       overlay: 'var(--shadow-overlay)',
     },
     borderRadius: {
@@ -62,7 +65,8 @@ export default defineConfig({
     'page-wrap': 'flex flex-col gap-4',
     'page-title': 'text-xl font-semibold text-ink',
     'page-desc': 'text-sm text-ink-2',
-    card: 'bg-panel border border-border rounded-card shadow-card',
+    card: 'bg-glass border border-glass-border rounded-[20px] shadow-float backdrop-blur-xl',
+    'glass-panel': 'bg-glass border border-glass-border rounded-[20px] shadow-float backdrop-blur-xl',
     'card-pad': 'card p-4',
     'row-between': 'flex items-center justify-between gap-2',
     'muted': 'text-ink-2',
@@ -92,6 +96,76 @@ body {
   background-color: var(--color-bg);
   overflow: hidden;
   -webkit-font-smoothing: antialiased;
+}
+.app-canvas {
+  position: relative;
+  isolation: isolate;
+  background: var(--color-bg);
+}
+.app-canvas::before {
+  content: '';
+  position: fixed;
+  inset: 0;
+  z-index: -1;
+  pointer-events: none;
+  background:
+    radial-gradient(ellipse at 82% 8%, var(--color-glow-brand), transparent 34%),
+    radial-gradient(ellipse at 16% 92%, var(--color-glow-cyan), transparent 36%);
+}
+.glass-surface {
+  background: var(--color-glass);
+  border: 1px solid var(--color-glass-border);
+  box-shadow: var(--shadow-float);
+  -webkit-backdrop-filter: blur(24px);
+  backdrop-filter: blur(24px);
+}
+.app-header {
+  background-color: var(--color-glass);
+  box-shadow: var(--shadow-float);
+  -webkit-backdrop-filter: blur(28px) saturate(1.25);
+  backdrop-filter: blur(28px) saturate(1.25);
+}
+.app-content {
+  background: color-mix(in srgb, var(--color-bg) 24%, transparent);
+  -webkit-backdrop-filter: blur(12px) saturate(1.08);
+  backdrop-filter: blur(12px) saturate(1.08);
+}
+.sidebar-menu.n-menu {
+  background: transparent;
+}
+.sidebar-menu .n-menu-item-content {
+  border-radius: 999px;
+}
+.sidebar-menu .n-menu-item-content::before {
+  left: 0;
+  right: 0;
+}
+.sidebar-menu.n-menu--collapsed .n-menu-item-content::before {
+  top: 5px;
+  bottom: 5px;
+}
+.sidebar-label {
+  max-width: 0;
+  overflow: hidden;
+  opacity: 0;
+  white-space: nowrap;
+  transition: opacity 80ms ease-out, max-width 180ms ease-out;
+}
+.sidebar-label.is-visible {
+  max-width: 180px;
+  opacity: 1;
+  transition-delay: 80ms;
+}
+.n-card {
+  -webkit-backdrop-filter: blur(20px);
+  backdrop-filter: blur(20px);
+}
+@supports not ((-webkit-backdrop-filter: blur(24px)) or (backdrop-filter: blur(24px))) {
+  .glass-surface { background: var(--color-panel); }
+  .app-content { background: var(--color-bg); }
+}
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after { scroll-behavior: auto !important; transition-duration: 0.01ms !important; }
 }
 * { scrollbar-width: thin; scrollbar-color: var(--color-border) transparent; }
 *::-webkit-scrollbar { width: 8px; height: 8px; }
