@@ -2,6 +2,7 @@
 import { onMounted, ref } from 'vue';
 import { NCard, NProgress, NTag, NSkeleton, NEmpty, NButton } from 'naive-ui';
 import { useRouter } from 'vue-router';
+import appRouter from '../router';
 import { getRoadmap, type RoadmapPayload } from '../api/about';
 import { getRuntimeConfig } from '../api/runtime';
 import type { RuntimeReport } from '../shared/types';
@@ -12,6 +13,7 @@ import { APP_VERSION } from '../shared/appMeta';
 const { state } = useServerConfig();
 const serverOrigin = state.origin;
 const router = useRouter();
+void appRouter;
 
 // 路线图来自后端解析 docs/roadmap.md，页面不另存一份阶段数据。
 const roadmap = ref<RoadmapPayload | null>(null);
@@ -28,6 +30,12 @@ onMounted(async () => {
 });
 
 const percent = (done: number, total: number): number => (total ? Math.round((done / total) * 100) : 0);
+
+// 能力地图直接从路由表取：菜单项与页面说明是同一份数据，不再手写一份功能清单。
+const capabilities = appRouter.getRoutes()
+  .filter((r) => Boolean(r.meta?.menu) && typeof r.meta?.title === 'string')
+  .map((r) => ({ path: r.path, title: String(r.meta?.title ?? ''), description: String(r.meta?.description ?? '') }))
+  .sort((a, b) => a.path.localeCompare(b.path));
 
 // 架构拓扑只渲染 GET /config 的单一来源，不另抄一份端口与白名单。
 const runtime = ref<RuntimeReport | null>(null);
@@ -128,6 +136,22 @@ onMounted(async () => {
         </div>
         <p class="m-0 text-xs text-ink-3">重动作（渲染、配音、封面）走命令台任务，面板只观测进度与产物；外部 AI 通过文件读写接口回写。</p>
       </div>
+    </NCard>
+
+
+    <NCard title="能力地图">
+      <div class="grid grid-cols-[repeat(auto-fit,minmax(220px,1fr))] gap-3">
+        <div
+          v-for="cap in capabilities"
+          :key="cap.path"
+          class="arch-box cursor-pointer hover:border-brand"
+          @click="router.push(cap.path)"
+        >
+          <span class="arch-title">{{ cap.title }}</span>
+          <span class="arch-meta">{{ cap.description }}</span>
+        </div>
+      </div>
+      <p class="m-0 mt-3 text-xs text-ink-3">取自路由表菜单项，共 {{ capabilities.length }} 个入口；新增页面自动出现在这里。</p>
     </NCard>
 
     <NCard title="基本信息">
