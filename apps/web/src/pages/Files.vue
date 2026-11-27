@@ -413,6 +413,7 @@ onUnmounted(() => {
               :row-key="(row: FileEntry) => row.rel"
               :bordered="false"
               size="small"
+              :scroll-x="720"
             />
             <NEmpty v-else description="空目录" class="py-16" />
           </NSpin>

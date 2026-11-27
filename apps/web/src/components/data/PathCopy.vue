@@ -24,8 +24,8 @@ async function copy() {
 </script>
 
 <template>
-  <div class="flex items-center gap-1 min-w-0" :class="props.inline ? 'w-fit' : 'w-full'">
-    <span class="min-w-0 truncate font-mono text-xs text-ink-2" :class="props.inline ? '' : 'flex-1'">{{ path || '—' }}</span>
+  <div class="flex items-center gap-1 min-w-0":class="props.inline ? 'w-fit max-w-full' : 'w-full'">
+    <span class="min-w-0 truncate font-mono text-xs text-ink-2":class="props.inline ? 'max-w-[220px]' : 'flex-1'">{{ path || '—' }}</span>
     <NTooltip placement="top" :delay="300">
       <template #trigger>
         <NButton secondary size="tiny" circle class="flex-none" @click="copy">

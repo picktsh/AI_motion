@@ -441,8 +441,8 @@ function probeMeta(a: Artifact): string {
               :height="36"
               @seek="seekTo"
             />
-            <div v-if="captions.length" class="flex flex-col">
-              <div class="grid grid-cols-[80px_80px_1fr] gap-3 px-2 py-2 text-xs text-ink-3">
+            <div v-if="captions.length" class="flex flex-col overflow-x-auto">
+              <div class="grid grid-cols-[80px_80px_1fr] gap-3 px-2 py-2 text-xs text-ink-3 min-w-[320px]">
                 <span>开始</span>
                 <span>结束</span>
                 <span>文本</span>
@@ -454,7 +454,7 @@ function probeMeta(a: Artifact): string {
                 :class="activeCaption === i ? 'bg-brand-soft' : 'hover:bg-neutral-soft'"
                 @click="seekTo(c.start)"
               >
-                <div class="grid grid-cols-[80px_80px_1fr] gap-3 text-sm text-ink">
+                <div class="grid grid-cols-[80px_80px_1fr] gap-3 text-sm text-ink min-w-[320px]">
                   <span class="text-ink-2 text-xs num">{{ c.start.toFixed(2) }}</span>
                   <span class="text-ink-2 text-xs num">{{ c.end.toFixed(2) }}</span>
                   <span class="truncate">{{ c.text }}</span>
@@ -507,8 +507,8 @@ function probeMeta(a: Artifact): string {
                 </div>
               </div>
 
-              <div class="flex flex-col">
-                <div class="grid grid-cols-[72px_150px_1fr_64px] gap-3 p-2 items-center text-xs text-ink-3">
+              <div class="flex flex-col overflow-x-auto">
+                <div class="grid grid-cols-[72px_150px_1fr_64px] gap-3 p-2 items-center text-xs text-ink-3 min-w-[420px]">
                   <span>段落</span>
                   <span>时间窗</span>
                   <span>台词</span>
@@ -521,7 +521,7 @@ function probeMeta(a: Artifact): string {
                   :class="expandedSegId === s.id ? 'bg-brand-soft' : 'hover:bg-neutral-soft'"
                   @click="toggleSegment(s.id)"
                 >
-                  <div class="grid grid-cols-[72px_150px_1fr_64px] gap-3 items-center text-sm text-ink">
+                  <div class="grid grid-cols-[72px_150px_1fr_64px] gap-3 items-center text-sm text-ink min-w-[420px]">
                     <span class="font-mono truncate">{{ s.id }}</span>
                     <span class="text-ink-2 text-xs num">{{ s.windowStart }} – {{ s.windowEnd }}s</span>
                     <span class="truncate">{{ s.text }}</span>

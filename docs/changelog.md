@@ -16,6 +16,7 @@
 
 ## 0.4.0 · 2026-11-27
 
+- 适配 · `<768px>` 窄屏：侧栏改抽屉、创建页统计卡单列、文件表格与字幕/分段时间线横向滚动、路径行限宽截断
 - 调整 · BYOK 卡片交互顺序与字段提示：主按钮改为「测试连通」在前、「保存」在后（旁注先测后存）；模型名/baseUrl/Key 校验失败时除输入框标红外，在框下固定高度红字说明（请填写模型名 / 请填写以 http(s):// 开头 / 还没保存 Key），重新输入即清除
 - 修复 · SSE 跨端口被 CORS 拦截：`/jobs/stream` 与 `/events` 手写 writeHead 绕过 Fastify 头收集，改为先取 `reply.getHeaders()` 再写响应头，回带 `Access-Control-Allow-Origin` 与 `Vary: Origin`
 - 调整 · 表单校验口径落到 BYOK 卡片：模型名/baseUrl/API Key 的缺失与格式问题改为输入框标红（重新输入即清除），不再弹顶部提示；仅请求失败与保存结果走 NMessage，并写入 AGENTS.local 约定

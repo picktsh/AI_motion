@@ -105,7 +105,7 @@ async function submit() {
     <NSpin :show="loading">
       <div class="flex flex-col gap-6">
       <!-- 概览统计 -->
-      <div class="grid grid-cols-3 gap-4">
+      <div class="grid grid-cols-1 sm:grid-cols-3 gap-4">
         <div class="card p-4 flex flex-col gap-1">
           <span class="text-xs text-ink-3">项目总数</span>
           <span class="text-2xl font-semibold text-ink num">{{ stats.total }}</span>
