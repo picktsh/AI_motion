@@ -16,6 +16,7 @@
 
 ## 0.4.0 · 2026-11-27
 
+- 文档 · 部署形态对比 `docs/deployment.md`（只读 API vs 远程完整工作台，结论 + 门槛清单）与共享包发包评估 `docs/shared-package.md`（暂不发布及补齐条件）；roadmap 两条评估项收口
 - 新增 · #95 关于页能力地图：直接取路由表菜单项生成 9 个入口卡片（标题+说明+点击跳转），新增页面自动出现，不再手写功能清单
 - 新增 · 三期 BYOK 起步：`GET /ai/providers`（Key 只回掩码）、`PUT /ai/providers/:id`（baseUrl/模型/Key 落本地 `config/ai.json`，0600、gitignore）、`POST /ai/chat` 走本机后端代理 OpenAI 兼容补全并回显错误原文；环境页新增「AI 助手（BYOK）」卡片（选提供商、改 baseUrl/模型、填 Key、测试连通）
 - 文档 · 前端 11 页逐页巡检（内置浏览器）：各页加载无错误横幅、空态与骨架屏正常，结论记入 roadmap；移动端窄屏适配仍待做
