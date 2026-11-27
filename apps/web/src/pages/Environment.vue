@@ -424,39 +424,48 @@ const groups = computed(() =>
           />
         </NFormItem>
         <NFormItem label="模型名" label-class="text-xs text-ink-2">
-          <NInput
-            v-model:value="aiModel"
-            placeholder="如 doubao-seed-1-6 / deepseek-chat"
-            spellcheck="false"
-            :status="aiErrors.model ? 'error' : undefined"
-            @input="aiErrors.model = false"
-          />
+          <div class="w-full flex flex-col gap-1">
+            <NInput
+              v-model:value="aiModel"
+              placeholder="如 doubao-seed-1-6 / deepseek-chat"
+              spellcheck="false"
+              :status="aiErrors.model ? 'error' : undefined"
+              @input="aiErrors.model = false"
+            />
+            <span class="h-4 text-xs leading-4 text-danger">{{ aiErrors.model ? '请填写模型名' : '' }}</span>
+          </div>
         </NFormItem>
         <NFormItem label="baseUrl" label-class="text-xs text-ink-2">
-          <NInput
-            v-model:value="aiBaseUrl"
-            placeholder="https://…/v1"
-            spellcheck="false"
-            :status="aiErrors.baseUrl ? 'error' : undefined"
-            @input="aiErrors.baseUrl = false"
-          />
+          <div class="w-full flex flex-col gap-1">
+            <NInput
+              v-model:value="aiBaseUrl"
+              placeholder="https://…/v1"
+              spellcheck="false"
+              :status="aiErrors.baseUrl ? 'error' : undefined"
+              @input="aiErrors.baseUrl = false"
+            />
+            <span class="h-4 text-xs leading-4 text-danger">{{ aiErrors.baseUrl ? '请填写以 http:// 或 https:// 开头的地址' : '' }}</span>
+          </div>
         </NFormItem>
         <NFormItem :label="`API Key${providers.find((p) => p.id === aiProviderId)?.hasKey ? '（已保存，留空则不变）' : ''}`" label-class="text-xs text-ink-2">
-          <NInput
-            v-model:value="aiKey"
-            type="password"
-            show-password-on="click"
-            :placeholder="providers.find((p) => p.id === aiProviderId)?.keyMask ?? '粘贴你的 Key'"
-            spellcheck="false"
-            :status="aiErrors.key ? 'error' : undefined"
-            @input="aiErrors.key = false"
-          />
+          <div class="w-full flex flex-col gap-1">
+            <NInput
+              v-model:value="aiKey"
+              type="password"
+              show-password-on="click"
+              :placeholder="providers.find((p) => p.id === aiProviderId)?.keyMask ?? '粘贴你的 Key'"
+              spellcheck="false"
+              :status="aiErrors.key ? 'error' : undefined"
+              @input="aiErrors.key = false"
+            />
+            <span class="h-4 text-xs leading-4 text-danger">{{ aiErrors.key ? '还没保存 Key，先填上再测试连通' : '' }}</span>
+          </div>
         </NFormItem>
       </NForm>
       <div class="flex items-center gap-2 flex-wrap">
-        <NButton type="primary" :loading="aiSaving" @click="saveAi">保存</NButton>
-        <NButton secondary :loading="aiTesting" @click="testAi">测试连通（消耗一次额度）</NButton>
-        <span class="ml-auto text-xs text-ink-3">Key 不入库、不进日志；换机器需重新配置</span>
+        <NButton type="primary" :loading="aiTesting" @click="testAi">测试连通（消耗一次额度）</NButton>
+        <NButton secondary :loading="aiSaving" @click="saveAi">保存</NButton>
+        <span class="ml-auto text-xs text-ink-3">先测试连通，通过后再保存；Key 不入库、不进日志</span>
       </div>
       <p v-if="aiReply" class="m-0 mt-3 text-xs text-ink-2 break-words">模型回复：{{ aiReply }}</p>
     </NCard>
