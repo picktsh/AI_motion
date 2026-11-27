@@ -1,12 +1,13 @@
 <script setup lang="ts">
 import { computed, onMounted, onUnmounted, ref } from 'vue';
 import { NButton, NSpin, NImage, NEmpty } from 'naive-ui';
-import { listAllAssets, type GlobalAsset, type AssetMediaType } from '../api/observatory';
+import { listAllAssets, type GlobalAsset, type AssetMediaType, type AssetScope } from '../api/observatory';
 import { onDomain } from '../api/events';
 import PathCopy from '../components/data/PathCopy.vue';
 import SamplePlayer from '../components/media/SamplePlayer.vue';
 
 type TabKey = 'all' | AssetMediaType;
+type ScopeKey = 'all' | AssetScope;
 
 const loading = ref(true);
 const assets = ref<GlobalAsset[]>([]);
@@ -19,6 +20,19 @@ const tabs: Array<{ key: TabKey; label: string }> = [
   { key: 'audio', label: '音频' },
 ];
 
+const activeScope = ref<ScopeKey>('all');
+const scopeTabs: Array<{ key: ScopeKey; label: string }> = [
+  { key: 'all', label: '全部归属' },
+  { key: 'project', label: '项目私有' },
+  { key: 'public', label: '公共素材' },
+];
+
+const scopeCounts = computed<Record<ScopeKey, number>>(() => {
+  const c: Record<ScopeKey, number> = { all: assets.value.length, project: 0, public: 0 };
+  for (const a of assets.value) c[a.scope] += 1;
+  return c;
+});
+
 const counts = computed<Record<TabKey, number>>(() => {
   const c: Record<TabKey, number> = { all: assets.value.length, image: 0, video: 0, audio: 0, file: 0 };
   for (const a of assets.value) c[a.type] += 1;
@@ -26,7 +40,11 @@ const counts = computed<Record<TabKey, number>>(() => {
 });
 
 const filtered = computed(() =>
-  assets.value.filter((a) => activeTab.value === 'all' || a.type === activeTab.value),
+  assets.value.filter(
+    (a) =>
+      (activeTab.value === 'all' || a.type === activeTab.value) &&
+      (activeScope.value === 'all' || a.scope === activeScope.value),
+  ),
 );
 
 const imageAssets = computed(() => filtered.value.filter((a) => a.type === 'image'));
@@ -41,7 +59,8 @@ function formatSize(n: number): string {
 }
 
 function ownerOf(a: GlobalAsset): string {
-  return a.source === 'project' ? a.projectName ?? '项目素材' : '配音样例';
+  if (a.scope === 'project') return a.projectName ?? '项目素材';
+  return a.source === 'tts-sample' ? '公共 · 配音样例' : '公共素材';
 }
 
 async function load() {
@@ -75,17 +94,32 @@ onUnmounted(() => {
   <div class="flex flex-col gap-4">
     <div class="flex items-center justify-between gap-3 flex-wrap">
       <div class="text-sm text-ink-2">共 {{ filtered.length }} 个文件 · 面板上传与外部 AI 落盘均会从磁盘统一回显</div>
-      <div class="flex items-center gap-1.5 p-1 rounded-full bg-glass-soft border border-glass-border">
-        <NButton
-          v-for="t in tabs"
-          :key="t.key"
-          :secondary="activeTab !== t.key"
-          :type="activeTab === t.key ? 'primary' : 'default'"
-          class="!px-3 !h-8"
-          @click="activeTab = t.key"
-        >
-          {{ t.label }} <span class="ml-1 opacity-70 num">{{ counts[t.key] }}</span>
-        </NButton>
+      <div class="flex flex-col items-end gap-2">
+        <div class="flex items-center gap-1.5 p-1 rounded-full bg-glass-soft border border-glass-border">
+          <NButton
+            v-for="t in tabs"
+            :key="t.key"
+            :secondary="activeTab !== t.key"
+            :type="activeTab === t.key ? 'primary' : 'default'"
+            class="!px-3 !h-8"
+            @click="activeTab = t.key"
+          >
+            {{ t.label }} <span class="ml-1 opacity-70 num">{{ counts[t.key] }}</span>
+          </NButton>
+        </div>
+        <div class="flex items-center gap-1.5 p-1 rounded-full bg-glass-soft border border-glass-border">
+          <NButton
+            v-for="s in scopeTabs"
+            :key="s.key"
+            :secondary="activeScope !== s.key"
+            :type="activeScope === s.key ? 'primary' : 'default'"
+            class="!px-3 !!h-7"
+            size="small"
+            @click="activeScope = s.key"
+          >
+            {{ s.label }} <span class="ml-1 opacity-70 num">{{ scopeCounts[s.key] }}</span>
+          </NButton>
+        </div>
       </div>
     </div>
 

@@ -2,7 +2,8 @@ import { getJson, getList } from './client';
 import { endpoints } from './endpoints';
 import { resolveAssetUrl } from '../composables/useServerConfig';
 
-export type AssetSource = 'project' | 'tts-sample';
+export type AssetScope = 'project' | 'public';
+export type AssetSource = 'project' | 'public' | 'tts-sample';
 export type AssetMediaType = 'image' | 'audio' | 'video' | 'file';
 
 export interface GlobalAsset {
@@ -10,6 +11,7 @@ export interface GlobalAsset {
   type: AssetMediaType;
   rel: string;
   url: string | null;
+  scope: AssetScope;
   source: AssetSource;
   projectId: string | null;
   projectName: string | null;
@@ -29,8 +31,9 @@ export interface ActivityItem {
   at: number;
 }
 
-export async function listAllAssets(): Promise<GlobalAsset[]> {
-  const items = await getList<GlobalAsset>(endpoints.observatory.assets);
+export async function listAllAssets(scope?: AssetScope): Promise<GlobalAsset[]> {
+  const query = scope ? `?scope=${scope}` : '';
+  const items = await getList<GlobalAsset>(`${endpoints.observatory.assets}${query}`);
   return items.map((a) => ({ ...a, url: resolveAssetUrl(a.url) }));
 }
 

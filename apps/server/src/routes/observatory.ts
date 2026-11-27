@@ -12,7 +12,13 @@ const contextSnapshot: JsonSchema = {
 
 // 观测台只读接口：全局资产盘点、最近文件/任务动态、聚合上下文快照。不提供任何写动作。
 export function registerObservatory(app: FastifyInstance, prefix: string): void {
-  app.get(`${prefix}/observatory/assets`, async () => list(listAllAssets()));
+  // 归属过滤：scope=project|public 只回对应归属；省略返回全部。
+  app.get<{ Querystring: { scope?: string } }>(`${prefix}/observatory/assets`, async (request) => {
+    const scope = request.query.scope;
+    const all = listAllAssets();
+    const items = scope === 'project' || scope === 'public' ? all.filter((a) => a.scope === scope) : all;
+    return list(items, { total: items.length });
+  });
 
   app.get<{ Querystring: { limit?: string } }>(`${prefix}/observatory/activity`, async (request) => {
     const limit = Number(request.query.limit ?? 30);

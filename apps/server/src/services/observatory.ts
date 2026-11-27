@@ -10,6 +10,8 @@ import { listJobs } from './jobs.js';
 
 const PROJECTS_DIR = path.join(ROOT, 'studio', 'projects');
 const SAMPLES_DIR = path.join(ROOT, 'studio', 'tts', 'samples');
+// 公共素材目录：跨项目复用的图片/视频/BGM，按 #190 口径归 output 之外的「可复用源素材」。
+const PUBLIC_ASSETS_DIR = path.join(ROOT, 'studio', 'assets');
 const SKIP = new Set(['.DS_Store', 'Thumbs.db']);
 
 export interface GlobalAsset {
@@ -17,7 +19,9 @@ export interface GlobalAsset {
   type: MediaType;
   rel: string;
   url: string | null;
-  source: 'project' | 'tts-sample';
+  /** 素材归属：项目私有 / 公共（跨项目复用）/ 配音样例（登记的公共音色）。 */
+  scope: 'project' | 'public';
+  source: 'project' | 'public' | 'tts-sample';
   projectId: string | null;
   projectName: string | null;
   size: number;
@@ -110,6 +114,7 @@ export function listAllAssets(): GlobalAsset[] {
           type: mediaType(name),
           rel,
           url: assetUrl(rel),
+          scope: 'project',
           source: 'project',
           projectId: meta.id,
           projectName: meta.name,
@@ -126,6 +131,7 @@ export function listAllAssets(): GlobalAsset[] {
           type: 'audio',
           rel,
           url: assetUrl(rel),
+          scope: 'project',
           source: 'project',
           projectId: meta.id,
           projectName: meta.name,
@@ -148,12 +154,41 @@ export function listAllAssets(): GlobalAsset[] {
       type: 'audio',
       rel,
       url: assetUrl(rel),
+      scope: 'public',
       source: 'tts-sample',
       projectId: null,
       projectName: null,
       size: st.size,
       updatedAt: st.mtime,
     });
+  }
+
+  // 公共素材目录：一层目录 + 根下散文件，不做深度递归，避免把临时目录也算进素材库
+  if (fs.existsSync(PUBLIC_ASSETS_DIR)) {
+    for (const entry of fs.readdirSync(PUBLIC_ASSETS_DIR, { withFileTypes: true })) {
+      if (SKIP.has(entry.name) || entry.name.startsWith('.')) continue;
+      const children = entry.isDirectory()
+        ? listDirFiles(path.join(PUBLIC_ASSETS_DIR, entry.name)).map((n) => path.join(entry.name, n))
+        : [entry.name];
+      for (const relName of children) {
+        const abs = path.join(PUBLIC_ASSETS_DIR, relName);
+        const st = statSafe(abs);
+        if (!st) continue;
+        const rel = relOf(abs);
+        assets.push({
+          name: path.basename(relName),
+          type: mediaType(relName),
+          rel,
+          url: assetUrl(rel),
+          scope: 'public',
+          source: 'public',
+          projectId: null,
+          projectName: null,
+          size: st.size,
+          updatedAt: st.mtime,
+        });
+      }
+    }
   }
 
   return assets.sort((a, b) => b.updatedAt - a.updatedAt);

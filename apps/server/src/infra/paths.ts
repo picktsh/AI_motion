@@ -36,6 +36,7 @@ export const WHITELIST_DIRS: string[] = [
   'studio/public',
   'studio/templates',
   'studio/projects',
+  'studio/assets',
 ];
 
 // 解析白名单内的相对路径；越界返回 null。存在性由调用方 stat 判断，区分 403 与 404。
