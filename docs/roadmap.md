@@ -67,6 +67,6 @@
 - #191 项目详情步骤条：**已落地只读步骤条**。七步：素材 → 台词 → 截图 → 配音 → 字幕 → BGM → 成片；`GET /projects/:id/steps` 按 input/output 实有文件派生状态与说明文件名，详情页 NSteps 展示。判定规则当前为「有文件即完成」：素材看 input/assets、台词看 script.txt 非空、截图看素材内图片、配音看 voice.mp3、字幕看 user.json captions 或 vtt、BGM 看 media.music 绑定或 bgm 音频、成片看 artifactRel 存在。时长/槽位校验（如配音时长对不对得上、字幕条数是否齐）未做，留待后续。
 ## 开源准备与对外展示（三期后段评估）
 
-- GitHub Pages 演示站：纯静态项目介绍、界面截图与动图、特性清单、上手说明；只放可再分发 demo 素材，不连本机后端
+- GitHub Pages 演示站：**静态页已落地**（`docs/site/index.html`，纯 HTML/CSS：定位、能力卡、数据流、上手三步、边界与许可说明；不连任何后端）。仍待补：真实界面截图与发布流水线
 - 服务器部署：**方案对比已成文**（`docs/deployment.md`）：不推荐远程完整工作台，若对外走「公开只读 API + 静态演示站」，附鉴权/目录隔离/命令台关闭/CORS 门槛清单；落地形态待拍板，不接私有工程与个人 Key
 - 内核独立发包：**评估已成文**（`docs/shared-package.md`）：暂不发布，补齐 dist 构建、版本口径、LICENSE、README 与兼容验证后再考虑 npm

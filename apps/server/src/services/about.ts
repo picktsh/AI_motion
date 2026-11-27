@@ -25,7 +25,7 @@ export interface RoadmapPayload {
   done: number;
 }
 
-const DONE_MARK = /(已落地|已完成|已定稿|已补齐)/;
+const DONE_MARK = /(已落地|已完成|已定稿|已补齐|已成文|已核对|已实测|已巡检)/;
 
 function stripMarkdown(text: string): string {
   return text

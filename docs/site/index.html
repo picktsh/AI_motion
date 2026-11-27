@@ -1,0 +1,88 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>AI Motion Desk · 本地 .motion 模板工作台</title>
+<style>
+:root {
+  color-scheme: dark;
+  --bg: #0f1115;
+  --panel: #171a21;
+  --line: #2a2f3a;
+  --ink: #e8ecf3;
+  --ink-2: #a7b0c0;
+  --brand: #5b8cff;
+  --ok: #3ecf8e;
+}
+* { box-sizing: border-box; }
+body {
+  margin: 0;
+  background: radial-gradient(1200px 600px at 20% -10%, #1d2635, var(--bg));
+  color: var(--ink);
+  font: 15px/1.7 -apple-system, "PingFang SC", "Segoe UI", sans-serif;
+}
+main { max-width: 960px; margin: 0 auto; padding: 56px 20px 72px; }
+h1 { font-size: 34px; margin: 0 0 8px; letter-spacing: -0.03em; }
+.lead { color: var(--ink-2); margin: 0 0 32px; max-width: 720px; }
+.badge { display: inline-block; padding: 3px 10px; border: 1px solid var(--line); border-radius: 999px; font-size: 12px; color: var(--ink-2); margin-bottom: 18px; }
+.grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 14px; margin: 8px 0 36px; }
+.card { background: var(--panel); border: 1px solid var(--line); border-radius: 16px; padding: 16px; }
+.card h3 { margin: 0 0 6px; font-size: 15px; }
+.card p { margin: 0; font-size: 13px; color: var(--ink-2); }
+h2 { font-size: 18px; margin: 36px 0 12px; }
+.flow { display: flex; flex-wrap: wrap; align-items: center; gap: 10px; margin: 10px 0 8px; }
+.node { background: var(--panel); border: 1px solid var(--line); border-radius: 12px; padding: 10px 14px; font-size: 13px; }
+.node small { display: block; color: var(--ink-2); font-size: 11px; }
+.arrow { color: var(--ink-2); font-size: 13px; }
+pre { background: #0b0d11; border: 1px solid var(--line); border-radius: 12px; padding: 14px; overflow: auto; font-size: 13px; }
+ol { margin: 8px 0; padding-left: 20px; color: var(--ink-2); }
+footer { margin-top: 44px; color: var(--ink-2); font-size: 12px; border-top: 1px solid var(--line); padding-top: 18px; }
+a { color: var(--brand); text-decoration: none; }
+</style>
+</head>
+<body>
+<main>
+  <span class="badge">本机运行 · 不依赖数据库 · 以磁盘文件为事实来源</span>
+  <h1>AI Motion Desk</h1>
+  <p class="lead">围绕 <code>.motion</code> 模板的本地可视化工作台：把项目、素材、配音与成片收在一处，重动作交给命令台任务与外部 AI 工具，面板负责观测、回显与整理。</p>
+
+  <div class="grid">
+    <div class="card"><h3>模板</h3><p>导入包结构校验、逐文件 sha256、来源锁定与凭据扫描；按版本落盘，旧版本不覆盖。</p></div>
+    <div class="card"><h3>项目</h3><p>编号式目录（YYMMDDNNN），文稿、报价、生成与步骤进度一条线；素材删除前核对实例引用。</p></div>
+    <div class="card"><h3>作品</h3><p>独立作品清单只收已出成片，发布配置、封面与文案就绪状态随清单回带。</p></div>
+    <div class="card"><h3>文件</h3><p>目录树浏览、只读预览与文件级操作；文本读写 API 供外部 AI 回写，带 sha256 冲突检测。</p></div>
+    <div class="card"><h3>观测</h3><p>本机文件变动经 SSE 推送到面板，按项目/产物/素材/模板四域刷新，不靠轮询。</p></div>
+    <div class="card"><h3>检索</h3><p>项目、模板与素材一次搜；顶栏入口，结果按域分组并可直达资源。</p></div>
+  </div>
+
+  <h2>数据流</h2>
+  <div class="flow">
+    <div class="node">浏览器面板<small>Vue 3 · 哈希路由</small></div>
+    <span class="arrow">/api/v1 →</span>
+    <div class="node">本机后端<small>Fastify · 仅 127.0.0.1</small></div>
+    <span class="arrow">→</span>
+    <div class="node">白名单目录<small>studio/ 内读写</small></div>
+    <span class="arrow">→</span>
+    <div class="node">命令台任务<small>渲染 / 配音，流式日志</small></div>
+  </div>
+
+  <h2>上手三步</h2>
+  <ol>
+    <li>装依赖：Node.js ≥ 22（corepack 启 pnpm）、uv、ffmpeg；Python 环境用 <code>pnpm setup:python</code>。</li>
+    <li>起服务：<code>pnpm dev:server</code> 与 <code>pnpm dev:web</code>，打开 <code>127.0.0.1:5577</code>。</li>
+    <li>导模板：官网下载 <code>.motion</code> 后导入，进「创作」建项目。</li>
+  </ol>
+  <pre>pnpm dev:server   # 127.0.0.1:5599
+pnpm dev:web      # 127.0.0.1:5577</pre>
+
+  <h2>边界</h2>
+  <p class="lead" style="margin:0">服务只绑定本机回环，资源访问限 studio 白名单目录；访问密钥可选开启，Key 只存本地配置并以掩码展示。演示站为静态页面，不连任何后端。</p>
+
+  <footer>
+    独立社区项目，与 MotionGit 无隶属、合作或官方背书关系。<br />
+    演示素材取自 MIT 许可的 kinetic-tech 模板自带示例；个人下载包不含许可声明，不在此展示。详见仓库 <code>docs/licenses.md</code>。
+  </footer>
+</main>
+</body>
+</html>
