@@ -16,6 +16,7 @@
 
 ## 0.4.0 · 2026-11-27
 
+- 新增 · #65 BGM 公共库：`GET /bgm` 扫 `studio/assets/bgm`（音频扩展名 + 同名 `.license.json` 读授权），`POST /projects/:id/bgm` 选用时复制进项目 `input/assets` 并回写 `user.json media.music`（mode/file/license），`mode=none` 解绑
 - 新增 · #69 模板目录版本清理入口 `DELETE /templates/:id`：只清导入目录，被项目 `templateDir` 引用时 409 并回引用路径，删除同时注销 `templates.lock.json`；模板详情抽屉加「清理本地版本」二次确认
 - 新增 · #68 作品清单独立接口 `GET /works`：只回已出成片项目并附带发布配置、文案就绪与封面状态，作品页改读该接口，不再复用旧视频条目过渡
 - 新增 · #186 项目编号规则改为 `YYMMDDNNN`：新建项目按当日序号递增（示例 261127001/002），标题与模板溯源只留 `project.json`，旧中文目录名保留兼容读取
