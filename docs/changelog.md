@@ -16,6 +16,7 @@
 
 ## 0.4.0 · 2026-11-27
 
+- 文档 · `docs/deployment.md` 补「访问密钥实操」：双路配置、多把轮换、客户端携带与最小长度
 - 适配 · `<768px>` 窄屏：侧栏改抽屉、创建页统计卡单列、文件表格与字幕/分段时间线横向滚动、路径行限宽截断
 - 调整 · BYOK 卡片交互顺序与字段提示：主按钮改为「测试连通」在前、「保存」在后（旁注先测后存）；模型名/baseUrl/Key 校验失败时除输入框标红外，在框下固定高度红字说明（请填写模型名 / 请填写以 http(s):// 开头 / 还没保存 Key），重新输入即清除
 - 修复 · SSE 跨端口被 CORS 拦截：`/jobs/stream` 与 `/events` 手写 writeHead 绕过 Fastify 头收集，改为先取 `reply.getHeaders()` 再写响应头，回带 `Access-Control-Allow-Origin` 与 `Vary: Origin`
