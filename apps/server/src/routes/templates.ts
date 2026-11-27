@@ -4,7 +4,7 @@ import os from 'node:os';
 import path from 'node:path';
 import { pipeline } from 'node:stream/promises';
 import { listTemplates, getTemplate } from '../services/templates.js';
-import { importMotionPackage, readLockStatus } from '../services/templateImport.js';
+import { importMotionPackage, readLockStatus, removeImportedTemplate } from '../services/templateImport.js';
 import { getCatalog } from '../services/templateCatalog.js';
 import { badRequest, notFound } from '../core/errors.js';
 import { ok, list } from '../core/response.js';
@@ -254,6 +254,18 @@ export function registerTemplates(app: FastifyInstance, prefix: string): void {
     const tpl = getTemplate(id);
     if (!tpl) throw notFound('模板不存在');
     return ok(tpl);
+  });
+
+  app.delete(`${prefix}/templates/:id`, {
+    schema: {
+      tags: ['templates'],
+      summary: '清理本地导入的模板目录（被项目引用时 409）',
+      params: idParam,
+      response: { 200: envelope({ type: 'object', additionalProperties: true }), ...errorStatuses },
+    },
+  }, (request) => {
+    const { id } = request.params as IdParams;
+    return ok(removeImportedTemplate(id));
   });
 
   app.get(`${prefix}/templates/:id/redirect`, {

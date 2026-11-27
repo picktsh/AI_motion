@@ -5,7 +5,7 @@ import { pipeline } from 'node:stream/promises';
 import { Transform, type Readable } from 'node:stream';
 import yauzl from 'yauzl';
 import { ROOT } from '../infra/paths.js';
-import { badRequest, conflict } from '../core/errors.js';
+import { badRequest, conflict, notFound } from '../core/errors.js';
 
 // .motion 是 zip 容器，根目录直接是包内容。目前兼容两代包：
 // 1) legacy（specVersion 0.1.x）：motion.json 内有 template/runtime.entry/license，带 integrity.json 逐文件哈希。
@@ -531,6 +531,39 @@ export function readLockStatus(): { updatedAt: string; packages: Array<LockEntry
     return { ...entry, status: 'ok' as const };
   });
   return { updatedAt: lock.updatedAt, packages };
+}
+
+/** 清理本地导入的模板目录：被项目引用则拒绝，落盘目录与锁记录一起移除。 */
+export function removeImportedTemplate(id: string): { id: string; removed: string } {
+  if (!/^[\w一-龥.@-]+$/.test(id)) throw badRequest('模板编号不合法');
+  const dir = path.join(TEMPLATES_DIR, id);
+  if (!fs.existsSync(dir)) throw notFound(`模板目录不存在：${id}`);
+  if (!fs.existsSync(path.join(dir, '.import-meta.json'))) {
+    throw badRequest('只能清理导入的模板目录，手动放进来的目录请自行处理');
+  }
+  const projectsRoot = path.join(ROOT, 'studio', 'projects');
+  const refs: string[] = [];
+  if (fs.existsSync(projectsRoot)) {
+    for (const proj of fs.readdirSync(projectsRoot, { withFileTypes: true })) {
+      if (!proj.isDirectory()) continue;
+      const record = readJson<{ templateDir?: string }>(path.join(projectsRoot, proj.name, 'project.json'));
+      if (record?.templateDir && record.templateDir.endsWith(`templates/${id}`)) {
+        refs.push(`studio/projects/${proj.name}/project.json`);
+      }
+    }
+  }
+  if (refs.length) throw conflict('模板仍被项目引用，先删除或改绑这些项目再清理', { refs });
+
+  fs.rmSync(dir, { recursive: true, force: true });
+  const lock = readLockFile();
+  if (lock.packages[id]) {
+    delete lock.packages[id];
+    lock.updatedAt = new Date().toISOString();
+    const temp = `${LOCK_FILE}.${process.pid}.tmp`;
+    fs.writeFileSync(temp, `${JSON.stringify(lock, null, 2)}\n`, 'utf8');
+    fs.renameSync(temp, LOCK_FILE);
+  }
+  return { id, removed: path.relative(ROOT, dir) };
 }
 
 export async function importMotionPackage(

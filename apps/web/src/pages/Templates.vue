@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import { computed, h, onMounted, onUnmounted, ref, watch } from 'vue';
 import { useRouter } from 'vue-router';
-import { NIcon, NButton, NCard, NEmpty, NSkeleton, NTag, NDrawer, NDrawerContent, NInput, NTree, NProgress, NAlert, NRadioGroup, NRadioButton, useMessage, type TreeOption } from 'naive-ui';
+import { NIcon, NButton, NCard, NEmpty, NSkeleton, NTag, NDrawer, NDrawerContent, NInput, NTree, NProgress, NAlert, NRadioGroup, NRadioButton, NPopconfirm, useMessage, type TreeOption } from 'naive-ui';
 import {
   FolderOutline,
   DocumentOutline,
@@ -16,6 +16,7 @@ import {
 } from '@vicons/ionicons5';
 import {
   listTemplates,
+  deleteTemplate,
   getCatalog,
   importTemplate,
   getTemplateDetail,
@@ -182,6 +183,22 @@ async function refreshCatalog() {
 
 /* ---------- 本地模板详情 ---------- */
 const show = ref(false);
+const removing = ref(false);
+
+async function removeLocal() {
+  if (!detail.value) return;
+  removing.value = true;
+  try {
+    await deleteTemplate(detail.value.id);
+    message.success('已清理本地模板目录');
+    show.value = false;
+    await local.run();
+  } catch (e) {
+    message.error(e instanceof Error ? e.message : String(e));
+  } finally {
+    removing.value = false;
+  }
+}
 const detail = ref<TemplateDetail | null>(null);
 const detailLoading = ref(false);
 const detailError = ref('');
@@ -563,12 +580,20 @@ const catSummary = computed(() => {
         <template #header>
           <div class="row-between gap-3">
             <span class="text-lg font-semibold text-ink">{{ detail?.name ?? '模板详情' }}</span>
-            <NButton v-if="redirectUrl" tag="a" :href="redirectUrl" target="_blank" rel="noopener noreferrer" secondary>
-              <template #icon>
-                <n-icon :size="14"><OpenOutline /></n-icon>
-              </template>
-              源码
-            </NButton>
+            <div class="flex items-center gap-2">
+              <NButton v-if="redirectUrl" tag="a" :href="redirectUrl" target="_blank" rel="noopener noreferrer" secondary>
+                <template #icon>
+                  <n-icon :size="14"><OpenOutline /></n-icon>
+                </template>
+                源码
+              </NButton>
+              <NPopconfirm v-if="detail?.importedAt" @positive-click="removeLocal">
+                <template #trigger>
+                  <NButton secondary type="error" :loading="removing">清理本地版本</NButton>
+                </template>
+                删除这个已导入的模板目录？被项目引用时不会删除，会先告诉你在哪几个项目里用到。
+              </NPopconfirm>
+            </div>
           </div>
         </template>
 

@@ -1,4 +1,4 @@
-import { getJson, getList, postForm } from './client';
+import { getJson, getList, postForm, delJson } from './client';
 import { endpoints } from './endpoints';
 import type {
   TemplateSummary,
@@ -43,6 +43,11 @@ export function importTemplate(
   const form = new FormData();
   form.append('file', file, file.name);
   return postForm<TemplateImportResult>(endpoints.templates.import, form, onProgress);
+}
+
+/** 清理本地导入的模板目录；被项目引用时后端返回 409 与引用路径。 */
+export function deleteTemplate(id: string): Promise<{ id: string; removed: string }> {
+  return delJson(endpoints.templates.detail(id));
 }
 
 /** 模板详情：清单、许可、运行时、文件树。 */
