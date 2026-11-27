@@ -11,6 +11,7 @@ import {
   MicOutline,
   TerminalOutline,
   ConstructOutline,
+  FolderOutline,
 } from '@vicons/ionicons5';
 
 declare module 'vue-router' {
@@ -60,17 +61,6 @@ const router = createRouter({
       },
     },
     {
-      path: '/assets',
-      name: 'assets',
-      component: () => import('./pages/Assets.vue'),
-      meta: {
-        title: '素材库',
-        description: '工程内全部可用素材与产物，按磁盘文件回显',
-        menu: '素材',
-        icon: ImagesOutline,
-      },
-    },
-    {
       path: '/templates',
       name: 'templates',
       component: () => import('./pages/Templates.vue'),
@@ -79,6 +69,17 @@ const router = createRouter({
         description: 'MotionGit .motion 模板包，含渲染入口、许可与完整文件树',
         menu: '模板',
         icon: CubeOutline,
+      },
+    },
+    {
+      path: '/assets',
+      name: 'assets',
+      component: () => import('./pages/Assets.vue'),
+      meta: {
+        title: '素材库',
+        description: '工程内全部可用素材与产物，按磁盘文件回显',
+        menu: '素材',
+        icon: ImagesOutline,
       },
     },
     {
@@ -151,6 +152,17 @@ const router = createRouter({
         description: '后端连接、本地依赖、媒体工具与工程目录就位情况',
         menu: '环境',
         icon: ConstructOutline,
+      },
+    },
+    {
+      path: '/files',
+      name: 'files',
+      component: () => import('./pages/Files.vue'),
+      meta: {
+        title: '文件',
+        description: '工程目录树浏览、预览与文件级操作',
+        menu: '文件',
+        icon: FolderOutline,
       },
     },
     {

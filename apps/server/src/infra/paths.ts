@@ -80,3 +80,72 @@ export function findBin(name: string): string | null {
   }
   return null;
 }
+
+// 文件浏览与写操作的目录口径：
+// 浏览只读覆盖全部白名单；写操作（新建/改名/移动/删除/文本覆写）只放行下面的可写根。
+// templates、videos、templates-cache 属只读产物或第三方包，不开放面板写动作。
+export const WRITABLE_DIRS: string[] = [
+  'studio/projects',
+  'studio/public',
+  'studio/assets',
+  'studio/tts/samples',
+];
+
+// 通用文本读写接口允许的扩展名；二进制与脚本产物不在此列。
+export const TEXT_EXTS = new Set([
+  '.txt', '.md', '.json', '.js', '.mjs', '.ts', '.yaml', '.yml', '.csv', '.log', '.vtt',
+]);
+
+export const MAX_READ_BYTES = 512 * 1024;
+export const MAX_WRITE_BYTES = 256 * 1024;
+
+// 目录监听根；与素材归类口径（input/output）保持一致，新增可复用目录时在此登记。
+export const WATCH_ROOTS: string[] = [
+  'studio/projects',
+  'studio/templates',
+  'studio/tts',
+  'studio/public',
+  'studio/assets',
+];
+
+// 监听时忽略的目录名片段与产物前缀；渲染中间实例、依赖缓存、系统文件不进变更流。
+export const WATCH_IGNORE: RegExp[] = [
+  /(^|[\/\\])node_modules([\/\\]|$)/,
+  /(^|[\/\\])\.git([\/\\]|$)/,
+  /(^|[\/\\])\.venv([\/\\]|$)/,
+  /(^|[\/\\])__pycache__([\/\\]|$)/,
+  /(^|[\/\\])templates-cache([\/\\]|$)/,
+  /(^|[\/\\])vendor([\/\\]|$)/,
+  /(^|[\/\\])instance-[^\/\\]*([\/\\]|$)/,
+  /\.pyc$/,
+  /\.DS_Store$/,
+  /(^|[\/\\])dist([\/\\]|$)/,
+];
+
+/** 判定相对路径是否落在可写根内（复用 resolveSafe 的越界与符号链接校验）。 */
+export function resolveWritable(rel: string): string | null {
+  if (!rel || path.isAbsolute(rel) || rel.includes('\0')) return null;
+  const normalized = path.normalize(rel);
+  if (normalized === '..' || normalized.startsWith(`..${path.sep}`)) return null;
+  const abs = path.resolve(ROOT, normalized);
+  const inScope = WRITABLE_DIRS.some((d) => {
+    const base = path.resolve(ROOT, d);
+    if (abs !== base && !abs.startsWith(base + path.sep)) return false;
+    try {
+      const real = fs.realpathSync(abs);
+      const realBase = fs.realpathSync(base);
+      return real === realBase || real.startsWith(realBase + path.sep);
+    } catch {
+      let ancestor = path.dirname(abs);
+      while (!fs.existsSync(ancestor) && ancestor !== path.dirname(ancestor)) ancestor = path.dirname(ancestor);
+      try {
+        const realAncestor = fs.realpathSync(ancestor);
+        const realBase = fs.realpathSync(base);
+        return realAncestor === realBase || realAncestor.startsWith(realBase + path.sep);
+      } catch {
+        return false;
+      }
+    }
+  });
+  return inScope ? abs : null;
+}

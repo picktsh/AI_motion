@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import { computed, onMounted, onUnmounted, ref, watch } from 'vue';
 import { useRoute, useRouter } from 'vue-router';
-import { NButton, NSpin, NAlert, NTag, NCard, NCollapse, NCollapseItem, NIcon, NInput, NSelect, NImage, NText, useMessage } from 'naive-ui';
+import { NButton, NSpin, NAlert, NTag, NCard, NCollapse, NCollapseItem, NIcon, NInput, NSelect, NImage, NText, NSteps, NStep, NPopconfirm, useMessage } from 'naive-ui';
 import { ArrowBackOutline } from '@vicons/ionicons5';
 import {
   getProject,
@@ -13,14 +13,18 @@ import {
   saveStudioConfig,
   listProjectAssets,
   saveProjectText,
+  getProjectSteps,
+  deleteProjectAsset,
   type Project,
   type ProjectCredits,
   type ProjectFiles,
   type StudioConfig,
   type ProjectAsset,
+  type ProjectStep,
 } from '../api/projects';
 import { listSamples } from '../api/tts';
 import { assetUrl } from '../api/assets';
+import { onDomain } from '../api/events';
 import type { Sample } from '../shared/types';
 import SamplePlayer from '../components/media/SamplePlayer.vue';
 import PromptCopyBlock from '../components/data/PromptCopyBlock.vue';
@@ -38,10 +42,12 @@ const config = ref<StudioConfig | null>(null);
 const voicePreference = ref<string | null>(null);
 const assets = ref<ProjectAsset[]>([]);
 const samples = ref<Sample[]>([]);
+const steps = ref<ProjectStep[]>([]);
 const loading = ref(true);
 const busy = ref('');
 const voiceBusy = ref(false);
 const textBusy = ref(false);
+const assetBusy = ref('');
 const error = ref('');
 const logText = ref('');
 
@@ -81,13 +87,14 @@ const projectDirRel = computed(() => `studio/projects/${project.value?.id ?? id.
 async function refresh() {
   loading.value = true;
   try {
-    const [p, f, c, cfg, assetList, sampleList] = await Promise.all([
+    const [p, f, c, cfg, assetList, sampleList, stepList] = await Promise.all([
       getProject(id.value),
       projectFiles(id.value),
       getProjectCredits(id.value).catch(() => null),
       getStudioConfig(id.value).catch(() => null),
       listProjectAssets(id.value).catch(() => []),
       listSamples().catch(() => []),
+      getProjectSteps(id.value).catch(() => []),
     ]);
     project.value = p;
     files.value = f;
@@ -96,6 +103,7 @@ async function refresh() {
     voicePreference.value = cfg?.voicePreference ?? null;
     assets.value = assetList;
     samples.value = sampleList;
+    steps.value = stepList;
     editName.value = p.name;
     editScript.value = p.scriptText ?? '';
     if (!p.quote && !autoQuoted) {
@@ -112,6 +120,8 @@ async function refresh() {
 
 /* 生成中：轮询项目状态与日志；离开页面自动停，回来继续。 */
 let pollTimer: number | undefined;
+let refreshTimer: number | undefined;
+const offs: Array<() => void> = [];
 let logOffset = 0;
 
 async function poll() {
@@ -148,8 +158,21 @@ onMounted(async () => {
     logOffset = 0;
     pollTimer = window.setInterval(poll, 3000);
   }
+  const schedule = () => {
+    window.clearTimeout(refreshTimer);
+    refreshTimer = window.setTimeout(() => void refresh(), 500);
+  };
+  offs.push(
+    onDomain('project', schedule),
+    onDomain('artifact', schedule),
+    onDomain('asset', schedule),
+  );
 });
-onUnmounted(() => window.clearInterval(pollTimer));
+onUnmounted(() => {
+  window.clearInterval(pollTimer);
+  window.clearTimeout(refreshTimer);
+  offs.forEach((off) => off());
+});
 
 async function doQuote() {
   busy.value = 'quote';
@@ -194,6 +217,21 @@ async function saveVoice() {
     message.error(e instanceof Error ? e.message : '保存音色失败');
   } finally {
     voiceBusy.value = false;
+  }
+}
+
+async function removeAsset(a: ProjectAsset) {
+  if (!project.value) return;
+  assetBusy.value = a.rel;
+  try {
+    await deleteProjectAsset(project.value.id, a.rel);
+    message.success('素材已删除');
+    assets.value = assets.value.filter((x) => x.rel !== a.rel);
+    steps.value = await getProjectSteps(project.value.id).catch(() => steps.value);
+  } catch (e) {
+    message.error(e instanceof Error ? e.message : '删除失败');
+  } finally {
+    assetBusy.value = '';
   }
 }
 
@@ -302,6 +340,25 @@ const runPrompt = computed(() => [
       </template>
       返回
     </NButton>
+
+    <NCard v-if="project && steps.length">
+      <template #header>
+        <div class="min-w-0">
+          <h2 class="m-0 text-base font-semibold text-ink truncate">制作步骤</h2>
+          <p class="m-0 mt-1 text-xs text-ink-2">状态按 input/output 实有文件只读派生；漏环节先照单补齐再渲染</p>
+        </div>
+      </template>
+      <NSteps size="small" label-placement="vertical">
+        <NStep
+          v-for="s in steps"
+          :key="s.key"
+          :status="s.done ? 'finish' : 'wait'"
+          :title="s.label"
+          :description="s.detail"
+        />
+      </NSteps>
+    </NCard>
+
     <NSpin :show="loading">
       <div v-if="project" class="flex flex-col gap-4">
         <NCard>
@@ -360,8 +417,18 @@ const runPrompt = computed(() => [
                   />
                   <video v-else :src="a.url ?? undefined" controls class="w-full h-full object-cover rounded-control" />
                 </div>
-                <span class="text-xs text-ink-2 truncate">{{ a.name }}</span>
-                <span class="text-xs text-ink-3">{{ a.type }}</span>
+                <div class="flex items-center gap-2">
+                  <div class="min-w-0 flex-1">
+                    <span class="block text-xs text-ink-2 truncate">{{ a.name }}</span>
+                    <span class="block text-xs text-ink-3">{{ a.type }}</span>
+                  </div>
+                  <NPopconfirm @positive-click="removeAsset(a)">
+                    <template #trigger>
+                      <NButton size="tiny" tertiary type="error" :loading="assetBusy === a.rel">删除</NButton>
+                    </template>
+                    确定删除该素材吗？磁盘文件与项目登记会一并清理。
+                  </NPopconfirm>
+                </div>
               </div>
             </div>
             <div v-if="audioAssets.length" class="flex flex-col gap-3">
@@ -370,6 +437,12 @@ const runPrompt = computed(() => [
                   <span class="text-sm text-ink truncate" :title="a.name">{{ a.name }}</span>
                   <SamplePlayer :url="a.url" />
                 </div>
+                <NPopconfirm @positive-click="removeAsset(a)">
+                  <template #trigger>
+                    <NButton size="tiny" tertiary type="error" :loading="assetBusy === a.rel">删除</NButton>
+                  </template>
+                  确定删除该素材吗？磁盘文件与项目登记会一并清理。
+                </NPopconfirm>
               </div>
             </div>
             <p v-if="!assets.length" class="m-0 text-xs text-ink-3">还没有素材文件。</p>

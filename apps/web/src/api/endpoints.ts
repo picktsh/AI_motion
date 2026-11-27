@@ -5,6 +5,7 @@
 export const endpoints = {
   health: '/health',
   environment: '/environment',
+  config: '/config',
 
   templates: {
     list: '/templates',
@@ -28,6 +29,7 @@ export const endpoints = {
 
   jobs: {
     list: '/jobs',
+    stream: '/jobs/stream',
     detail: (id: string): string => `/jobs/${encodeURIComponent(id)}`,
     logs: (id: string): string => `/jobs/${encodeURIComponent(id)}/logs`,
     cancel: (id: string): string => `/jobs/${encodeURIComponent(id)}/cancel`,
@@ -41,6 +43,7 @@ export const endpoints = {
     run: (id: string): string => `/projects/${encodeURIComponent(id)}/run`,
     preparePublish: (id: string): string => `/projects/${encodeURIComponent(id)}/prepare-publish`,
     files: (id: string): string => `/projects/${encodeURIComponent(id)}/files`,
+    steps: (id: string): string => `/projects/${encodeURIComponent(id)}/steps`,
     credits: (id: string): string => `/projects/${encodeURIComponent(id)}/credits`,
     publish: (id: string): string => `/projects/${encodeURIComponent(id)}/publish`,
     log: (id: string, offset = 0): string => `/projects/${encodeURIComponent(id)}/log?offset=${offset}`,
@@ -48,6 +51,19 @@ export const endpoints = {
     assets: (id: string): string => `/projects/${encodeURIComponent(id)}/assets`,
     text: (id: string): string => `/projects/${encodeURIComponent(id)}/text`,
   },
+
+  files: {
+    tree: (rel: string): string => `/files/tree?path=${encodeURIComponent(rel)}`,
+    text: (rel: string): string => `/files/text?path=${encodeURIComponent(rel)}`,
+    textWrite: '/files/text',
+    dir: '/files/dir',
+    file: '/files/file',
+    rename: '/files/rename',
+    move: '/files/move',
+    remove: (rel: string): string => `/files?path=${encodeURIComponent(rel)}`,
+  },
+
+  events: '/events',
 
   observatory: {
     assets: '/observatory/assets',

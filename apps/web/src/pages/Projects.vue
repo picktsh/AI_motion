@@ -3,6 +3,7 @@ import { onMounted, onUnmounted, ref } from 'vue';
 import { useRouter } from 'vue-router';
 import { NButton, NTag, NSpin, NCard, NEmpty } from 'naive-ui';
 import { listProjects, type Project } from '../api/projects';
+import { onDomain } from '../api/events';
 
 const router = useRouter();
 const items = ref<Project[]>([]);
@@ -37,13 +38,24 @@ async function load() {
 }
 
 let timer: number | undefined;
+let refreshTimer: number | undefined;
+const offs: Array<() => void> = [];
 onMounted(() => {
   void load();
   timer = window.setInterval(() => {
     if (items.value.some((p) => p.status === 'running')) void load();
   }, 4000);
+  const schedule = () => {
+    window.clearTimeout(refreshTimer);
+    refreshTimer = window.setTimeout(() => void load(), 500);
+  };
+  offs.push(onDomain('project', schedule), onDomain('artifact', schedule));
 });
-onUnmounted(() => window.clearInterval(timer));
+onUnmounted(() => {
+  window.clearInterval(timer);
+  window.clearTimeout(refreshTimer);
+  offs.forEach((off) => off());
+});
 </script>
 
 <template>

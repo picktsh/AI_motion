@@ -10,6 +10,14 @@ export interface AppConfig {
   corsOrigins: string[];
   /** 可选访问密钥；未配置时不强制鉴权（回环本地默认）。 */
   accessKey: string | null;
+  /** 各运行项是否由环境变量显式提供，供页面标注配置来源与缺省值。 */
+  provided: {
+    host: boolean;
+    port: boolean;
+    apiPrefix: boolean;
+    corsOrigins: boolean;
+    accessKey: boolean;
+  };
   job: {
     defaultTimeoutMs: number;
     renderTimeoutMs: number;
@@ -44,6 +52,13 @@ export const config: AppConfig = {
   service: process.env.SERVICE_NAME || DEFAULTS.service,
   corsOrigins: readOrigins(process.env.CORS_ORIGINS),
   accessKey: process.env.ACCESS_KEY?.trim() || null,
+  provided: {
+    host: Boolean(process.env.HOST),
+    port: Boolean(process.env.PORT),
+    apiPrefix: Boolean(process.env.API_PREFIX),
+    corsOrigins: Boolean(process.env.CORS_ORIGINS),
+    accessKey: Boolean(process.env.ACCESS_KEY?.trim()),
+  },
   job: {
     defaultTimeoutMs: 120_000,
     renderTimeoutMs: 600_000,

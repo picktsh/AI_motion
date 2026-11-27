@@ -1,10 +1,11 @@
-import type { FastifyInstance } from 'fastify';
+import type { FastifyInstance, FastifyReply } from 'fastify';
 import {
   submitJob,
   getJob,
   listJobs,
   getJobLogs,
   cancelJob,
+  subscribeJobs,
 } from '../services/jobs.js';
 import { commandNames } from '../services/commands.js';
 import { notFound } from '../core/errors.js';
@@ -124,6 +125,31 @@ export function registerJobs(app: FastifyInstance, prefix: string): void {
       response: { 200: listEnvelope(jobSnapshot), ...errorStatuses },
     },
   }, () => list(listJobs()));
+
+  // SSE 事件流：连接即回一份当前任务表，随后推送 job（状态迁移）与 log（批量日志）事件。
+  // 前端断线重连后按 ready 事件重拉列表与增量日志补齐缺口，任务模型仍走 REST。
+  app.get(`${prefix}/jobs/stream`, async (request, reply: FastifyReply) => {
+    reply.raw.writeHead(200, {
+      'Content-Type': 'text/event-stream; charset=utf-8',
+      'Cache-Control': 'no-cache, no-transform',
+      Connection: 'keep-alive',
+      'X-Accel-Buffering': 'no',
+    });
+    reply.raw.write(`event: ready\ndata: ${JSON.stringify({ jobs: listJobs() })}\n\n`);
+
+    const unsub = subscribeJobs((event) => {
+      reply.raw.write(`event: ${event.type}\ndata: ${JSON.stringify(event)}\n\n`);
+    });
+    const heartbeat = setInterval(() => {
+      reply.raw.write(': ping\n\n');
+    }, 15_000);
+
+    request.raw.on('close', () => {
+      clearInterval(heartbeat);
+      unsub();
+    });
+    return reply;
+  });
 
   app.get(`${prefix}/jobs/:id`, {
     schema: {

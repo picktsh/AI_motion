@@ -3,6 +3,7 @@ import { computed, onMounted, onUnmounted, ref, nextTick, watch } from 'vue';
 import { NButton, NCard, NEmpty, NIcon, NSkeleton, NTag, useMessage } from 'naive-ui';
 import { FolderOpenOutline } from '@vicons/ionicons5';
 import { listJobs, getJob, getJobLogs, cancelJob } from '../api/jobs';
+import { openJobStream, type JobStreamEvent } from '../api/jobsStream';
 import type { CommandName, JobStatus, JobSnapshot, JobLogLine } from '../shared/types';
 
 const COMMAND_LABEL: Record<CommandName, string> = {
@@ -98,24 +99,46 @@ async function onCancel(): Promise<void> {
   }
 }
 
-/* 轮询：存在未结束任务时，每 2s 刷新列表并增量拉取选中任务日志 */
-let timer: number | undefined;
+/* 事件流：SSE 推送任务状态与日志；断线重连后按 ready 快照补齐列表与增量日志，不再轮询 */
+let closeStream: (() => void) | undefined;
 
-function schedulePoll(): void {
-  window.clearInterval(timer);
-  timer = window.setInterval(() => {
-    if (!jobs.value.some((j) => isActive(j.status))) return;
-    void (async () => {
-      try {
-        await refreshList();
-        if (activeId.value && detail.value && isActive(detail.value.status)) {
-          await loadLogs(activeId.value, logOffset.value);
-        }
-      } catch {
-        /* 轮询失败静默，下次重试 */
-      }
-    })();
-  }, 2000);
+function upsertJob(job: JobSnapshot): void {
+  const idx = jobs.value.findIndex((j) => j.id === job.id);
+  if (idx >= 0) jobs.value[idx] = job;
+  else jobs.value.push(job);
+  jobs.value.sort((a, b) => b.createdAt - a.createdAt);
+  if (job.id === activeId.value) detail.value = job;
+}
+
+function appendLogs(jobId: string, lines: JobLogLine[]): void {
+  if (jobId !== activeId.value) return;
+  const fresh = lines.filter((l) => l.seq > logOffset.value);
+  if (!fresh.length) return;
+  logs.value.push(...fresh);
+  logOffset.value = fresh[fresh.length - 1].seq;
+}
+
+function handleStreamEvent(event: JobStreamEvent): void {
+  if (event.type === 'job') upsertJob(event.job);
+  else appendLogs(event.jobId, event.lines);
+}
+
+async function onStreamReady(snapshot: JobSnapshot[]): Promise<void> {
+  // 重连后以服务端快照为准重排列表，再按当前 offset 续拉日志，补齐断线期间的缺口。
+  jobs.value = snapshot;
+  if (!activeId.value && snapshot.length) {
+    await select(snapshot[0].id);
+    return;
+  }
+  const cur = activeId.value ? snapshot.find((j) => j.id === activeId.value) : null;
+  if (cur) detail.value = cur;
+  if (activeId.value) {
+    try {
+      await loadLogs(activeId.value, logOffset.value);
+    } catch {
+      /* 补齐失败不清空已有日志，后续事件仍会推送 */
+    }
+  }
 }
 
 onMounted(async () => {
@@ -129,11 +152,14 @@ onMounted(async () => {
     error.value = e instanceof Error ? e.message : String(e);
   } finally {
     loading.value = false;
-    schedulePoll();
+    closeStream = openJobStream({
+      onReady: (snapshot) => void onStreamReady(snapshot),
+      onEvent: handleStreamEvent,
+    });
   }
 });
 
-onUnmounted(() => window.clearInterval(timer));
+onUnmounted(() => closeStream?.());
 
 watch(logs, async () => {
   await nextTick();

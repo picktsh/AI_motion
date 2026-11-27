@@ -13,3 +13,4 @@ export type { VideoSummary, MediaRef, Artifact, VideoMeta, VideoDetail, ProbeRes
 export type { Sample, WordBound, Segment } from './tts';
 export type { PublishCoverSet, PublishConfig } from './publish';
 export type { CommandName, JobStatus, JobArtifact, JobLogLine, JobSnapshot, JobLogResult } from './jobs';
+export type { RuntimeItem, RuntimeAuth, RuntimePaths, RuntimeReport } from './runtime';

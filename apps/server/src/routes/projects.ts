@@ -17,6 +17,8 @@ import {
   saveProjectAsset,
   saveProjectCover,
   updateProjectText,
+  projectSteps,
+  deleteProjectAsset,
 } from '../services/projects.js';
 import { badRequest, notFound } from '../core/errors.js';
 import { ok, list } from '../core/response.js';
@@ -77,6 +79,10 @@ export function registerProjects(app: FastifyInstance, prefix: string): void {
     ok(projectFiles(request.params.id)),
   );
 
+  app.get<{ Params: { id: string } }>(`${prefix}/projects/:id/steps`, async (request) =>
+    list(projectSteps(request.params.id)),
+  );
+
   app.get<{ Params: { id: string }; Querystring: { offset?: string } }>(
     `${prefix}/projects/:id/log`,
     async (request) => ok(readLog(request.params.id, Number(request.query.offset ?? 0))),
@@ -98,6 +104,11 @@ export function registerProjects(app: FastifyInstance, prefix: string): void {
 
   app.get<{ Params: { id: string } }>(`${prefix}/projects/:id/assets`, async (request) =>
     list(listProjectAssets(request.params.id)),
+  );
+
+  app.delete<{ Params: { id: string }; Querystring: { rel?: string } }>(
+    `${prefix}/projects/:id/assets`,
+    async (request) => ok(deleteProjectAsset(request.params.id, String(request.query.rel ?? ''))),
   );
 
   app.post<{ Params: { id: string } }>(`${prefix}/projects/:id/assets`, {

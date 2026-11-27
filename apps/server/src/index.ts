@@ -2,6 +2,7 @@ import type { FastifyInstance } from 'fastify';
 import { buildApp } from './app.js';
 import { config } from './config.js';
 import { shutdownJobs } from './services/jobs.js';
+import { startWatcher, stopWatcher } from './services/watcher.js';
 
 let app: FastifyInstance | null = null;
 
@@ -9,6 +10,7 @@ async function start(): Promise<void> {
   app = await buildApp();
   try {
     await app.listen({ host: config.host, port: config.port });
+    startWatcher();
     app.log.info(`[${config.service}] 后端已启动: http://${config.host}:${config.port}${config.apiPrefix}`);
   } catch (err) {
     app.log.error(err);
@@ -20,6 +22,7 @@ async function shutdown(signal: NodeJS.Signals): Promise<void> {
   app?.log.info(`[${config.service}] 收到 ${signal}，正在关闭`);
   try {
     shutdownJobs();
+    await stopWatcher();
     await app?.close();
   } finally {
     process.exit(0);

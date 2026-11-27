@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { computed, onMounted, reactive, ref } from 'vue';
+import { computed, onMounted, onUnmounted, reactive, ref } from 'vue';
 import { useRouter } from 'vue-router';
 import {
   NButton, NDrawer, NDrawerContent, NInput, NDynamicTags, NRadioGroup, NRadio,
@@ -9,6 +9,7 @@ import {
   listProjects, projectFiles, getPublish, savePublish,
   type Project, type ProjectFiles, type ProjectPublish,
 } from '../api/projects';
+import { onDomain } from '../api/events';
 import { assetUrl } from '../api/client';
 import { endpoints } from '../api/endpoints';
 import PromptCopyBlock from '../components/data/PromptCopyBlock.vue';
@@ -32,7 +33,20 @@ async function load() {
     loading.value = false;
   }
 }
-onMounted(load);
+let refreshTimer: number | undefined;
+const offs: Array<() => void> = [];
+onMounted(() => {
+  void load();
+  const schedule = () => {
+    window.clearTimeout(refreshTimer);
+    refreshTimer = window.setTimeout(() => void load(), 500);
+  };
+  offs.push(onDomain('project', schedule), onDomain('artifact', schedule));
+});
+onUnmounted(() => {
+  window.clearTimeout(refreshTimer);
+  offs.forEach((off) => off());
+});
 
 const fileUrl = (rel: string | null | undefined) => (rel ? assetUrl(endpoints.assets.byPath(rel)) : '');
 

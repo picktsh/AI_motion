@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { computed, h, onMounted, ref, watch } from 'vue';
+import { computed, h, onMounted, onUnmounted, ref, watch } from 'vue';
 import { useRouter } from 'vue-router';
 import { NIcon, NButton, NCard, NEmpty, NSkeleton, NTag, NDrawer, NDrawerContent, NInput, NTree, NProgress, NAlert, NRadioGroup, NRadioButton, useMessage, type TreeOption } from 'naive-ui';
 import {
@@ -22,6 +22,7 @@ import {
   getTemplateRedirect,
 } from '../api/templates';
 import { useFetch } from '../composables/useFetch';
+import { onDomain } from '../api/events';
 import { useServerConfig } from '../composables/useServerConfig';
 import PathCopy from '../components/data/PathCopy.vue';
 import PromptCopyBlock from '../components/data/PromptCopyBlock.vue';
@@ -48,9 +49,21 @@ const local = useFetch(listTemplates);
 const catalog = useFetch(getCatalog);
 const { backendContextLines, apiUrl } = useServerConfig();
 
+let refreshTimer: number | undefined;
+const offs: Array<() => void> = [];
 onMounted(() => {
   void local.run();
   void catalog.run();
+  offs.push(
+    onDomain('template', () => {
+      window.clearTimeout(refreshTimer);
+      refreshTimer = window.setTimeout(() => void local.run(), 500);
+    }),
+  );
+});
+onUnmounted(() => {
+  window.clearTimeout(refreshTimer);
+  offs.forEach((off) => off());
 });
 
 const catalogItems = computed(() => catalog.data.value?.items ?? []);

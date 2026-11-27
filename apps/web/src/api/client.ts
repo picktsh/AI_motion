@@ -109,6 +109,16 @@ export async function putJson<T>(path: string, body: unknown): Promise<T> {
   }
 }
 
+/** 提交 DELETE 请求并解包 data；错误归一与 GET 一致。 */
+export async function delJson<T>(path: string): Promise<T> {
+  try {
+    const res = await http.delete<Envelope<T>>(path);
+    return unwrap(res.data);
+  } catch (err) {
+    throw normalizeError(err);
+  }
+}
+
 /** 取单资源或报告：data 即资源本体。 */
 export function getJson<T>(path: string): Promise<T> {
   return request<T>(path);

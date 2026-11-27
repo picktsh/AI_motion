@@ -16,8 +16,17 @@ import type {
 
 // 命令台任务服务：内存任务表、按组并发的队列、状态机、增量日志与取消。
 // 任务记录与日志缓冲只存内存，重启后清空；产物文件仍落盘保留。
+// 状态迁移与日志入队处挂订阅回调，传输层（SSE）只做转发，不反向影响任务模型。
 
 type Group = 'render' | 'default';
+
+export type JobEvent =
+  | { type: 'job'; job: JobSnapshot }
+  | { type: 'log'; jobId: string; lines: JobLogLine[] };
+
+type JobListener = (event: JobEvent) => void;
+
+const listeners = new Set<JobListener>();
 
 interface JobRecord {
   id: string;
@@ -47,11 +56,46 @@ const GROUP_LIMIT: Record<Group, number> = {
   default: config.job.defaultConcurrency,
 };
 
+/** 订阅任务状态与日志事件；返回取消订阅函数。 */
+export function subscribeJobs(listener: JobListener): () => void {
+  listeners.add(listener);
+  return () => listeners.delete(listener);
+}
+
+function emit(event: JobEvent): void {
+  for (const listener of listeners) {
+    try {
+      listener(event);
+    } catch {
+      // 单个订阅者写流失败不影响任务执行与其它连接
+    }
+  }
+}
+
+// 日志批量推送：子进程逐行输出，100ms 归并一次，避免 SSE 每行一帧。
+const pendingLogs = new Map<string, JobLogLine[]>();
+let logFlushTimer: NodeJS.Timeout | null = null;
+
+function flushLogs(): void {
+  if (logFlushTimer) {
+    clearTimeout(logFlushTimer);
+    logFlushTimer = null;
+  }
+  for (const [jobId, lines] of pendingLogs) emit({ type: 'log', jobId, lines });
+  pendingLogs.clear();
+}
+
 function pushLog(record: JobRecord, stream: 'stdout' | 'stderr', text: string): void {
-  record.log.push({ seq: record.nextLogSeq++, stream, time: Date.now(), text });
+  const line: JobLogLine = { seq: record.nextLogSeq++, stream, time: Date.now(), text };
+  record.log.push(line);
   if (record.log.length > config.job.logCapacity) {
     record.log.splice(0, record.log.length - config.job.logCapacity);
   }
+
+  const batch = pendingLogs.get(record.id);
+  if (batch) batch.push(line);
+  else pendingLogs.set(record.id, [line]);
+  if (!logFlushTimer) logFlushTimer = setTimeout(flushLogs, 100);
 }
 
 function parseResult(command: CommandName, stdout: string): unknown {
@@ -138,6 +182,7 @@ export function submitJob(command: string, params: CommandParams): JobSnapshot {
 
   jobs.set(record.id, record);
   queue.push(record.id);
+  emit({ type: 'job', job: snapshot(record) });
   dispatch();
   return snapshot(record);
 }
@@ -165,6 +210,7 @@ async function start(record: JobRecord): Promise<void> {
   record.status = 'running';
   record.startedAt = Date.now();
   runningByGroup[resolved.group] += 1;
+  emit({ type: 'job', job: snapshot(record) });
 
   const script = resolved.scriptPath;
   const args = ['run', script, ...resolved.scriptArgs];
@@ -207,6 +253,7 @@ function finish(record: JobRecord, outcome: ExecResult): void {
 
   if (record.cancelRequested) {
     record.status = 'cancelled';
+    afterFinish(record);
     return;
   }
   if (outcome.timedOut) {
@@ -216,6 +263,7 @@ function finish(record: JobRecord, outcome: ExecResult): void {
   if (outcome.code === 0) {
     record.status = 'succeeded';
     record.result = parseResult(record.command, outcome.stdout);
+    afterFinish(record);
     return;
   }
   const detail = outcome.stderr.trim() || outcome.stdout.trim() || `退出码 ${outcome.code}`;
@@ -231,6 +279,13 @@ function finishWithError(record: JobRecord, message: string, missing: string[]):
     message,
     ...(missing.length ? { details: { missingBins: missing } } : {}),
   };
+  afterFinish(record);
+}
+
+/** 终态统一出口：先冲掉未推送的日志，再推任务快照，保证日志不晚于状态到达。 */
+function afterFinish(record: JobRecord): void {
+  flushLogs();
+  emit({ type: 'job', job: snapshot(record) });
 }
 
 export function getJob(id: string): JobSnapshot | null {
@@ -262,6 +317,7 @@ export function cancelJob(id: string): JobSnapshot {
     record.finishedAt = Date.now();
     const idx = queue.indexOf(id);
     if (idx >= 0) queue.splice(idx, 1);
+    afterFinish(record);
   } else if (record.status === 'running') {
     record.cancelRequested = true;
     record.handle?.kill();
@@ -282,4 +338,8 @@ export function shutdownJobs(): void {
     }
   }
   queue.length = 0;
+  // 关闭时丢弃未推送日志并清掉定时器，避免残留句柄拖住进程退出。
+  if (logFlushTimer) clearTimeout(logFlushTimer);
+  logFlushTimer = null;
+  pendingLogs.clear();
 }

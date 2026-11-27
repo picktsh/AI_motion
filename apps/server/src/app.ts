@@ -16,6 +16,8 @@ import { registerJobs } from './routes/jobs.js';
 import { registerAssets } from './routes/assets.js';
 import { registerProjects } from './routes/projects.js';
 import { registerObservatory } from './routes/observatory.js';
+import { registerFiles } from './routes/files.js';
+import { registerRuntime } from './routes/config.js';
 
 // 装配 Fastify 实例：插件、错误收口、文档与路由挂载。启停逻辑在 index.ts。
 export async function buildApp(): Promise<FastifyInstance> {
@@ -45,7 +47,7 @@ export async function buildApp(): Promise<FastifyInstance> {
       servers: [{ url: `http://${config.host}:${config.port}${config.apiPrefix}` }],
       tags: [
         { name: 'health', description: '服务状态' },
-        { name: 'environment', description: '运行环境就位检查' },
+        { name: 'environment', description: '运行环境就位检查与运行配置' },
         { name: 'templates', description: 'MotionGit 模板' },
         { name: 'videos', description: '视频条目' },
         { name: 'tts', description: '配音样例与分段' },
@@ -72,6 +74,8 @@ export async function buildApp(): Promise<FastifyInstance> {
   registerJobs(app, config.apiPrefix);
   registerAssets(app, config.apiPrefix);
   registerObservatory(app, config.apiPrefix);
+  registerFiles(app, config.apiPrefix);
+  registerRuntime(app, config.apiPrefix);
 
   return app;
 }

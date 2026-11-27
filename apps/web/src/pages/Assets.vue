@@ -1,7 +1,8 @@
 <script setup lang="ts">
-import { computed, onMounted, ref } from 'vue';
+import { computed, onMounted, onUnmounted, ref } from 'vue';
 import { NButton, NSpin, NImage, NEmpty } from 'naive-ui';
 import { listAllAssets, type GlobalAsset, type AssetMediaType } from '../api/observatory';
+import { onDomain } from '../api/events';
 import PathCopy from '../components/data/PathCopy.vue';
 import SamplePlayer from '../components/media/SamplePlayer.vue';
 
@@ -52,7 +53,22 @@ async function load() {
   }
 }
 
-onMounted(load);
+let refreshTimer: number | undefined;
+const offs: Array<() => void> = [];
+
+onMounted(() => {
+  void load();
+  offs.push(
+    onDomain('asset', () => {
+      window.clearTimeout(refreshTimer);
+      refreshTimer = window.setTimeout(() => void load(), 500);
+    }),
+  );
+});
+onUnmounted(() => {
+  window.clearTimeout(refreshTimer);
+  offs.forEach((off) => off());
+});
 </script>
 
 <template>

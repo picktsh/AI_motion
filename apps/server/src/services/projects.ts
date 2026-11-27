@@ -4,9 +4,9 @@ import { spawn } from 'node:child_process';
 import { createWriteStream } from 'node:fs';
 import { Transform, type Readable } from 'node:stream';
 import { pipeline } from 'node:stream/promises';
-import { ROOT, findBin } from '../infra/paths.js';
+import { ROOT, findBin, resolveSafe } from '../infra/paths.js';
 import { config } from '../config.js';
-import { badRequest, notFound } from '../core/errors.js';
+import { badRequest, notFound, forbidden } from '../core/errors.js';
 import { mediaType, type MediaType } from '../infra/probe.js';
 import { submitJob, getJob } from './jobs.js';
 import { projectDir, readProject, writeProject, type Project } from './projectRepository.js';
@@ -538,6 +538,23 @@ export function listProjectAssets(id: string): ProjectAsset[] {
   return onDisk;
 }
 
+/** 删除项目素材：磁盘文件与 studio-config 登记一并清理；只允许 input/assets 内条目。 */
+export function deleteProjectAsset(id: string, rel: string): { rel: string } {
+  const project = readProject(id);
+  if (!project) throw notFound('项目不存在');
+  const dir = assetDir(id);
+  const abs = resolveSafe(rel);
+  if (!abs) throw forbidden('素材路径越界');
+  const normalized = path.normalize(abs);
+  if (!normalized.startsWith(dir + path.sep)) throw forbidden('素材路径越界');
+  if (!fs.existsSync(normalized)) throw notFound('素材不存在');
+  fs.rmSync(normalized);
+  const cfg = readStudioConfig(id);
+  cfg.assets = cfg.assets.filter((a) => a.rel !== rel);
+  writeStudioConfig(id, cfg);
+  return { rel };
+}
+
 export async function saveProjectAsset(id: string, filename: string, source: Readable): Promise<ProjectAsset> {
   if (!readProject(id)) throw notFound('项目不存在');
   const ext = path.extname(filename || '').toLowerCase();
@@ -610,4 +627,110 @@ export async function saveProjectCover(id: string, slot: 'horizontal' | 'vertica
   }
   const rel = path.relative(ROOT, abs).split(path.sep).join('/');
   return { name, type: mediaType(name), rel, url: assetUrl(rel) };
+}
+
+/* ---------- 制作步骤条：状态只读派生自 input/output 实有文件，不改数据结构 ---------- */
+
+export interface ProjectStep {
+  key: string;
+  label: string;
+  done: boolean;
+  detail: string;
+}
+
+function readJsonSafe(abs: string): Record<string, unknown> | null {
+  if (!fs.existsSync(abs)) return null;
+  try {
+    return JSON.parse(fs.readFileSync(abs, 'utf8')) as Record<string, unknown>;
+  } catch {
+    return null;
+  }
+}
+
+function summarize(names: string[]): string {
+  if (names.length === 0) return '';
+  const head = names.slice(0, 3).join('、');
+  return names.length > 3 ? `${head} 等 ${names.length} 个` : head;
+}
+
+/** 七步：素材 → 台词 → 截图 → 配音 → 字幕 → BGM → 成片。有文件即判完成，不做时长/槽位校验。 */
+export function projectSteps(id: string): ProjectStep[] {
+  const p = readProject(id);
+  if (!p) throw notFound('项目不存在');
+  const dir = projectDir(id);
+  const inputDir = path.join(dir, 'input');
+  const assetDirAbs = path.join(inputDir, 'assets');
+
+  const assetFiles = fs.existsSync(assetDirAbs)
+    ? fs.readdirSync(assetDirAbs, { withFileTypes: true })
+        .filter((d) => d.isFile() && d.name !== '.DS_Store')
+        .map((d) => d.name)
+    : [];
+  const images = assetFiles.filter((n) => mediaType(n) === 'image');
+
+  const scriptAbs = p.scriptRel ? path.join(ROOT, p.scriptRel) : path.join(inputDir, 'script.txt');
+  const scriptOk = fs.existsSync(scriptAbs) && fs.readFileSync(scriptAbs, 'utf8').trim().length > 0;
+
+  const voiceAbs = path.join(inputDir, 'voice.mp3');
+  const voiceOk = fs.existsSync(voiceAbs) && fs.statSync(voiceAbs).size > 0;
+
+  const userJson = readJsonSafe(path.join(inputDir, 'user.json'));
+  const captions = Array.isArray(userJson?.captions) ? (userJson.captions as unknown[]) : [];
+  const vttFile = fs.existsSync(inputDir)
+    ? fs.readdirSync(inputDir).find((n) => n.endsWith('.vtt'))
+    : undefined;
+  const captionOk = captions.length > 0 || Boolean(vttFile);
+
+  const musicRaw = (userJson?.media as { music?: unknown } | undefined)?.music;
+  const musicBound = Boolean(musicRaw && typeof musicRaw === 'object' && Object.keys(musicRaw as object).length > 0);
+  const bgmFile = assetFiles.find((n) => /bgm|music/i.test(n));
+  const musicOk = musicBound || Boolean(bgmFile);
+
+  const artifactAbs = p.artifactRel ? path.join(ROOT, p.artifactRel) : null;
+  const artifactOk = Boolean(artifactAbs && fs.existsSync(artifactAbs) && fs.statSync(artifactAbs).size > 0);
+
+  return [
+    {
+      key: 'assets',
+      label: '素材',
+      done: assetFiles.length > 0,
+      detail: assetFiles.length > 0 ? summarize(assetFiles) : 'input/assets 下还没有素材文件',
+    },
+    {
+      key: 'script',
+      label: '台词',
+      done: scriptOk,
+      detail: scriptOk ? path.basename(scriptAbs) : 'script.txt 为空或缺失',
+    },
+    {
+      key: 'shots',
+      label: '截图',
+      done: images.length > 0,
+      detail: images.length > 0 ? summarize(images) : '素材里还没有图片截图',
+    },
+    {
+      key: 'voice',
+      label: '配音',
+      done: voiceOk,
+      detail: voiceOk ? 'voice.mp3 已生成' : 'input/voice.mp3 缺失',
+    },
+    {
+      key: 'captions',
+      label: '字幕',
+      done: captionOk,
+      detail: captionOk ? (captions.length > 0 ? `user.json ${captions.length} 条字幕` : vttFile ?? '字幕文件已就位') : '未找到字幕条或 vtt 文件',
+    },
+    {
+      key: 'music',
+      label: 'BGM',
+      done: musicOk,
+      detail: musicOk ? (bgmFile ?? 'user.json media.music 已绑定') : '未绑定 BGM，也没有 bgm 音频',
+    },
+    {
+      key: 'artifact',
+      label: '成片',
+      done: artifactOk,
+      detail: artifactOk ? path.basename(p.artifactRel ?? '') : 'output 下还没有成片产物',
+    },
+  ];
 }

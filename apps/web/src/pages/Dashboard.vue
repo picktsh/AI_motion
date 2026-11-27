@@ -1,11 +1,12 @@
 <script setup lang="ts">
-import { computed, onMounted, ref, type Component } from 'vue';
+import { computed, onMounted, onUnmounted, ref, type Component } from 'vue';
 import { useRouter } from 'vue-router';
 import { NSpin, NButton, NIcon, NCard, NEmpty } from 'naive-ui';
 import { ChevronForwardOutline } from '@vicons/ionicons5';
 import { listProjects, type Project } from '../api/projects';
 import { listAllAssets, listRecentActivity, type GlobalAsset, type ActivityItem } from '../api/observatory';
 import { listJobs } from '../api/jobs';
+import { onDomain } from '../api/events';
 import type { JobSnapshot } from '../shared/types';
 import { getEnvironment } from '../api/environment';
 
@@ -65,27 +66,57 @@ const shortcuts = computed(() => {
   }).filter((x): x is NonNullable<typeof x> => x !== null);
 });
 
+async function loadProjects(): Promise<void> {
+  projects.value = await listProjects().catch(() => []);
+}
+async function loadAssets(): Promise<void> {
+  assets.value = await listAllAssets().catch(() => []);
+}
+async function loadJobs(): Promise<void> {
+  jobs.value = await listJobs().catch(() => []);
+}
+async function loadActivity(): Promise<void> {
+  activity.value = await listRecentActivity(20).catch(() => []);
+}
+async function loadEnv(): Promise<void> {
+  envSummary.value = (await getEnvironment().catch(() => null))?.summary ?? null;
+}
+
 async function load() {
   loading.value = true;
   try {
-    const [p, a, j, act, env] = await Promise.all([
-      listProjects().catch(() => []),
-      listAllAssets().catch(() => []),
-      listJobs().catch(() => []),
-      listRecentActivity(20).catch(() => []),
-      getEnvironment().catch(() => null),
-    ]);
-    projects.value = p;
-    assets.value = a;
-    jobs.value = j;
-    activity.value = act;
-    envSummary.value = env?.summary ?? null;
+    await Promise.all([loadProjects(), loadAssets(), loadJobs(), loadActivity(), loadEnv()]);
   } finally {
     loading.value = false;
   }
 }
 
-onMounted(load);
+/* SSE 按域增量刷新：素材变动只重拉素材，项目/产物变动重拉项目清单与动态；500ms 去抖合并突发事件。 */
+let refreshTimer: number | undefined;
+function scheduleRefresh(scope: 'project' | 'asset' | 'template' | 'artifact') {
+  window.clearTimeout(refreshTimer);
+  refreshTimer = window.setTimeout(() => {
+    void loadActivity();
+    if (scope === 'asset') void loadAssets();
+    else void loadProjects();
+  }, 500);
+}
+
+const offs: Array<() => void> = [];
+
+onMounted(async () => {
+  await load();
+  offs.push(
+    onDomain('project', () => scheduleRefresh('project')),
+    onDomain('artifact', () => scheduleRefresh('artifact')),
+    onDomain('asset', () => scheduleRefresh('asset')),
+    onDomain('template', () => scheduleRefresh('template')),
+  );
+});
+onUnmounted(() => {
+  window.clearTimeout(refreshTimer);
+  offs.forEach((off) => off());
+});
 </script>
 
 <template>

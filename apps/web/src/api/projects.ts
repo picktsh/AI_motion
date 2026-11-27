@@ -1,4 +1,4 @@
-import { getJson, getList, postJson, putJson, postForm } from './client';
+import { getJson, getList, postJson, putJson, delJson, postForm } from './client';
 import { endpoints } from './endpoints';
 import { resolveAssetUrl } from '../composables/useServerConfig';
 
@@ -55,6 +55,13 @@ export interface VoiceMeta {
   voice: string;
   duration_s: number;
   createdAt: string;
+}
+
+export interface ProjectStep {
+  key: string;
+  label: string;
+  done: boolean;
+  detail: string;
 }
 
 export interface ProjectFiles {
@@ -118,6 +125,10 @@ export function projectFiles(id: string): Promise<ProjectFiles> {
   return getJson<ProjectFiles>(endpoints.projects.files(id));
 }
 
+export function getProjectSteps(id: string): Promise<ProjectStep[]> {
+  return getList<ProjectStep>(endpoints.projects.steps(id));
+}
+
 export function getPublish(id: string): Promise<ProjectPublish | null> {
   return getJson<ProjectPublish | null>(endpoints.projects.publish(id));
 }
@@ -153,6 +164,10 @@ export function saveStudioConfig(id: string, payload: { voicePreference?: string
 export async function listProjectAssets(id: string): Promise<ProjectAsset[]> {
   const items = await getList<ProjectAsset>(endpoints.projects.assets(id));
   return items.map((a) => ({ ...a, url: resolveAssetUrl(a.url) }));
+}
+
+export function deleteProjectAsset(id: string, rel: string): Promise<{ rel: string }> {
+  return delJson<{ rel: string }>(`${endpoints.projects.assets(id)}?rel=${encodeURIComponent(rel)}`);
 }
 
 /** 面板内轻编辑：标题 / 文稿纯文本，不动创作入参文件。 */

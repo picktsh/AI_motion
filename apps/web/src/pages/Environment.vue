@@ -1,17 +1,53 @@
 <script setup lang="ts">
 import { computed, onMounted, ref } from 'vue';
-import { NButton, NCard, NEmpty, NIcon, NForm, NFormItem, NInput, NSkeleton, useMessage } from 'naive-ui';
+import {
+  NButton,
+  NCard,
+  NDescriptions,
+  NDescriptionsItem,
+  NEmpty,
+  NForm,
+  NFormItem,
+  NIcon,
+  NInput,
+  NSkeleton,
+  NTag,
+  useMessage,
+} from 'naive-ui';
 import { FolderOpenOutline, OpenOutline, RefreshOutline } from '@vicons/ionicons5';
 import { getEnvironment } from '../api/environment';
+import { getRuntimeConfig } from '../api/runtime';
 import { pingHealth } from '../api/health';
 import { useFetch } from '../composables/useFetch';
 import { useServerConfig } from '../composables/useServerConfig';
 import PathCopy from '../components/data/PathCopy.vue';
-import type { EnvItem } from '../shared/types';
+import type { EnvItem, RuntimeReport } from '../shared/types';
 
 const { data, loading, error, run } = useFetch(() => getEnvironment());
 
-onMounted(run);
+/* ---------- 运行配置（后端单一来源，只读） ---------- */
+const runtime = ref<RuntimeReport | null>(null);
+const runtimeError = ref('');
+
+async function loadRuntime(): Promise<void> {
+  runtimeError.value = '';
+  try {
+    runtime.value = await getRuntimeConfig();
+  } catch (e) {
+    runtimeError.value = e instanceof Error ? e.message : String(e);
+  }
+}
+
+onMounted(() => {
+  run();
+  void loadRuntime();
+});
+
+function reloadAll(): void {
+  run();
+  void loadRuntime();
+}
+
 
 /* ---------- 后端连接配置（与看门页同一来源，可查看可修改） ---------- */
 const message = useMessage();
@@ -98,7 +134,7 @@ const groups = computed(() =>
         <h2 class="m-0 text-xl font-semibold text-ink">创作环境</h2>
         <p class="m-0 mt-1 text-sm text-ink-2">检查本机工具与项目依赖，缺少的项目会给出修复线索。</p>
       </div>
-      <NButton secondary :loading="loading" @click="run">
+      <NButton secondary :loading="loading" @click="reloadAll">
         <template #icon><NIcon :size="16"><RefreshOutline /></NIcon></template>
         重新检查
       </NButton>
@@ -204,6 +240,59 @@ const groups = computed(() =>
 
       <NEmpty v-if="!items.length" description="未检测到环境项" />
     </template>
+
+    <NCard title="运行配置">
+      <template #header-extra>
+        <NTag
+          v-if="runtime"
+          size="small"
+          :bordered="false"
+          :type="runtime.auth.enabled ? 'success' : 'default'"
+        >
+          {{ runtime.auth.enabled ? `访问密钥已启用（长度 ${runtime.auth.keyLength}）` : '未启用访问密钥' }}
+        </NTag>
+      </template>
+
+      <NEmpty v-if="runtimeError" :description="runtimeError">
+        <template #default>
+          <NButton type="primary" @click="loadRuntime">重试</NButton>
+        </template>
+      </NEmpty>
+
+      <template v-else-if="runtime">
+        <p class="m-0 mb-3 text-xs leading-5 text-ink-3">
+          值来自后端实时读取的运行配置；来源标注为环境变量时以启动时的变量为准，其余为内置缺省。{{ runtime.auth.note }}
+        </p>
+        <NDescriptions :column="1" size="small" label-placement="left" bordered>
+          <NDescriptionsItem
+            v-for="row in runtime.items"
+            :key="row.key"
+            :label="`${row.label}（${row.source === 'env' ? '环境变量 ' + row.env : '默认 ' + (row.fallback ?? '—')}）`"
+          >
+            <span class="text-sm break-all">{{ row.value }}</span>
+          </NDescriptionsItem>
+          <NDescriptionsItem label="工程根">
+            <PathCopy :path="runtime.paths.root" inline />
+          </NDescriptionsItem>
+          <NDescriptionsItem label="读取白名单">
+            <span class="text-xs font-mono break-all">{{ runtime.paths.read.join('、') }}</span>
+          </NDescriptionsItem>
+          <NDescriptionsItem label="可写根">
+            <span class="text-xs font-mono break-all">{{ runtime.paths.write.join('、') }}</span>
+          </NDescriptionsItem>
+          <NDescriptionsItem label="监听根">
+            <span class="text-xs font-mono break-all">{{ runtime.paths.watch.join('、') }}</span>
+          </NDescriptionsItem>
+          <NDescriptionsItem label="文本读写上限">
+            <span class="text-xs num">
+              读 {{ Math.round(runtime.textLimits.readBytes / 1024) }}KB / 写
+              {{ Math.round(runtime.textLimits.writeBytes / 1024) }}KB，限
+              {{ runtime.textLimits.extensions.join(' ') }}
+            </span>
+          </NDescriptionsItem>
+        </NDescriptions>
+      </template>
+    </NCard>
 
     <NCard>
       <template #header>
