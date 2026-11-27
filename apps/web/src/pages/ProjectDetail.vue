@@ -229,7 +229,9 @@ async function removeAsset(a: ProjectAsset) {
     assets.value = assets.value.filter((x) => x.rel !== a.rel);
     steps.value = await getProjectSteps(project.value.id).catch(() => steps.value);
   } catch (e) {
-    message.error(e instanceof Error ? e.message : '删除失败');
+    const refs = (e as { details?: { refs?: string[] } }).details?.refs;
+    const base = e instanceof Error ? e.message : '删除失败';
+    message.error(refs?.length ? `${base}：${refs.join('、')}` : base);
   } finally {
     assetBusy.value = '';
   }

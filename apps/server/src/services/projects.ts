@@ -6,7 +6,7 @@ import { Transform, type Readable } from 'node:stream';
 import { pipeline } from 'node:stream/promises';
 import { ROOT, findBin, resolveSafe } from '../infra/paths.js';
 import { config } from '../config.js';
-import { badRequest, notFound, forbidden } from '../core/errors.js';
+import { badRequest, notFound, forbidden, conflict } from '../core/errors.js';
 import { mediaType, type MediaType } from '../infra/probe.js';
 import { submitJob, getJob } from './jobs.js';
 import { projectDir, readProject, writeProject, type Project } from './projectRepository.js';
@@ -538,6 +538,27 @@ export function listProjectAssets(id: string): ProjectAsset[] {
   return onDisk;
 }
 
+/** 在项目 instance-* 目录的 JSON 里找素材文件名引用；只扫一层，避免深递归拖慢删除。 */
+function findInstanceRefs(id: string, filename: string): string[] {
+  const root = projectDir(id);
+  if (!fs.existsSync(root)) return [];
+  const hits: string[] = [];
+  for (const entry of fs.readdirSync(root, { withFileTypes: true })) {
+    if (!entry.isDirectory() || !entry.name.startsWith('instance-')) continue;
+    const dir = path.join(root, entry.name);
+    for (const file of fs.readdirSync(dir)) {
+      if (!file.endsWith('.json')) continue;
+      try {
+        const text = fs.readFileSync(path.join(dir, file), 'utf8');
+        if (text.includes(filename)) hits.push(path.relative(ROOT, path.join(dir, file)).split(path.sep).join('/'));
+      } catch {
+        /* 坏文件跳过，不影响删除判定 */
+      }
+    }
+  }
+  return hits;
+}
+
 /** 删除项目素材：磁盘文件与 studio-config 登记一并清理；只允许 input/assets 内条目。 */
 export function deleteProjectAsset(id: string, rel: string): { rel: string } {
   const project = readProject(id);
@@ -548,6 +569,13 @@ export function deleteProjectAsset(id: string, rel: string): { rel: string } {
   const normalized = path.normalize(abs);
   if (!normalized.startsWith(dir + path.sep)) throw forbidden('素材路径越界');
   if (!fs.existsSync(normalized)) throw notFound('素材不存在');
+
+  // 引用核对：已渲染实例的 JSON 入参若写着该文件名，删素材会破坏实例复用，先拦下。
+  const refs = findInstanceRefs(id, path.basename(normalized));
+  if (refs.length) {
+    throw conflict('素材仍被已渲染实例引用，请先清理对应实例目录后再删除', { refs });
+  }
+
   fs.rmSync(normalized);
   const cfg = readStudioConfig(id);
   cfg.assets = cfg.assets.filter((a) => a.rel !== rel);
