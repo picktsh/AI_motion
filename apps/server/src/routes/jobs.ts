@@ -1,4 +1,5 @@
 import type { FastifyInstance, FastifyReply } from 'fastify';
+import type { OutgoingHttpHeaders } from 'node:http';
 import {
   submitJob,
   getJob,
@@ -129,7 +130,14 @@ export function registerJobs(app: FastifyInstance, prefix: string): void {
   // SSE 事件流：连接即回一份当前任务表，随后推送 job（状态迁移）与 log（批量日志）事件。
   // 前端断线重连后按 ready 事件重拉列表与增量日志补齐缺口，任务模型仍走 REST。
   app.get(`${prefix}/jobs/stream`, async (request, reply: FastifyReply) => {
+    // 手写 writeHead 会绕过 Fastify 的响应头收集，CORS 头要先从 reply 取出来一并写入，
+    // 否则跨端口 SSE 会被浏览器按 CORS 拦掉（/jobs/stream 曾报 No 'Access-Control-Allow-Origin'）。
+    const baseHeaders: OutgoingHttpHeaders = {};
+    for (const [k, v] of Object.entries(reply.getHeaders())) {
+      if (v !== undefined) baseHeaders[k] = v;
+    }
     reply.raw.writeHead(200, {
+      ...baseHeaders,
       'Content-Type': 'text/event-stream; charset=utf-8',
       'Cache-Control': 'no-cache, no-transform',
       Connection: 'keep-alive',

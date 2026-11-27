@@ -1,4 +1,5 @@
 import type { FastifyInstance, FastifyReply } from 'fastify';
+import type { OutgoingHttpHeaders } from 'node:http';
 import {
   listDir,
   readText,
@@ -51,7 +52,14 @@ export function registerFiles(app: FastifyInstance, prefix: string): void {
   app.delete(`${prefix}/files`, async (request) => ok(removeEntry(queryPath(request))));
 
   app.get(`${prefix}/events`, async (request, reply: FastifyReply) => {
+    // 手写 writeHead 会绕过 Fastify 的响应头收集，CORS 头要先从 reply 取出来一并写入，
+    // 否则跨端口 SSE 会被浏览器按 CORS 拦掉（/jobs/stream 曾报 No 'Access-Control-Allow-Origin'）。
+    const baseHeaders: OutgoingHttpHeaders = {};
+    for (const [k, v] of Object.entries(reply.getHeaders())) {
+      if (v !== undefined) baseHeaders[k] = v;
+    }
     reply.raw.writeHead(200, {
+      ...baseHeaders,
       'Content-Type': 'text/event-stream; charset=utf-8',
       'Cache-Control': 'no-cache, no-transform',
       Connection: 'keep-alive',
