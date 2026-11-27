@@ -6,9 +6,10 @@ import {
   NSwitch, NSpin, NDatePicker, NEmpty, useMessage,
 } from 'naive-ui';
 import {
-  listProjects, projectFiles, getPublish, savePublish,
+  projectFiles, getPublish, savePublish,
   type Project, type ProjectFiles, type ProjectPublish,
 } from '../api/projects';
+import { listWorks, type WorkItem } from '../api/works';
 import { onDomain } from '../api/events';
 import { assetUrl } from '../api/client';
 import { endpoints } from '../api/endpoints';
@@ -17,16 +18,16 @@ import PromptCopyBlock from '../components/data/PromptCopyBlock.vue';
 const router = useRouter();
 const message = useMessage();
 
-const items = ref<Project[]>([]);
+const items = ref<WorkItem[]>([]);
 const loading = ref(true);
 
-/** 作品 = 已出成片的项目；制作中的留在项目页。 */
-const works = computed(() => items.value.filter((p) => p.artifactRel));
+/** 作品清单由后端 /works 给出（已出成片），制作中的留在项目页。 */
+const works = computed(() => items.value);
 
 async function load() {
   loading.value = true;
   try {
-    items.value = await listProjects();
+    items.value = await listWorks();
   } catch (e) {
     message.error(e instanceof Error ? e.message : '作品读取失败');
   } finally {

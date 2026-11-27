@@ -10,6 +10,7 @@ import { registerHealth } from './routes/health.js';
 import { registerEnvironment } from './routes/environment.js';
 import { registerTemplates } from './routes/templates.js';
 import { registerVideos } from './routes/videos.js';
+import { registerWorks } from './routes/works.js';
 import { registerPublish } from './routes/publish.js';
 import { registerTts } from './routes/tts.js';
 import { registerJobs } from './routes/jobs.js';
@@ -68,6 +69,7 @@ export async function buildApp(): Promise<FastifyInstance> {
   registerEnvironment(app, config.apiPrefix);
   registerTemplates(app, config.apiPrefix);
   registerVideos(app, config.apiPrefix);
+  registerWorks(app, config.apiPrefix);
   registerProjects(app, config.apiPrefix);
   registerPublish(app, config.apiPrefix);
   registerTts(app, config.apiPrefix);
