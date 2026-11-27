@@ -43,7 +43,7 @@
 
 - #70 多厂商 BYOK AI 助手：**配置与代理已落地**。四家预置（火山方舟/Qwen 兼容/DeepSeek/OpenAI 兼容，baseUrl 可改），`/ai/chat` 走本机后端代理；Key 只存本地 `config/ai.json`。仍待补：发布文案/封面生成提示词模板、用量与额度提示、Codex 类差异适配（提供商档位待定）
 - AI 配置与密钥安全：**已完成**。provider/baseURL/模型/Key 存本地配置文件（0600、gitignore），页面只回掩码，日志不含 Key；统一走本机后端代理；调用按钮明示「消耗一次额度」
-- Provider 适配层：统一 chat 补全（可选图像生成）接口，优先复用 OpenAI 兼容协议接入多家，差异厂商单独适配；错误与限流统一处理
+- Provider 适配层：**已完成 chat 与错误收口**。四家默认走 OpenAI 兼容 `/chat/completions`，baseUrl/模型可改，`maxTokens`/`temperature` 可透传；上游错误按状态码分流——401/403 明说鉴权与模型权限、404 指向 baseUrl/模型名、429 带上 `retry-after` 秒数、5xx 判上游故障；网络层区分超时（60s）、域名解析失败、连接被拒。图像生成接口待模板直出需求明确后再做
 
 ## 待确认（2026-11-23 反馈）
 

@@ -115,6 +115,34 @@ export function saveProvider(id: string, input: Record<string, unknown>): AiProv
   };
 }
 
+/** 网络层失败：区分超时、连不通与其它传输错误，给出可执行的排查方向。 */
+function connectMessage(name: string, err: unknown): string {
+  const raw = err instanceof Error ? `${err.name}: ${err.message}` : String(err);
+  if (/timeout|abort/i.test(raw)) return `请求 ${name} 超时（60 秒），检查网络或换个提供商重试`;
+  if (/ENOTFOUND|EAI_AGAIN|getaddrinfo/i.test(raw)) return `解析不到 ${name} 的域名，检查 baseUrl 或本机 DNS`;
+  if (/ECONNREFUSED|ECONNRESET|socket/i.test(raw)) return `连不上 ${name}，检查网络、代理或 baseUrl`;
+  return `请求 ${name} 失败：${raw}`;
+}
+
+/** 上游错误按状态码讲人话：鉴权、模型名、限流、上游故障各自区分，避免一律"检查 Key"。 */
+function upstreamMessage(
+  name: string,
+  response: Response,
+  body: { error?: { message?: string }; message?: string } | null,
+): string {
+  const upstream = body?.error?.message ?? body?.message;
+  const detail = upstream ? `：${upstream}` : '';
+  const status = response.status;
+  if (status === 401 || status === 403) return `${name} 拒绝鉴权（${status}），Key 无效或没有该模型权限${detail}`;
+  if (status === 404) return `${name} 返回 404，baseUrl 或模型名不对${detail}`;
+  if (status === 429) {
+    const retry = response.headers.get('retry-after');
+    return `${name} 触发上游限流（429），${retry ? `${retry} 秒后再试` : '稍后再试'}${detail}`;
+  }
+  if (status >= 500) return `${name} 上游故障（${status}），稍后重试${detail}`;
+  return `${name} 返回 ${status}${detail || '：未知错误'}`;
+}
+
 export interface ChatResult {
   providerId: string;
   model: string;
@@ -130,6 +158,9 @@ export async function chat(id: string, input: Record<string, unknown>): Promise<
   const messages = Array.isArray(input.messages) ? input.messages : [];
   if (!messages.length) throw badRequest('messages 不能为空');
   const url = `${provider.baseUrl.replace(/\/+$/, '')}/chat/completions`;
+  const payload: Record<string, unknown> = { model: provider.model, messages, stream: false };
+  if (typeof input.maxTokens === 'number') payload.max_tokens = input.maxTokens;
+  if (typeof input.temperature === 'number') payload.temperature = input.temperature;
   let response: Response;
   try {
     response = await fetch(url, {
@@ -138,17 +169,22 @@ export async function chat(id: string, input: Record<string, unknown>): Promise<
         'content-type': 'application/json',
         authorization: `Bearer ${provider.apiKey}`,
       },
-      body: JSON.stringify({ model: provider.model, messages, stream: false }),
+      body: JSON.stringify(payload),
       signal: AbortSignal.timeout(60_000),
     });
   } catch (err) {
-    throw badRequest(`请求 ${provider.name} 失败：${err instanceof Error ? err.message : '未知原因'}`);
+    throw badRequest(connectMessage(provider.name, err));
   }
   const body = (await response.json().catch(() => null)) as
-    | { choices?: Array<{ message?: { content?: string } }>; usage?: Record<string, unknown>; error?: { message?: string } }
+    | {
+        choices?: Array<{ message?: { content?: string } }>;
+        usage?: Record<string, unknown>;
+        error?: { message?: string };
+        message?: string;
+      }
     | null;
   if (!response.ok) {
-    throw badRequest(`${provider.name} 返回 ${response.status}：${body?.error?.message ?? '未知错误'}（检查 Key、模型名与 baseUrl）`);
+    throw badRequest(upstreamMessage(provider.name, response, body));
   }
   const text = body?.choices?.[0]?.message?.content ?? '';
   if (!text) throw badRequest('模型返回空内容');

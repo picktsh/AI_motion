@@ -43,6 +43,8 @@ export function registerAi(app: FastifyInstance, prefix: string): void {
         properties: {
           providerId: { type: 'string' },
           messages: { type: 'array', items: { type: 'object', additionalProperties: true } },
+          maxTokens: { type: 'number' },
+          temperature: { type: 'number' },
         },
         required: ['providerId', 'messages'],
       },
