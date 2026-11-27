@@ -6,3 +6,4 @@
 - 素材 input/output 归类口径见 `docs/assets-classification.md`；发布配置与渲染入参边界见 `docs/publish-schema.md`。
 - 前端：Naive UI 按需引入，静态表 `NTable`、业务表 `NDataTable`；错误提示用 NMessage 或输入框标红，不写内联 Alert；主题色走 n-config-provider，不硬编码色值；setup 外弹窗用 createDiscreteApi。
 - 后端任务参数路径必须相对工程根，拒绝绝对路径与 `..`；文本写入走 `/files/text`，JSON 须可 parse。
+- 表单校验：非空/格式类校验只标红对应输入框（`status="error"`），重新输入即清除，不弹顶部提示；只有请求发出后的失败或业务结果才用 `NMessage`。

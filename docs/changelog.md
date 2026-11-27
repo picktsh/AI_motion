@@ -16,6 +16,7 @@
 
 ## 0.4.0 · 2026-11-27
 
+- 调整 · 表单校验口径落到 BYOK 卡片：模型名/baseUrl/API Key 的缺失与格式问题改为输入框标红（重新输入即清除），不再弹顶部提示；仅请求失败与保存结果走 NMessage，并写入 AGENTS.local 约定
 - 新增 · 模板包拖拽导入：我的模板区域可直接拖入 `.motion`/`.zip`，与按钮导入共用同一校验与上传流程，拖拽悬停给出落点提示
 - 新增 · GitHub Pages 演示静态页 `docs/site/index.html`：定位、能力卡、数据流、上手三步、边界与许可说明，单文件无外链、不连后端
 - 文档 · 部署形态对比 `docs/deployment.md`（只读 API vs 远程完整工作台，结论 + 门槛清单）与共享包发包评估 `docs/shared-package.md`（暂不发布及补齐条件）；roadmap 两条评估项收口

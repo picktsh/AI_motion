@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { computed, onMounted, ref } from 'vue';
+import { computed, onMounted, reactive, ref } from 'vue';
 import {
   NButton,
   NCard,
@@ -38,6 +38,14 @@ const aiKey = ref('');
 const aiSaving = ref(false);
 const aiTesting = ref(false);
 const aiReply = ref('');
+/** 非空/格式校验只标红对应输入框，不弹顶部提示；请求真正发出后的失败才走 message。 */
+const aiErrors = reactive({ baseUrl: false, model: false, key: false });
+
+function clearAiErrors(): void {
+  aiErrors.baseUrl = false;
+  aiErrors.model = false;
+  aiErrors.key = false;
+}
 
 const providerOptions = computed(() => providers.value.map((p) => ({ label: p.name, value: p.id })));
 
@@ -47,6 +55,7 @@ function syncAiForm(id: string): void {
   aiBaseUrl.value = p.baseUrl;
   aiModel.value = p.model;
   aiKey.value = '';
+  clearAiErrors();
 }
 
 async function loadAi(): Promise<void> {
@@ -63,6 +72,9 @@ async function loadAi(): Promise<void> {
 }
 
 async function saveAi(): Promise<void> {
+  aiErrors.baseUrl = !/^https?:\/\//.test(aiBaseUrl.value.trim());
+  aiErrors.model = !aiModel.value.trim();
+  if (aiErrors.baseUrl || aiErrors.model) return;
   aiSaving.value = true;
   try {
     const body: { baseUrl: string; model: string; apiKey?: string } = {
@@ -82,6 +94,11 @@ async function saveAi(): Promise<void> {
 }
 
 async function testAi(): Promise<void> {
+  aiErrors.baseUrl = !/^https?:\/\//.test(aiBaseUrl.value.trim());
+  aiErrors.model = !aiModel.value.trim();
+  const saved = providers.value.find((p) => p.id === aiProviderId.value);
+  aiErrors.key = !saved?.hasKey && !aiKey.value.trim();
+  if (aiErrors.baseUrl || aiErrors.model || aiErrors.key) return;
   aiTesting.value = true;
   aiReply.value = '';
   try {
@@ -407,10 +424,22 @@ const groups = computed(() =>
           />
         </NFormItem>
         <NFormItem label="模型名" label-class="text-xs text-ink-2">
-          <NInput v-model:value="aiModel" placeholder="如 doubao-seed-1-6 / deepseek-chat" spellcheck="false" />
+          <NInput
+            v-model:value="aiModel"
+            placeholder="如 doubao-seed-1-6 / deepseek-chat"
+            spellcheck="false"
+            :status="aiErrors.model ? 'error' : undefined"
+            @input="aiErrors.model = false"
+          />
         </NFormItem>
         <NFormItem label="baseUrl" label-class="text-xs text-ink-2">
-          <NInput v-model:value="aiBaseUrl" placeholder="https://…/v1" spellcheck="false" />
+          <NInput
+            v-model:value="aiBaseUrl"
+            placeholder="https://…/v1"
+            spellcheck="false"
+            :status="aiErrors.baseUrl ? 'error' : undefined"
+            @input="aiErrors.baseUrl = false"
+          />
         </NFormItem>
         <NFormItem :label="`API Key${providers.find((p) => p.id === aiProviderId)?.hasKey ? '（已保存，留空则不变）' : ''}`" label-class="text-xs text-ink-2">
           <NInput
@@ -419,6 +448,8 @@ const groups = computed(() =>
             show-password-on="click"
             :placeholder="providers.find((p) => p.id === aiProviderId)?.keyMask ?? '粘贴你的 Key'"
             spellcheck="false"
+            :status="aiErrors.key ? 'error' : undefined"
+            @input="aiErrors.key = false"
           />
         </NFormItem>
       </NForm>
