@@ -104,7 +104,7 @@ export async function collectContext() {
       port: config.port,
       apiPrefix: config.apiPrefix,
       /** 是否已强制访问密钥；未配置时本地回环不校验。 */
-      accessRequired: Boolean(config.accessKey),
+      accessRequired: config.accessKeys.length > 0,
       /** 配了密钥后请求需要带的头名。 */
       authHeader: 'x-access-key',
     },
@@ -129,6 +129,7 @@ export async function collectContext() {
         name: a.name,
         type: a.type,
         rel: a.rel,
+        scope: a.scope,
         source: a.source,
         projectId: a.projectId,
       })),

@@ -14,6 +14,7 @@ import {
   NTag,
   useMessage,
 } from 'naive-ui';
+import { PROTOCOL_VERSION } from '@ai-motion/shared/constants';
 import { FolderOpenOutline, OpenOutline, RefreshOutline } from '@vicons/ionicons5';
 import { getEnvironment } from '../api/environment';
 import { getRuntimeConfig } from '../api/runtime';
@@ -21,7 +22,7 @@ import { pingHealth } from '../api/health';
 import { useFetch } from '../composables/useFetch';
 import { useServerConfig } from '../composables/useServerConfig';
 import PathCopy from '../components/data/PathCopy.vue';
-import type { EnvItem, RuntimeReport } from '../shared/types';
+import type { EnvItem, RuntimeItem, RuntimeReport } from '../shared/types';
 
 const { data, loading, error, run } = useFetch(() => getEnvironment());
 
@@ -29,10 +30,25 @@ const { data, loading, error, run } = useFetch(() => getEnvironment());
 const runtime = ref<RuntimeReport | null>(null);
 const runtimeError = ref('');
 
+/** 配置项来源标注：环境变量 / 本地配置文件 / 内置缺省。 */
+function sourceLabel(row: RuntimeItem): string {
+  if (row.source === 'env') return `环境变量 ${row.origin ?? ''}`;
+  if (row.source === 'file') return '本地配置 config/local.json';
+  return `默认 ${row.fallback ?? '—'}`;
+}
+
+const protocolMismatch = ref(false);
+
 async function loadRuntime(): Promise<void> {
   runtimeError.value = '';
   try {
-    runtime.value = await getRuntimeConfig();
+    const report = await getRuntimeConfig();
+    runtime.value = report;
+    // 契约比对：后端协议与前端声明不一致时明确提示，避免旧前端静默读到新接口口径。
+    protocolMismatch.value = report.protocol !== PROTOCOL_VERSION;
+    if (protocolMismatch.value) {
+      message.warning(`后端协议版本 ${report.protocol} 与面板 ${PROTOCOL_VERSION} 不一致，请同步更新前端或后端`);
+    }
   } catch (e) {
     runtimeError.value = e instanceof Error ? e.message : String(e);
   }
@@ -243,14 +259,23 @@ const groups = computed(() =>
 
     <NCard title="运行配置">
       <template #header-extra>
-        <NTag
-          v-if="runtime"
-          size="small"
-          :bordered="false"
-          :type="runtime.auth.enabled ? 'success' : 'default'"
-        >
-          {{ runtime.auth.enabled ? `访问密钥已启用（长度 ${runtime.auth.keyLength}）` : '未启用访问密钥' }}
-        </NTag>
+        <div class="flex items-center gap-2 flex-wrap">
+          <NTag v-if="protocolMismatch" size="small" :bordered="false" type="warning">
+            协议版本 {{ runtime?.protocol }} ≠ 面板 {{ PROTOCOL_VERSION }}
+          </NTag>
+          <NTag
+            v-if="runtime"
+            size="small"
+            :bordered="false"
+            :type="runtime.auth.enabled ? 'success' : 'default'"
+          >
+            {{
+              runtime.auth.enabled
+                ? `访问密钥已启用（${runtime.auth.keyCount} 把${runtime.auth.keyLength ? `，长度 ${runtime.auth.keyLength}` : ''}）`
+                : '未启用访问密钥'
+            }}
+          </NTag>
+        </div>
       </template>
 
       <NEmpty v-if="runtimeError" :description="runtimeError">
@@ -261,13 +286,13 @@ const groups = computed(() =>
 
       <template v-else-if="runtime">
         <p class="m-0 mb-3 text-xs leading-5 text-ink-3">
-          值来自后端实时读取的运行配置；来源标注为环境变量时以启动时的变量为准，其余为内置缺省。{{ runtime.auth.note }}
+          值来自后端实时读取的运行配置；优先级为环境变量 &gt; 本地配置文件 &gt; 内置缺省。{{ runtime.auth.note }}
         </p>
         <NDescriptions :column="1" size="small" label-placement="left" bordered>
           <NDescriptionsItem
             v-for="row in runtime.items"
             :key="row.key"
-            :label="`${row.label}（${row.source === 'env' ? '环境变量 ' + row.env : '默认 ' + (row.fallback ?? '—')}）`"
+            :label="`${row.label}（${sourceLabel(row)}）`"
           >
             <span class="text-sm break-all">{{ row.value }}</span>
           </NDescriptionsItem>

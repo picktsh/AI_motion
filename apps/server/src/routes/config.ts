@@ -9,13 +9,13 @@ import { envelope, errorStatuses, type JsonSchema } from '../core/schemas.js';
 const runtimeItem: JsonSchema = {
   type: 'object',
   additionalProperties: true,
-  required: ['key', 'label', 'value', 'source', 'env', 'fallback'],
+  required: ['key', 'label', 'value', 'source', 'origin', 'fallback'],
   properties: {
     key: { type: 'string' },
     label: { type: 'string' },
     value: { type: 'string', description: '当前生效值（密钥只给长度）' },
-    source: { type: 'string', enum: ['env', 'default'], description: '当前值来源' },
-    env: { type: ['string', 'null'], description: '对应环境变量名' },
+    source: { type: 'string', enum: ['env', 'file', 'default'], description: '当前值来源' },
+    origin: { type: ['string', 'null'], description: '对应环境变量名或配置字段' },
     fallback: { type: ['string', 'null'], description: '内置缺省值' },
     note: { type: ['string', 'null'] },
   },
@@ -24,18 +24,21 @@ const runtimeItem: JsonSchema = {
 const report: JsonSchema = {
   type: 'object',
   additionalProperties: true,
-  required: ['service', 'version', 'origin', 'loopbackOnly', 'auth', 'items', 'paths', 'textLimits', 'jobs'],
+  required: ['service', 'version', 'protocol', 'origin', 'loopbackOnly', 'configFile', 'auth', 'items', 'paths', 'textLimits', 'jobs'],
   properties: {
     service: { type: 'string' },
     version: { type: 'string' },
+    protocol: { type: 'string', description: '接口协议版本，前端运行时比对' },
     origin: { type: 'string' },
     loopbackOnly: { type: 'boolean' },
+    configFile: { type: ['string', 'null'], description: '读取到的本地配置文件路径' },
     auth: {
       type: 'object',
       additionalProperties: true,
       properties: {
         enabled: { type: 'boolean' },
-        keyLength: { type: ['integer', 'null'] },
+        keyCount: { type: 'integer' },
+        keyLength: { type: ['integer', 'null'], description: '仅单把密钥时给长度，多把时为 null' },
         header: { type: 'string' },
         note: { type: 'string' },
       },

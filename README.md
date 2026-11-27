@@ -53,7 +53,11 @@ pnpm setup:python
 | `PORT` | 后端监听端口 | `5599`（非 1–65535 整数时回退缺省） |
 | `API_PREFIX` | 接口路径前缀 | `/api/v1`（自动去除尾部斜杠） |
 | `SERVICE_NAME` | 服务名，健康检查回显 | `ai-motion-studio` |
+| `ACCESS_KEY` / `ACCESS_KEYS` | 访问密钥，配了即强制鉴权；`ACCESS_KEYS` 用逗号分隔多把，便于轮换 | 未配置（回环本地不校验） |
+| `CORS_ORIGINS` | 允许的跨域来源白名单（逗号分隔） | 未配置时仅放行本机回环来源 |
 | `LOG_LEVEL` | Pino 日志级别 | `info` |
+
+也可以把固定值写进 `config/local.json`（不入库，模板见 `config/local.example.json`），优先级为环境变量 > 本地配置文件 > 内置缺省。
 
 前端配置为 Vite 构建期变量，写在 `apps/web/.env`，改完需重启 dev 或重新构建：
 
@@ -63,7 +67,7 @@ pnpm setup:python
 | `VITE_SERVER_API` | 接口路径前缀 | `/api/v1` |
 | `VITE_PORT` | 前端 dev 端口 | `5577`（非 1–65535 整数时回退缺省） |
 
-访问密钥、CORS 来源白名单属二期安全条目，方案待定，见 [docs/roadmap.md](./docs/roadmap.md)。
+密钥只从环境变量或本地配置文件读取，不入库、不进日志，面板只显示启用状态与长度；多把并存用于轮换，删掉旧密钥重启即失效。
 
 ## 目录
 

@@ -47,10 +47,11 @@ export async function registerCors(app: FastifyInstance): Promise<void> {
   });
 }
 
-// 访问密钥骨架：未配置 ACCESS_KEY 时回环本地默认不强制；配置后对业务接口强制校验。
+// 访问密钥骨架：未配置密钥时回环本地默认不强制；配置后对业务接口强制校验。
+// 支持同时配置多把（新旧并存）用于轮换：任一匹配即放行，移除旧密钥后立即失效。
 export function registerAuthGuard(app: FastifyInstance): void {
-  const expected = config.accessKey;
-  if (!expected) return;
+  const expected = config.accessKeys;
+  if (!expected.length) return;
 
   app.addHook('preHandler', async (req: FastifyRequest) => {
     if (req.method === 'OPTIONS') return;
@@ -58,7 +59,7 @@ export function registerAuthGuard(app: FastifyInstance): void {
     if (req.url === `${config.apiPrefix}/health`) return;
 
     const provided = extractKey(req);
-    if (!provided || !sameKey(provided, expected)) {
+    if (!provided || !expected.some((key) => sameKey(provided, key))) {
       throw unauthorized('访问密钥缺失或无效');
     }
   });
