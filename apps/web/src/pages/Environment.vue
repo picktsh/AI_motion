@@ -10,6 +10,7 @@ import {
   NFormItem,
   NIcon,
   NInput,
+  NSelect,
   NSkeleton,
   NTag,
   useMessage,
@@ -19,12 +20,82 @@ import { FolderOpenOutline, OpenOutline, RefreshOutline } from '@vicons/ionicons
 import { getEnvironment } from '../api/environment';
 import { getRuntimeConfig } from '../api/runtime';
 import { pingHealth } from '../api/health';
+import { aiChat, listAiProviders, saveAiProvider, type AiProviderView } from '../api/ai';
 import { useFetch } from '../composables/useFetch';
 import { useServerConfig } from '../composables/useServerConfig';
 import PathCopy from '../components/data/PathCopy.vue';
 import type { EnvItem, RuntimeItem, RuntimeReport } from '../shared/types';
 
 const { data, loading, error, run } = useFetch(() => getEnvironment());
+
+
+/* ---------- AI 助手（BYOK，本地配置） ---------- */
+const providers = ref<AiProviderView[]>([]);
+const aiProviderId = ref('ark');
+const aiBaseUrl = ref('');
+const aiModel = ref('');
+const aiKey = ref('');
+const aiSaving = ref(false);
+const aiTesting = ref(false);
+const aiReply = ref('');
+
+const providerOptions = computed(() => providers.value.map((p) => ({ label: p.name, value: p.id })));
+
+function syncAiForm(id: string): void {
+  const p = providers.value.find((x) => x.id === id);
+  if (!p) return;
+  aiBaseUrl.value = p.baseUrl;
+  aiModel.value = p.model;
+  aiKey.value = '';
+}
+
+async function loadAi(): Promise<void> {
+  try {
+    providers.value = await listAiProviders();
+    const saved = providers.value.find((p) => p.id === aiProviderId.value) ?? providers.value[0];
+    if (saved) {
+      aiProviderId.value = saved.id;
+      syncAiForm(saved.id);
+    }
+  } catch {
+    providers.value = [];
+  }
+}
+
+async function saveAi(): Promise<void> {
+  aiSaving.value = true;
+  try {
+    const body: { baseUrl: string; model: string; apiKey?: string } = {
+      baseUrl: aiBaseUrl.value.trim(),
+      model: aiModel.value.trim(),
+    };
+    if (aiKey.value.trim()) body.apiKey = aiKey.value.trim();
+    const saved = await saveAiProvider(aiProviderId.value, body);
+    providers.value = providers.value.map((p) => (p.id === saved.id ? saved : p));
+    aiKey.value = '';
+    message.success(`已保存 ${saved.name}${saved.hasKey ? '，Key 已掩码显示' : '（未填 Key）'}`);
+  } catch (e) {
+    message.error(e instanceof Error ? e.message : '保存失败');
+  } finally {
+    aiSaving.value = false;
+  }
+}
+
+async function testAi(): Promise<void> {
+  aiTesting.value = true;
+  aiReply.value = '';
+  try {
+    const res = await aiChat(aiProviderId.value, '只回复两个字：连通');
+    aiReply.value = res.text.slice(0, 200);
+    message.success(`${res.model} 已连通`);
+  } catch (e) {
+    message.error(e instanceof Error ? e.message : '调用失败');
+  } finally {
+    aiTesting.value = false;
+  }
+}
+
+onMounted(() => void loadAi());
 
 /* ---------- 运行配置（后端单一来源，只读） ---------- */
 const runtime = ref<RuntimeReport | null>(null);
@@ -317,6 +388,46 @@ const groups = computed(() =>
           </NDescriptionsItem>
         </NDescriptions>
       </template>
+    </NCard>
+
+
+    <NCard>
+      <template #header>
+        <div class="min-w-0">
+          <h2 class="m-0 text-base font-semibold text-ink truncate">AI 助手（BYOK）</h2>
+          <p class="m-0 mt-1 text-xs text-ink-2">Key 只存本机 config/ai.json，页面只回掩码；调用走本机后端代理，消耗你自己的模型额度</p>
+        </div>
+      </template>
+      <NForm label-placement="top" class="grid grid-cols-1 md:grid-cols-2 gap-x-4">
+        <NFormItem label="提供商" label-class="text-xs text-ink-2">
+          <NSelect
+            v-model:value="aiProviderId"
+            :options="providerOptions"
+            @update:value="syncAiForm"
+          />
+        </NFormItem>
+        <NFormItem label="模型名" label-class="text-xs text-ink-2">
+          <NInput v-model:value="aiModel" placeholder="如 doubao-seed-1-6 / deepseek-chat" spellcheck="false" />
+        </NFormItem>
+        <NFormItem label="baseUrl" label-class="text-xs text-ink-2">
+          <NInput v-model:value="aiBaseUrl" placeholder="https://…/v1" spellcheck="false" />
+        </NFormItem>
+        <NFormItem :label="`API Key${providers.find((p) => p.id === aiProviderId)?.hasKey ? '（已保存，留空则不变）' : ''}`" label-class="text-xs text-ink-2">
+          <NInput
+            v-model:value="aiKey"
+            type="password"
+            show-password-on="click"
+            :placeholder="providers.find((p) => p.id === aiProviderId)?.keyMask ?? '粘贴你的 Key'"
+            spellcheck="false"
+          />
+        </NFormItem>
+      </NForm>
+      <div class="flex items-center gap-2 flex-wrap">
+        <NButton type="primary" :loading="aiSaving" @click="saveAi">保存</NButton>
+        <NButton secondary :loading="aiTesting" @click="testAi">测试连通（消耗一次额度）</NButton>
+        <span class="ml-auto text-xs text-ink-3">Key 不入库、不进日志；换机器需重新配置</span>
+      </div>
+      <p v-if="aiReply" class="m-0 mt-3 text-xs text-ink-2 break-words">模型回复：{{ aiReply }}</p>
     </NCard>
 
     <NCard>

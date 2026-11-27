@@ -15,6 +15,12 @@ export const endpoints = {
     redirect: (id: string): string => `/templates/${encodeURIComponent(id)}/redirect`,
   },
 
+  ai: {
+    providers: '/ai/providers',
+    provider: (id: string): string => `/ai/providers/${encodeURIComponent(id)}`,
+    chat: '/ai/chat',
+  },
+
   search: {
     q: '/search',
   },

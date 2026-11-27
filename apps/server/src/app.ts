@@ -14,6 +14,7 @@ import { registerWorks } from './routes/works.js';
 import { registerBgm } from './routes/bgm.js';
 import { registerAbout } from './routes/about.js';
 import { registerSearch } from './routes/search.js';
+import { registerAi } from './routes/ai.js';
 import { registerPublish } from './routes/publish.js';
 import { registerTts } from './routes/tts.js';
 import { registerJobs } from './routes/jobs.js';
@@ -76,6 +77,7 @@ export async function buildApp(): Promise<FastifyInstance> {
   registerBgm(app, config.apiPrefix);
   registerAbout(app, config.apiPrefix);
   registerSearch(app, config.apiPrefix);
+  registerAi(app, config.apiPrefix);
   registerProjects(app, config.apiPrefix);
   registerPublish(app, config.apiPrefix);
   registerTts(app, config.apiPrefix);

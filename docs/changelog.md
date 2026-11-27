@@ -16,6 +16,7 @@
 
 ## 0.4.0 · 2026-11-27
 
+- 新增 · 三期 BYOK 起步：`GET /ai/providers`（Key 只回掩码）、`PUT /ai/providers/:id`（baseUrl/模型/Key 落本地 `config/ai.json`，0600、gitignore）、`POST /ai/chat` 走本机后端代理 OpenAI 兼容补全并回显错误原文；环境页新增「AI 助手（BYOK）」卡片（选提供商、改 baseUrl/模型、填 Key、测试连通）
 - 文档 · 前端 11 页逐页巡检（内置浏览器）：各页加载无错误横幅、空态与骨架屏正常，结论记入 roadmap；移动端窄屏适配仍待做
 - 文档 · 新增 `docs/licenses.md`：逐包核对模板许可（kinetic-tech 为 MIT 可再分发；五个个人包无许可声明按个人使用，不进演示站），定演示站取材规则；roadmap 同步依赖联动/静态校验/profile/配置层/协议提示的完成状态
 - 新增 · #95 关于页服务架构拓扑：浏览器面板 → 本机后端(回环地址/协议) → 白名单目录三节点流程，附任务并发、文本上限、鉴权与配置来源摘要，全部取 `GET /config` 单一来源
