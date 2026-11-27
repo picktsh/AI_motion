@@ -3,6 +3,8 @@ import { onMounted, ref } from 'vue';
 import { NCard, NProgress, NTag, NSkeleton, NEmpty, NButton } from 'naive-ui';
 import { useRouter } from 'vue-router';
 import { getRoadmap, type RoadmapPayload } from '../api/about';
+import { getRuntimeConfig } from '../api/runtime';
+import type { RuntimeReport } from '../shared/types';
 import { REPO_URL } from '../shared/constants';
 import { useServerConfig } from '../composables/useServerConfig';
 import { APP_VERSION } from '../shared/appMeta';
@@ -26,6 +28,17 @@ onMounted(async () => {
 });
 
 const percent = (done: number, total: number): number => (total ? Math.round((done / total) * 100) : 0);
+
+// 架构拓扑只渲染 GET /config 的单一来源，不另抄一份端口与白名单。
+const runtime = ref<RuntimeReport | null>(null);
+
+onMounted(async () => {
+  try {
+    runtime.value = await getRuntimeConfig();
+  } catch {
+    runtime.value = null;
+  }
+});
 </script>
 
 <template>
@@ -85,6 +98,38 @@ const percent = (done: number, total: number): number => (total ? Math.round((do
       </div>
     </NCard>
 
+
+    <NCard title="服务架构">
+      <NSkeleton v-if="!runtime" text :repeat="3" />
+      <div v-else class="flex flex-col gap-4">
+        <div class="flex flex-wrap items-stretch gap-3">
+          <div class="arch-box">
+            <span class="arch-title">浏览器面板</span>
+            <span class="arch-meta">Vue 3 · 哈希路由</span>
+          </div>
+          <div class="arch-arrow">/api/v1 →</div>
+          <div class="arch-box">
+            <span class="arch-title">本机后端</span>
+            <span class="arch-meta font-mono">{{ runtime.origin }}</span>
+            <span class="arch-meta">{{ runtime.loopbackOnly ? '仅回环地址' : '非回环监听' }}</span>
+          </div>
+          <div class="arch-arrow">→</div>
+          <div class="arch-box">
+            <span class="arch-title">白名单目录</span>
+            <span class="arch-meta">{{ runtime.paths.read.length }} 个可读 · {{ runtime.paths.write.length }} 个可写</span>
+            <span class="arch-meta">{{ runtime.paths.watch.length }} 个监听根（SSE 变更域）</span>
+          </div>
+        </div>
+        <div class="grid grid-cols-[repeat(auto-fit,minmax(200px,1fr))] gap-3 text-xs text-ink-3">
+          <div class="arch-note">任务并发 · 渲染 {{ runtime.jobs.renderConcurrency }} / 普通 {{ runtime.jobs.defaultConcurrency }}</div>
+          <div class="arch-note">文本上限 · 读 {{ Math.round(runtime.textLimits.readBytes / 1024) }}KB / 写 {{ Math.round(runtime.textLimits.writeBytes / 1024) }}KB</div>
+          <div class="arch-note">鉴权 · {{ runtime.auth.enabled ? `已启用（${runtime.auth.keyCount} 把）` : '未启用' }}</div>
+          <div class="arch-note">配置来源 · {{ runtime.configFile ? '环境变量 + 本地文件' : '环境变量 / 内置缺省' }}</div>
+        </div>
+        <p class="m-0 text-xs text-ink-3">重动作（渲染、配音、封面）走命令台任务，面板只观测进度与产物；外部 AI 通过文件读写接口回写。</p>
+      </div>
+    </NCard>
+
     <NCard title="基本信息">
       <div class="grid grid-cols-[repeat(auto-fit,minmax(220px,1fr))] gap-3">
         <div class="flex items-center gap-2 text-sm py-1">
@@ -103,3 +148,34 @@ const percent = (done: number, total: number): number => (total ? Math.round((do
     </NCard>
   </div>
 </template>
+
+<style scoped>
+.arch-box {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 160px;
+  padding: 10px 12px;
+  border-radius: 12px;
+  border: 1px solid var(--color-border);
+  background: var(--color-neutral-soft, transparent);
+}
+.arch-title {
+  font-size: 13px;
+  font-weight: 600;
+}
+.arch-meta {
+  font-size: 11px;
+  opacity: 0.7;
+}
+.arch-arrow {
+  align-self: center;
+  font-size: 12px;
+  opacity: 0.6;
+}
+.arch-note {
+  padding: 6px 10px;
+  border-radius: 8px;
+  background: var(--color-neutral-soft, transparent);
+}
+</style>
