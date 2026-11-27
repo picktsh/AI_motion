@@ -9,6 +9,25 @@ export default defineConfig(({ mode }) => {
 
   return {
     plugins: [vue(), UnoCSS()],
+    build: {
+      // 组件库与渲染类库单独分包：主包只剩页面代码，组件包稳定可长期缓存。
+      chunkSizeWarningLimit: 1200,
+      rollupOptions: {
+        output: {
+          manualChunks(id) {
+            if (id.includes('node_modules/naive-ui')) {
+              // 表格/树/选择器等重组件单独一包，常规按钮、表单与布局进核心包。
+              return /naive-ui\/es\/(data-table|table|tree|tree-select|select|pagination|virtual-list|transfer)/.test(id)
+                ? 'naive-data'
+                : 'naive-ui';
+            }
+            if (id.includes('node_modules/wavesurfer.js') || id.includes('node_modules/markdown-it')) return 'media';
+            if (/node_modules\/(vue|vue-router|@vue|axios|lodash-es|@vueuse)/.test(id)) return 'vue-vendor';
+            return undefined;
+          },
+        },
+      },
+    },
     server: {
       port,
       host: '127.0.0.1',
