@@ -6,7 +6,7 @@
 
 ## 二期近期：命令台执行闭环（优先）
 
-- #192 本机文件变动监听与界面自动刷新（高优先级）：**已落地后端监听与 SSE 推送、前端按域订阅刷新**。chokidar 监听白名单根，200ms 去抖 + awaitWriteFinish 稳定判定，按 project/artifact/asset/template 四域归并事件；`GET /events` 单向 SSE，前端 fetch 流读取、断流退避重连，各页面只重拉对应域接口。遗留：目录监听清单与 #190 的 input/output 口径合并复核；WebSocket 仍留待远期多人协同。
+- #192 本机文件变动监听与界面自动刷新（高优先级）：**已落地后端监听与 SSE 推送、前端按域订阅刷新**。chokidar 监听白名单根，200ms 去抖 + awaitWriteFinish 稳定判定，按 project/artifact/asset/template 四域归并事件；`GET /events` 单向 SSE，前端 fetch 流读取、断流退避重连，各页面只重拉对应域接口。监听白名单（projects/templates/tts/public/assets）与 #190 input/output 口径已在 `assets-classification.md` 对齐复核；WebSocket 仍留待远期多人协同。
 - #193 面板内文件浏览与文件级操作（高优先级）：**已落地目录树浏览、预览与文件级操作**。后端 `GET /files/tree` 清单（名称/大小/修改时间/类型），文本读取 `GET /files/text`（扩展名白名单 + 大小上限 + sha256），写操作 `POST /files/dir`、`/files/file`、`/files/rename`、`/files/move`、`DELETE /files`，全部限白名单可写根并做路径穿越与符号链接校验；被 studio-config 登记引用的素材删除前拦截。前端文件页 NTree 侧栏 + NDataTable 清单 + 抽屉预览（图片/音视频/文本只读），行菜单含预览、重命名、移动、复制路径、删除，确认走弹窗。边界维持：面板不做内容编辑器，文本只读；「在访达中打开」与非空目录递归删除未做。删除是否先挪回收目录仍待定。
 - #195 文件内容读写 API（高优先级，给外部 AI 用）：**已落地通用文本读写接口**。`GET /files/text` 按相对路径读取，`PUT /files/text` 覆写；限白名单可写根 + 扩展名白名单（txt/md/json/js/mjs/ts/yaml/yml/csv/log/vtt）+ 单文件大小上限 + 路径穿越校验；JSON 写入前 parse，坏格式直接拒；纯文本按原文覆盖、不 trim 不改换行；临时文件 + rename 原子落盘，回内容 sha256，带 expectedSha 时校验被外部修改则 409。面板侧文本仍只读展示，内容修改走本接口。
 - 边界调整：面板退为观测台后，渲染、配音合成、封面生成、素材落地等重动作不在面板直接触发，改为预置提示词交外部 AI 执行并回写磁盘；面板保留任务观测、产物回显与标题/文稿/发布文案等纯文本轻编辑；下列命令台出片闭环待办按此边界复核，不再要求面板内串起完整创作流水线
@@ -63,7 +63,7 @@
 - #185 提示词口径文档化：**已定稿** `docs/prompt-conventions.md`。目录规划、相对路径约定、后端基址/鉴权/任务/读写接口口径、写回职责收敛到该文档；项目/素材/模板引用只给编号或相对路径；`AGENTS.local.md` 挂指针。
 - #186 项目目录编号规则：项目目录名不再用中文 slug 加时间戳，改用 `YYMMDD001` 之类可读编号（同日递增序号）；标题、模板溯源等只存 `project.json` 台账，接口与提示词引用编号；消除提示词里中文目录名的 URL 转码串；旧目录保留兼容读取（已按 `YYMMDDNNN` 实现，旧中文目录名照旧可读）
 - #187 路由菜单顺序调整：**已完成**。侧边栏顺序现为总览、模板、素材、项目、作品、配音 TTS、任务、环境、文件；菜单由路由表顺序生成，未改页面逻辑。
-- #190 素材归类口径重做（TTS 试听不算素材）：**口径文档已定稿**，见 [assets-classification.md](./assets-classification.md)。input 为可复用源素材（项目素材、公共素材、登记的公共音色），output 为生成中间产物与成品（配音、分段、试听样例、字幕、实例、成片、日志）。迁移分五步：文档口径 → 接口补 kind/owner 分类字段 → 页面按字段过滤 → 公共音色显式登记 → 远期物理迁移。当前磁盘路径未动，接口分类字段与页面过滤待后续实施。
+- #190 素材归类口径重做（TTS 试听不算素材）：**口径文档已定稿并同步实现状态**，见 [assets-classification.md](./assets-classification.md)。input 为可复用源素材（项目素材、公共素材、登记的公共音色），output 为生成中间产物与成品（配音、分段、试听样例、字幕、实例、成片、日志）。迁移分五步：文档口径 → 接口补 kind/owner 分类字段 → 页面按字段过滤 → 公共音色显式登记 → 远期物理迁移。当前磁盘路径未动；接口归属字段（scope/source）与页面归属过滤已落地，公共 BGM 库落在 `studio/assets/bgm`，物理迁移仍留远期。
 - #191 项目详情步骤条：**已落地只读步骤条**。七步：素材 → 台词 → 截图 → 配音 → 字幕 → BGM → 成片；`GET /projects/:id/steps` 按 input/output 实有文件派生状态与说明文件名，详情页 NSteps 展示。判定规则当前为「有文件即完成」：素材看 input/assets、台词看 script.txt 非空、截图看素材内图片、配音看 voice.mp3、字幕看 user.json captions 或 vtt、BGM 看 media.music 绑定或 bgm 音频、成片看 artifactRel 存在。时长/槽位校验（如配音时长对不对得上、字幕条数是否齐）未做，留待后续。
 ## 开源准备与对外展示（三期后段评估）
 
