@@ -99,16 +99,19 @@ export function getProject(id: string): Project | null {
   return p ? hydrate(p) : null;
 }
 
-function safeId(title: string): string {
-  const base = title
-    .trim()
-    .toLowerCase()
-    .replace(/[^a-z0-9一-龥-]+/g, '-')
-    .replace(/-+/g, '-')
-    .replace(/^-|-$/g, '')
-    .slice(0, 24);
-  const stamp = new Date().toISOString().replace(/[-:T]/g, '').slice(0, 12);
-  return `${base || 'project'}-${stamp}`;
+/** 项目编号：YYMMDDNNN，同日递增；标题与模板溯源只存 project.json，不再写进目录名。 */
+function nextProjectId(now = new Date()): string {
+  const pad = (n: number, len = 2): string => String(n).padStart(len, '0');
+  const prefix = `${pad(now.getFullYear() % 100)}${pad(now.getMonth() + 1)}${pad(now.getDate())}`;
+  const base = path.join(ROOT, 'studio', 'projects');
+  let seq = 0;
+  if (fs.existsSync(base)) {
+    for (const name of fs.readdirSync(base)) {
+      const m = /^(\d{6})(\d{3})$/.exec(name);
+      if (m && m[1] === prefix) seq = Math.max(seq, Number(m[2]));
+    }
+  }
+  return `${prefix}${pad(seq + 1, 3)}`;
 }
 
 /** 本机渲染模板的本期输入：以包内 text-only 示例为底，替换标题与文案。 */
@@ -147,7 +150,7 @@ export function createProject(input: Record<string, unknown>): Project {
   const tpl = findTemplateRef(templateId);
   if (!tpl) throw notFound('模板不可用：缺少运行入口或原始包，请重新下载导入');
 
-  const id = safeId(title);
+  const id = nextProjectId();
   const dir = projectDir(id);
   fs.mkdirSync(path.join(dir, 'input'), { recursive: true });
   fs.mkdirSync(path.join(dir, 'output'), { recursive: true });
