@@ -4,7 +4,7 @@ import os from 'node:os';
 import path from 'node:path';
 import { pipeline } from 'node:stream/promises';
 import { listTemplates, getTemplate } from '../services/templates.js';
-import { importMotionPackage } from '../services/templateImport.js';
+import { importMotionPackage, readLockStatus } from '../services/templateImport.js';
 import { getCatalog } from '../services/templateCatalog.js';
 import { badRequest, notFound } from '../core/errors.js';
 import { ok, list } from '../core/response.js';
@@ -233,6 +233,14 @@ export function registerTemplates(app: FastifyInstance, prefix: string): void {
       fs.rmSync(tmp, { force: true });
     }
   });
+
+  app.get(`${prefix}/templates/lock`, {
+    schema: {
+      tags: ['templates'],
+      summary: '模板来源锁定清单：导入登记与磁盘核对结果（ok / missing / changed）',
+      response: { 200: envelope({ type: 'object', additionalProperties: true }), ...errorStatuses },
+    },
+  }, () => ok(readLockStatus()));
 
   app.get(`${prefix}/templates/:id`, {
     schema: {

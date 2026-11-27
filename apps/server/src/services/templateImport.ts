@@ -414,6 +414,125 @@ function verifyFiles(
   return { state: 'verified', verifiedFiles: verified, mismatched, missing };
 }
 
+// 凭据扫描：包内代码/文档出现第三方服务密钥即拒绝导入，避免把别人的 Key 带进工程。
+// personal/ 下随包密钥属于包自带凭证（hasPersonalKey 已提示），不算第三方泄漏，单独排除。
+const CREDENTIAL_EXT = new Set([
+  '.json', '.js', '.mjs', '.cjs', '.ts', '.md', '.txt', '.yml', '.yaml', '.env',
+  '.pem', '.sh', '.py', '.toml', '.xml', '.html',
+]);
+const SCAN_MAX_BYTES = 512 * 1024;
+const SECRET_PATTERNS: Array<{ kind: string; re: RegExp }> = [
+  { kind: 'openai-like sk-', re: /\bsk-[A-Za-z0-9_-]{20,}\b/ },
+  { kind: 'aws-access-key', re: /\bAKIA[0-9A-Z]{16}\b/ },
+  { kind: 'github-token', re: /\bgh[pousr]_[A-Za-z0-9]{30,}\b/ },
+  { kind: 'volcengine-ak', re: /\bAKLT[A-Za-z0-9_-]{20,}\b/ },
+  { kind: 'generic-secret', re: /["']?(api[_-]?key|secret[_-]?key|access[_-]?token)["']?\s*[:=]\s*["'][A-Za-z0-9_-]{24,}["']/i },
+];
+// 占位符不算泄漏：模板里的示例配置常写 your-key / sk-xxxx / <token>。
+const PLACEHOLDER = /x{3,}|your[_-]|example|placeholder|replace|dummy|sample|test|demo|<|>|\*{3,}/i;
+
+function scanCredentials(
+  hashes: Map<string, string>,
+  dir: string,
+): Array<{ file: string; kind: string }> {
+  const findings: Array<{ file: string; kind: string }> = [];
+  for (const rel of hashes.keys()) {
+    if (rel.startsWith('personal/')) continue;
+    if (!CREDENTIAL_EXT.has(path.extname(rel).toLowerCase())) continue;
+    if (findings.length >= 20) break;
+    let text: string;
+    try {
+      const stat = fs.statSync(path.join(dir, rel));
+      if (stat.size > SCAN_MAX_BYTES) continue;
+      text = fs.readFileSync(path.join(dir, rel), 'utf8');
+    } catch {
+      continue;
+    }
+    for (const { kind, re } of SECRET_PATTERNS) {
+      const m = text.match(re);
+      if (!m) continue;
+      if (m[0].length > 12 && PLACEHOLDER.test(m[0])) continue;
+      findings.push({ file: rel, kind });
+      break;
+    }
+  }
+  return findings;
+}
+
+// 来源锁定：每次成功导入登记包哈希与来源，templates.lock.json 作为可审计清单。
+const LOCK_FILE = path.join(TEMPLATES_DIR, 'templates.lock.json');
+
+export interface LockEntry {
+  id: string;
+  slug: string;
+  version: string | null;
+  packageSha256: string;
+  fileCount: number;
+  bytes: number;
+  sourceFilename: string;
+  importedAt: string;
+  layout: string;
+  specVersion: string | null;
+  packageProfile: string | null;
+  runtimeProfile: string | null;
+}
+
+interface LockFile {
+  version: number;
+  updatedAt: string;
+  packages: Record<string, LockEntry>;
+}
+
+function readLockFile(): LockFile {
+  const parsed = readJson<Partial<LockFile>>(LOCK_FILE);
+  if (!parsed || typeof parsed !== 'object' || !parsed.packages || typeof parsed.packages !== 'object') {
+    return { version: 1, updatedAt: new Date(0).toISOString(), packages: {} };
+  }
+  return {
+    version: parsed.version ?? 1,
+    updatedAt: parsed.updatedAt ?? new Date(0).toISOString(),
+    packages: parsed.packages as Record<string, LockEntry>,
+  };
+}
+
+function writeLockEntry(meta: ImportedTemplate, runtimeProfile: string | null): void {
+  const lock = readLockFile();
+  lock.packages[meta.id] = {
+    id: meta.id,
+    slug: meta.slug,
+    version: meta.version,
+    packageSha256: meta.packageSha256,
+    fileCount: meta.fileCount,
+    bytes: meta.bytes,
+    sourceFilename: meta.sourceFilename,
+    importedAt: meta.importedAt,
+    layout: meta.layout,
+    specVersion: meta.specVersion,
+    packageProfile: meta.packageProfile,
+    runtimeProfile,
+  };
+  lock.updatedAt = new Date().toISOString();
+  fs.mkdirSync(TEMPLATES_DIR, { recursive: true });
+  const temp = `${LOCK_FILE}.${process.pid}.tmp`;
+  fs.writeFileSync(temp, `${JSON.stringify(lock, null, 2)}\n`, 'utf8');
+  fs.renameSync(temp, LOCK_FILE);
+}
+
+/** 读锁定清单并核对磁盘：目录缺失记 missing，包哈希与 .import-meta 不一致记 changed。 */
+export function readLockStatus(): { updatedAt: string; packages: Array<LockEntry & { status: 'ok' | 'missing' | 'changed' }> } {
+  const lock = readLockFile();
+  const packages = Object.values(lock.packages).map((entry) => {
+    const dir = path.join(TEMPLATES_DIR, entry.id);
+    if (!fs.existsSync(dir)) return { ...entry, status: 'missing' as const };
+    const meta = readJson<ImportedTemplate>(path.join(dir, '.import-meta.json'));
+    if (meta?.packageSha256 && meta.packageSha256 !== entry.packageSha256) {
+      return { ...entry, status: 'changed' as const };
+    }
+    return { ...entry, status: 'ok' as const };
+  });
+  return { updatedAt: lock.updatedAt, packages };
+}
+
 export async function importMotionPackage(
   archivePath: string,
   sourceFilename: string,
@@ -466,6 +585,13 @@ export async function importMotionPackage(
       });
     }
 
+    const credentialFindings = scanCredentials(hashes, stagingDir);
+    if (credentialFindings.length) {
+      throw badRequest('包内含疑似第三方 API Key 或令牌，已拒绝导入；请清理后再打包', {
+        findings: credentialFindings,
+      });
+    }
+
     const id = info.version ? `${info.slug}@${info.version}` : info.slug;
     const targetDir = path.join(TEMPLATES_DIR, id);
     if (fs.existsSync(targetDir)) {
@@ -500,6 +626,7 @@ export async function importMotionPackage(
       'utf8',
     );
     fs.renameSync(stagingDir, targetDir);
+    writeLockEntry(meta, info.runtimeProfile);
     return meta;
   } catch (err) {
     fs.rmSync(stagingDir, { recursive: true, force: true });
