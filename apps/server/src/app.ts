@@ -13,6 +13,7 @@ import { registerVideos } from './routes/videos.js';
 import { registerWorks } from './routes/works.js';
 import { registerBgm } from './routes/bgm.js';
 import { registerAbout } from './routes/about.js';
+import { registerSearch } from './routes/search.js';
 import { registerPublish } from './routes/publish.js';
 import { registerTts } from './routes/tts.js';
 import { registerJobs } from './routes/jobs.js';
@@ -74,6 +75,7 @@ export async function buildApp(): Promise<FastifyInstance> {
   registerWorks(app, config.apiPrefix);
   registerBgm(app, config.apiPrefix);
   registerAbout(app, config.apiPrefix);
+  registerSearch(app, config.apiPrefix);
   registerProjects(app, config.apiPrefix);
   registerPublish(app, config.apiPrefix);
   registerTts(app, config.apiPrefix);

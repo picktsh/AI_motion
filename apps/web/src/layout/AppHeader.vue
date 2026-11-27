@@ -1,11 +1,13 @@
 <script setup lang="ts">
-import { NButton, NDropdown, NIcon, NTooltip } from 'naive-ui';
+import { ref } from 'vue';
+import { NButton, NDropdown, NIcon, NInput, NTooltip } from 'naive-ui';
 import { useRouter } from 'vue-router';
 import {
   LanguageOutline,
   MenuOutline,
   MoonOutline,
   RefreshOutline,
+  SearchOutline,
   SunnyOutline,
 } from '@vicons/ionicons5';
 
@@ -26,6 +28,13 @@ const emit = defineEmits<{
 }>();
 
 const router = useRouter();
+const keyword = ref('');
+
+function submitSearch(): void {
+  const q = keyword.value.trim();
+  router.push({ path: '/search', query: q ? { q } : {} });
+}
+
 const languageOptions = [
   { label: '中文', key: 'zh-CN' },
   { label: 'English', key: 'en-US', disabled: true },
@@ -55,6 +64,18 @@ const languageOptions = [
     </div>
 
     <div class="flex-none flex items-center gap-2">
+      <n-input
+        v-model:value="keyword"
+        size="small"
+        round
+        clearable
+        placeholder="搜索项目 / 模板 / 素材"
+        class="w-56 max-lg:hidden"
+        @keyup.enter="submitSearch"
+      />
+      <n-button secondary circle aria-label="全局检索" class="lg:hidden" @click="submitSearch">
+        <template #icon><n-icon :size="18"><SearchOutline /></n-icon></template>
+      </n-button>
       <n-button
         secondary
         class="!h-9 !px-3 rounded-full"

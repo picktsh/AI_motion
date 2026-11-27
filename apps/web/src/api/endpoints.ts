@@ -15,6 +15,10 @@ export const endpoints = {
     redirect: (id: string): string => `/templates/${encodeURIComponent(id)}/redirect`,
   },
 
+  search: {
+    q: '/search',
+  },
+
   about: {
     roadmap: '/about/roadmap',
   },

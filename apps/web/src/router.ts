@@ -172,6 +172,12 @@ const router = createRouter({
       meta: { title: '更新日志', description: '控制台版本变更记录', back: '/' },
     },
     {
+      path: '/search',
+      name: 'search',
+      component: () => import('./pages/Search.vue'),
+      meta: { title: '全局检索', description: '项目、模板与素材一次搜', back: '/' },
+    },
+    {
       path: '/about',
       name: 'about',
       component: () => import('./pages/About.vue'),

@@ -16,6 +16,7 @@
 
 ## 0.4.0 · 2026-11-27
 
+- 新增 · 全局检索 `GET /search?q=` 与检索页：项目（名称/编号/文稿/关键词）、模板（名称/编号/版本/档位）、素材（文件名/路径/归属）统一命中，结果按域分组并可跳转或直开资源；顶栏加入搜索框与窄屏搜索按钮
 - 新增 · #95 关于页阶段路线图：新增 `GET /about/roadmap` 直接解析 `docs/roadmap.md`（分节、完成态标注、子项详情），页面用进度条与状态点可视化，文档保持单一口径；运行配置跳环境页查看
 - 新增 · #65 BGM 公共库：`GET /bgm` 扫 `studio/assets/bgm`（音频扩展名 + 同名 `.license.json` 读授权），`POST /projects/:id/bgm` 选用时复制进项目 `input/assets` 并回写 `user.json media.music`（mode/file/license），`mode=none` 解绑
 - 新增 · #69 模板目录版本清理入口 `DELETE /templates/:id`：只清导入目录，被项目 `templateDir` 引用时 409 并回引用路径，删除同时注销 `templates.lock.json`；模板详情抽屉加「清理本地版本」二次确认
