@@ -18,7 +18,7 @@
 
 ## 二期中段：.motion 兼容层
 
-- 目录迁移与模板依赖：旧路径迁至 `studio/templates/<id>` 并保留兼容；templates.lock.json 来源锁定与 SHA256 校验；.motion 拖拽导入与凭据扫描
+- 目录迁移与模板依赖：**已完成**。旧路径迁至 `studio/templates/<id>` 并保留兼容读取；`templates.lock.json` 来源锁定与 SHA256 校验；.motion 支持按钮导入与拖拽导入，导入前做凭据扫描
 - 模板包静态校验：**已完成**。ZIP 条目数/总解压体积/单包体积上限、路径穿越与绝对路径、符号链接、重名条目拦截，逐文件 sha256 与 integrity.json 比对，导入只落盘不执行代码
 - #94 参数 preset 预览：参数概要与类型范围只读视图已落地（抽屉内一层字段类型/必填/枚举/常量/范围/嵌套子项）；preset 预览待模板 schema 提供 preset 段后补充，默认值由宿主显式应用，schema 不自动注入
 - 版本与 profile 声明：**部分完成**。模板详情展示 specVersion、packageProfile 与 runtime profile，未知前缀的 profile 不按已知档位执行；未知字段保留透传。版本号语义化比较与降级警告未做

@@ -111,11 +111,41 @@ function pickFile() {
   fileInput.value?.click();
 }
 
+const dragging = ref(false);
+
+function onDragOver(event: DragEvent): void {
+  if (importing.value) return;
+  event.preventDefault();
+  dragging.value = true;
+}
+
+function onDragLeave(event: DragEvent): void {
+  const el = event.currentTarget as HTMLElement | null;
+  const related = event.relatedTarget as Node | null;
+  if (el && related && el.contains(related)) return;
+  dragging.value = false;
+}
+
+async function onDrop(event: DragEvent): Promise<void> {
+  event.preventDefault();
+  dragging.value = false;
+  if (importing.value) return;
+  const file = event.dataTransfer?.files?.[0];
+  if (!file) return;
+  await importFile(file);
+}
+
 async function onFilePicked(event: Event) {
   const el = event.target as HTMLInputElement;
   const file = el.files?.[0] ?? null;
   el.value = '';
   if (!file) return;
+  await importFile(file);
+}
+
+/** 文件选择与拖拽共用：扩展名校验 + 上传 + 落盘后刷新清单。 */
+async function importFile(file: File): Promise<void> {
+  if (importing.value) return;
   if (!/\.(motion|zip)$/i.test(file.name)) {
     message.warning('请选择 .motion 模板包（本质是 zip 容器）');
     return;
@@ -390,7 +420,18 @@ const catSummary = computed(() => {
     </div>
 
     <!-- 我的模板 -->
-    <section class="flex flex-col gap-3">
+    <section
+      class="relative flex flex-col gap-3"
+      @dragover="onDragOver"
+      @dragleave="onDragLeave"
+      @drop="onDrop"
+    >
+      <div
+        v-if="dragging"
+        class="absolute inset-0 z-10 grid place-items-center rounded-[20px] border-2 border-dashed border-brand bg-brand-soft/80 text-sm text-ink pointer-events-none"
+      >
+        松手导入 .motion 模板包
+      </div>
       <header class="flex items-center gap-3 flex-wrap">
         <h2 class="m-0 text-lg font-semibold text-ink">我的模板</h2>
         <span v-if="local.data.value" class="text-xs text-ink-3 mr-auto">共 {{ local.data.value.length }} 个</span>
